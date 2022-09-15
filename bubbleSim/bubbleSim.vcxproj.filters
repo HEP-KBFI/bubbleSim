@@ -15,33 +15,33 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\Users\vasar\Desktop\temp\Bubble\Bubble\stream_data.h">
+    <ClInclude Include="simulation.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\Users\vasar\Desktop\temp\Bubble\Bubble\source.h">
+    <ClInclude Include="source.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\Users\vasar\Desktop\temp\Bubble\Bubble\simulation.h">
+    <ClInclude Include="stream_data.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\Users\vasar\Desktop\temp\Bubble\Bubble\opencl.h">
+    <ClInclude Include="base.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\Users\vasar\Desktop\temp\Bubble\Bubble\base.h">
+    <ClInclude Include="opencl.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\Users\vasar\Desktop\temp\Bubble\Bubble\stream_data.cpp">
+    <ClCompile Include="simulation.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\Users\vasar\Desktop\temp\Bubble\Bubble\source.cpp">
+    <ClCompile Include="source.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\Users\vasar\Desktop\temp\Bubble\Bubble\simulation.cpp">
+    <ClCompile Include="stream_data.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\Users\vasar\Desktop\temp\Bubble\Bubble\opencl.cpp">
+    <ClCompile Include="opencl.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

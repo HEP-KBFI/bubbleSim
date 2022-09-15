@@ -18,6 +18,19 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="base.h" />
+    <ClInclude Include="opencl.h" />
+    <ClInclude Include="simulation.h" />
+    <ClInclude Include="source.h" />
+    <ClInclude Include="stream_data.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="opencl.cpp" />
+    <ClCompile Include="simulation.cpp" />
+    <ClCompile Include="source.cpp" />
+    <ClCompile Include="stream_data.cpp" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
@@ -150,19 +163,6 @@
       <AdditionalLibraryDirectories>$(SolutionDir)\dependencies\OpenCL\lib;</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClInclude Include="..\..\..\Users\vasar\Desktop\temp\Bubble\Bubble\base.h" />
-    <ClInclude Include="..\..\..\Users\vasar\Desktop\temp\Bubble\Bubble\opencl.h" />
-    <ClInclude Include="..\..\..\Users\vasar\Desktop\temp\Bubble\Bubble\simulation.h" />
-    <ClInclude Include="..\..\..\Users\vasar\Desktop\temp\Bubble\Bubble\source.h" />
-    <ClInclude Include="..\..\..\Users\vasar\Desktop\temp\Bubble\Bubble\stream_data.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="..\..\..\Users\vasar\Desktop\temp\Bubble\Bubble\opencl.cpp" />
-    <ClCompile Include="..\..\..\Users\vasar\Desktop\temp\Bubble\Bubble\simulation.cpp" />
-    <ClCompile Include="..\..\..\Users\vasar\Desktop\temp\Bubble\Bubble\source.cpp" />
-    <ClCompile Include="..\..\..\Users\vasar\Desktop\temp\Bubble\Bubble\stream_data.cpp" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
