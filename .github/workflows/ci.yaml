@@ -16,5 +16,6 @@ jobs:
       - name: install deps
         run: |
           sudo apt install -y pocl-opencl-icd opencl-clhpp-headers
+          ls /usr/include/
       - name: build
         run: make
