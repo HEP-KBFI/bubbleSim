@@ -4,6 +4,10 @@ Run on CPU:
 
 ```
 singularity exec --env POCL_DEVICES=basic ~/HEP-KBFI/singularity/base-new.simg build/bubbleSim.exe
+
+...
+platform: Portable Computing Language
+
 ...
 ========== Final results ==========
 Count particles by mass and distance:
@@ -16,7 +20,9 @@ Time taken: 0 h 1 m 49 s
 
 Run on GPU
 ```
-singularity exec --nv --env LD_LIBRARY_PATH= ~/HEP-KBFI/singularity/base-new.simg build/bubbleSim.exe
+singularity exec --nv --env LD_LIBRARY_PATH=/usr/local/cuda/lib64 ~/HEP-KBFI/singularity/base-new.simg build/bubbleSim.exe
+...
+platform: NVIDIA CUDA
 ...
 ========== Final results ==========
 Count particles by mass and distance:
