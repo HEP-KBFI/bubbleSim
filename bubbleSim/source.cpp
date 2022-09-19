@@ -51,14 +51,14 @@ void countParticleDifferenceRadiusMass(int& t_particlesInMass, int& t_particlesI
 }
 
 int main() {
-	bool b_logMomentum = true;
-	bool b_logNumberDensity = true;
-	bool b_logEnergyDensity = true;
+	bool b_logMomentum = false;
+	bool b_logNumberDensity = false;
+	bool b_logEnergyDensity = false;
 	bool b_logBasicData = true;
 	bool b_countMassRadiusDifference = true;
 
 	u_int logFrequency = 50;
-	unsigned int sim_steps = 10'000; // Number of steps for simulation
+	unsigned int sim_steps = 1'000; // Number of steps for simulation
 
 
 	std::string main_path = "./";

@@ -24,4 +24,6 @@ jobs:
       - name: build
         run: make
       - name: run
-        run: ./build/bubbleSim.exe
+        run: |
+          mkdir data
+          ./build/bubbleSim.exe
