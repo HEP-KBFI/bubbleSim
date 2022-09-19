@@ -15,10 +15,12 @@ jobs:
       - uses: actions/checkout@v3
       - name: install deps
         run: |
+          sudo apt install -y gcc g++
           sudo apt install -y opencl-c-headers opencl-clhpp-headers ocl-icd-libopencl1
           sudo apt install -y pocl-opencl-icd
           ls -lrt /usr/lib/x86_64-linux-gnu/libOpenCL*
           ls -lrt /usr/lib/x86_64-linux-gnu/libpocl*
+          gcc --version
       - name: build
         run: make
       - name: run
