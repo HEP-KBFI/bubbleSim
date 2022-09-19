@@ -18,12 +18,9 @@ jobs:
           sudo apt install -y gcc g++
           sudo apt install -y opencl-c-headers opencl-clhpp-headers ocl-icd-opencl-dev
           sudo apt install -y pocl-opencl-icd
-          ls -lrt /usr/lib/x86_64-linux-gnu/libOpenCL*
-          ls -lrt /usr/lib/x86_64-linux-gnu/libpocl*
-          gcc --version
       - name: build
         run: make
       - name: run
         run: |
           mkdir data
-          ./build/bubbleSim.exe
+          POCL_DEVICES=basic ./build/bubbleSim.exe
