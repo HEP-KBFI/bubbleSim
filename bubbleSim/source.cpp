@@ -22,11 +22,9 @@ MainType takeStep(Simulation& sim, Bubble& bubble, MultiprocessingCL& multiproce
 }
 
 void createFileNameFromCurrentDate(char* name) {
-	std::time_t current_time;
-	tm curr_tm;
-	std::time(&current_time);
-	localtime_s(&curr_tm, &current_time);
-	std::strftime(name, 50, "%j_%Y_%H_%M_%S", &curr_tm);
+        std::time_t t_cur = time(NULL); 
+	const auto* t_local = localtime(&t_cur);
+	std::strftime(name, 50, "%j_%Y_%H_%M_%S", t_local);
 }
 
 void countParticleDifferenceRadiusMass(int& t_particlesInMass, int& t_particlesInRadius, int& t_particlesOutMass, int& t_particlesOutRadius, Bubble& t_bubble, Simulation& t_sim) {
