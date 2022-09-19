@@ -8,7 +8,7 @@ SRCS := $(SRC_DIR)/opencl.cpp $(SRC_DIR)/simulation.cpp $(SRC_DIR)/source.cpp $(
 OBJS := $(SRCS:%=$(BUILD_DIR)/%.o)
 
 
-#link against common OCL implementation
+#link against common OCL headers
 CXXFLAGS=-fpermissive -std=c++2a
 LDFLAGS=-L/usr/lib/x86_64-linux-gnu/ -lOpenCL
 
