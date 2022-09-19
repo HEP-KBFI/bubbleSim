@@ -10,7 +10,7 @@ OBJS := $(SRCS:%=$(BUILD_DIR)/%.o)
 
 #link against POCL (CPU)
 CXXFLAGS=-I/usr/include/ -fpermissive -std=c++2a
-LDFLAGS=-L/usr/lib/x86_64-linux-gnu/ -lOpenCL
+LDFLAGS=-lpocl
 
 #link against Nvidia OpenCL (GPU)
 #LDFLAGS=-L/usr/local/cuda/lib64/ -lOpenCL
