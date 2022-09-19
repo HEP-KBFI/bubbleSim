@@ -12,9 +12,17 @@ cl::Context CreateContext(std::vector<cl::Device>& devices) {
     }
 
     for (const auto& value : platforms) {
+	std::cout << "platform: " << value.getInfo<CL_PLATFORM_NAME>() << std::endl;
         if (value.getInfo<CL_PLATFORM_NAME>().find("NVIDIA") != std::string::npos) {
             std::vector<cl::Device> temp_devices;
             value.getDevices(CL_DEVICE_TYPE_GPU, &temp_devices);
+            for (const auto& value2 : temp_devices) {
+                devices.push_back(value2);
+            }
+        }
+        if (value.getInfo<CL_PLATFORM_NAME>().find("Portable Computing Language") != std::string::npos) {
+            std::vector<cl::Device> temp_devices;
+            value.getDevices(CL_DEVICE_TYPE_CPU, &temp_devices);
             for (const auto& value2 : temp_devices) {
                 devices.push_back(value2);
             }

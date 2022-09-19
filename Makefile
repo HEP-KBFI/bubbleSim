@@ -1,16 +1,22 @@
 
-TARGET_EXEC := final_program
+TARGET_EXEC := bubbleSim.exe
 
 BUILD_DIR := ./build
-SRC_DIRS := ./bubbleSim
+SRC_DIR := ./bubbleSim
 
-SRCS := $(shell find $(SRC_DIRS) -name '*.cpp' -or -name '*.c' -or -name '*.s')
+SRCS := $(SRC_DIR)/opencl.cpp $(SRC_DIR)/simulation.cpp $(SRC_DIR)/source.cpp $(SRC_DIR)/stream_data.cpp
 OBJS := $(SRCS:%=$(BUILD_DIR)/%.o)
 
-CXXFLAGS=-I/usr/local/cuda/include/ -fpermissive -std=c++2a
-LDFLAGS=-L/usr/local/cuda/lib64/ -lOpenCL
 
-# The final build step.
+CXXFLAGS=-I/usr/local/cuda/include/ -fpermissive -std=c++2a
+
+#link against Nvidia OpenCL (GPU)
+#LDFLAGS=-L/usr/local/cuda/lib64/ -lOpenCL
+
+#link against POCL (CPU)
+LDFLAGS=-L/usr/lib/x86_64-linux-gnu/ -lOpenCL
+
+# The final build step of the executable
 $(BUILD_DIR)/$(TARGET_EXEC): $(OBJS)
 	$(CXX) $(OBJS) -o $@ $(LDFLAGS)
 

@@ -51,17 +51,17 @@ void countParticleDifferenceRadiusMass(int& t_particlesInMass, int& t_particlesI
 }
 
 int main() {
-	bool b_logMomentum = false;
-	bool b_logNumberDensity = false;
-	bool b_logEnergyDensity = false;
+	bool b_logMomentum = true;
+	bool b_logNumberDensity = true;
+	bool b_logEnergyDensity = true;
 	bool b_logBasicData = true;
 	bool b_countMassRadiusDifference = true;
 
 	u_int logFrequency = 50;
-	unsigned int sim_steps = 100'000; // Number of steps for simulation
+	unsigned int sim_steps = 10'000; // Number of steps for simulation
 
 
-	std::string main_path = "C:/Users/vasar/Code/Bubble/plotting/";
+	std::string main_path = "./";
 	std::string data_path = main_path + "data/";
 	// std::string config_path = "C:/dev/Bubble/config/";
 
@@ -169,7 +169,7 @@ int main() {
 	// 5. Create bubble
 	// radius, speed, alpha, dVT, dV, sigma
 	Bubble bubble(simulationInitialBubbleRadius, initialBubbleSpeed, dVT, dV, sigma);
-	std::string kernelFile = "C:/Users/vasar/Code/Bubble/Bubble/kernel.cl";
+	std::string kernelFile = "./bubbleSim/kernel.cl";
 
 	// 6. Define dt value
 	sim.m_dt = simulationInitialBubbleRadius / 1000;

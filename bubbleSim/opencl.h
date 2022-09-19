@@ -1,6 +1,6 @@
 #pragma once
 #pragma comment(lib, "OpenCL.lib")
-#include<CL/cl.hpp>
+#include <CL/cl.hpp>
 #include "base.h"
 
 cl::Context CreateContext(std::vector<cl::Device>& devices);
