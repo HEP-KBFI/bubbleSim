@@ -8,13 +8,12 @@ SRCS := $(SRC_DIR)/opencl.cpp $(SRC_DIR)/simulation.cpp $(SRC_DIR)/source.cpp $(
 OBJS := $(SRCS:%=$(BUILD_DIR)/%.o)
 
 
-CXXFLAGS=-I/usr/local/cuda/include/ -fpermissive -std=c++2a
+#link against POCL (CPU)
+CXXFLAGS=-I/usr/include/ -fpermissive -std=c++2a
+LDFLAGS=-L/usr/lib/x86_64-linux-gnu/ -lOpenCL
 
 #link against Nvidia OpenCL (GPU)
-LDFLAGS=-L/usr/local/cuda/lib64/ -lOpenCL
-
-#link against POCL (CPU)
-#LDFLAGS=-L/usr/lib/x86_64-linux-gnu/ -lOpenCL
+#LDFLAGS=-L/usr/local/cuda/lib64/ -lOpenCL
 
 # The final build step of the executable
 $(BUILD_DIR)/$(TARGET_EXEC): $(OBJS)
