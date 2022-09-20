@@ -7,8 +7,12 @@ void createFileNameFromCurrentDate(char* name) {
 	std::strftime(name, 50, "%j_%Y_%H_%M_%S", t_local);
 }
 
-int main() {
+int main(int argc, char *argv[]) {
 
+	if (argc != 2) {
+		std::cerr << "Usage: bubbleSim.exe config.json" << std::endl;
+		exit(0);
+        }
 	// TODO
 	/*
 	std::filesystem::path a = std::filesystem::current_path();
@@ -21,8 +25,8 @@ int main() {
 	*/
 	std::filesystem::path current_path = std::filesystem::current_path();
 
-	std::string configPath = current_path.string() + "\\config.json";
-	std::string kernelPath = current_path.string() + "\\kernel.cl";
+	std::string configPath = argv[1];
+	std::string kernelPath = "kernel.cl";
 	std::string kernelName = "step_double";
 
 	using std::chrono::high_resolution_clock;
@@ -124,6 +128,10 @@ int main() {
 		sim.step(bubble, openCL);
 		std::cout << std::setprecision(15) << "dP: " << sim.getdPressureStep() << std::endl;
 		std::cout << "Bubble speed: " << bubble.getSpeed() << std::endl;
+		if (std::isnan(bubble.getSpeed())) {
+	        	std::cerr << "Abort due to nan" << std::endl;
+			exit(1);
+		}
 	}
 
 }

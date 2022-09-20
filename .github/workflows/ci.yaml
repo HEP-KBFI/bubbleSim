@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+  workflow_dispatch:
+
+jobs:
+  build-and-run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: install deps
+        run: |
+          sudo apt install -y gcc g++
+          sudo apt install -y opencl-c-headers opencl-clhpp-headers ocl-icd-opencl-dev
+          sudo apt install -y pocl-opencl-icd
+      - name: build
+        run: make
+      - name: run
+        run: |
+          mkdir data
+          cp bubbleSim/kernel.cl ./
+          POCL_DEVICES=basic ./build/bubbleSim.exe bubbleSim/config.json

@@ -365,3 +365,9 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+#build dir on linux
+build
+
+#Vim temp files
+*.swp
