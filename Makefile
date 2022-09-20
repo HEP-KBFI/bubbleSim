@@ -7,9 +7,10 @@ SRC_DIR := ./bubbleSim
 SRCS := $(SRC_DIR)/openclwrapper.cpp $(SRC_DIR)/simulation.cpp $(SRC_DIR)/source.cpp $(SRC_DIR)/datastreamer.cpp
 OBJS := $(SRCS:%=$(BUILD_DIR)/%.o)
 
+CXX=g++
 
 #link against common OCL headers
-CXXFLAGS=-fpermissive -std=c++2a
+CXXFLAGS=-fpermissive -std=c++2a -I./dependencies/json/
 LDFLAGS=-L/usr/lib/x86_64-linux-gnu/ -lOpenCL
 
 # The final build step of the executable
