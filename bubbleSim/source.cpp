@@ -126,7 +126,7 @@ int main() {
 		std::cout << "Bubble speed: " << bubble.getSpeed() << std::endl;
 		if (std::isnan(bubble.getSpeed())) {
 	        	std::cerr << "Abort due to nan" << std::endl;
-			sys.exit(1);
+			exit(1);
 		}
 	}
 
