@@ -162,7 +162,7 @@ void OpenCLWrapper::createContext(std::vector<cl::Device>& devices) {
         exit(1);
     }
 
-    m_context = cl::Context::Context(devices, NULL, NULL, NULL, &errNum);
+    m_context = cl::Context(devices, NULL, NULL, NULL, &errNum);
     m_deviceUsed = devices[0];
 
     if (errNum != CL_SUCCESS) {
@@ -177,7 +177,7 @@ void OpenCLWrapper::createProgram(cl::Context& context, cl::Device& device, std:
     std::ifstream kernel_file(kernelFile);
     std::string kernel_code(std::istreambuf_iterator<char>(kernel_file), (std::istreambuf_iterator<char>()));
 
-    m_program = cl::Program::Program(context, kernel_code, false, &errNum);
+    m_program = cl::Program(context, kernel_code, false, &errNum);
     if (errNum != CL_SUCCESS) {
         std::cerr << "Failed to create program from source file. Cehck if kernel file location is correct. (" << kernelFile << ")" << std::endl;
         exit(1);
@@ -193,7 +193,7 @@ void OpenCLWrapper::createProgram(cl::Context& context, cl::Device& device, std:
 
 void OpenCLWrapper::createKernel(cl::Program& program, const char* name) {
     int errNum;
-    m_kernel = cl::Kernel::Kernel(program, name, &errNum);
+    m_kernel = cl::Kernel(program, name, &errNum);
     if (errNum != CL_SUCCESS) {
         std::cerr << "Failed to create a kernel: " << name << std::endl;
         exit(1);
