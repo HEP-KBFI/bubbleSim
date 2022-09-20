@@ -23,6 +23,5 @@ jobs:
       - name: run
         run: |
           mkdir data
-          cp bubbleSim/config.json ./
           cp bubbleSim/kernel.cl ./
-          POCL_DEVICES=basic ./build/bubbleSim.exe
+          POCL_DEVICES=basic ./build/bubbleSim.exe bubbleSim/config.json
