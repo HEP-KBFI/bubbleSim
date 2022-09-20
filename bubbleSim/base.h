@@ -10,6 +10,7 @@
 #include <cstdio>
 #include <iostream>
 #include <fstream>
+#include <sstream>
 
 #define LOG_DEBUG
 

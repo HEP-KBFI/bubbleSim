@@ -1,10 +1,47 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include "source.h"
 
-void createFileNameFromCurrentDate(char* name) {
+std::string createFileNameFromCurrentDate() {
+	static std::random_device              rd;
+	static std::mt19937                    gen(rd());
+	static std::uniform_int_distribution<> dis(0, 15);
+	static std::uniform_int_distribution<> dis2(8, 11);
+
+	char c_name[18];
+
+	int i;
+	std::stringstream ss;
+	std::string result;
+
 	std::time_t t_cur = time(NULL);
 	const auto* t_local = localtime(&t_cur);
-	std::strftime(name, 50, "%j_%Y_%H_%M_%S", t_local);
+	std::strftime(c_name, 18, "%j_%Y_%H_%M_%S", t_local);
+	
+	ss << std::hex;
+	for (i = 0; i < 8; i++) {
+		ss << dis(gen);
+	}
+	ss << "-";
+	for (i = 0; i < 4; i++) {
+		ss << dis(gen);
+	}
+	ss << "-4";
+	for (i = 0; i < 3; i++) {
+		ss << dis(gen);
+	}
+	ss << "-";
+	ss << dis2(gen);
+	for (i = 0; i < 3; i++) {
+		ss << dis(gen);
+	}
+	ss << "-";
+	for (i = 0; i < 12; i++) {
+		ss << dis(gen);
+	};
+	result = std::string(c_name) + "_" + ss.str();
+	std::cout << result << std::endl;
+	return result;
+	
 }
 
 int main(int argc, char *argv[]) {
@@ -24,7 +61,8 @@ int main(int argc, char *argv[]) {
 	std::cout << c << std::endl;
 	*/
 	std::filesystem::path current_path = std::filesystem::current_path();
-
+	std::cout << "File name: ";
+	createFileNameFromCurrentDate();
 	std::string configPath = argv[1];
 	std::string kernelPath = "kernel.cl";
 	std::string kernelName = "step_double";
@@ -137,8 +175,6 @@ int main(int argc, char *argv[]) {
 			exit(1);
 		}
 	}
-
-	
 
 	dataStream.streamMassRadiusDifference(false);
 

@@ -98,6 +98,15 @@ void DataStreamer::streamMassRadiusDifference(bool t_isBubbleTrueVacuum) {
 	int countMassTrue = 0, countMassFalse = 0;
 	int countRadiusTrue = 0, countRadiusFalse = 0;
 
+	if (m_readBufferX) {
+		m_openCLWrapper.readBufferX(m_sim.getReferenceX());
+		m_readBufferX = false;
+	}
+	if (m_readBufferM) {
+		m_openCLWrapper.readBufferM(m_sim.getReferenceM());
+		m_readBufferM = false;
+	}
+
 	for (int i = 0; i < m_sim.getParticleCountTotal(); i++) {
 		if (m_sim.getParticleMass(i) == m_sim.getMassFalse()) {
 			countMassFalse += 1;
