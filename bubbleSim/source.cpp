@@ -124,6 +124,10 @@ int main() {
 		sim.step(bubble, openCL);
 		std::cout << std::setprecision(15) << "dP: " << sim.getdPressureStep() << std::endl;
 		std::cout << "Bubble speed: " << bubble.getSpeed() << std::endl;
+		if (std::isnan(bubble.getSpeed())) {
+	        	std::cerr << "Abort due to nan" << std::endl;
+			sys.exit(1);
+		}
 	}
 
 }
