@@ -21,8 +21,8 @@ int main() {
 	*/
 	std::filesystem::path current_path = std::filesystem::current_path();
 
-	std::string configPath = current_path.string() + "\\config.json";
-	std::string kernelPath = current_path.string() + "\\kernel.cl";
+	std::string configPath = current_path.string() + "/config.json";
+	std::string kernelPath = current_path.string() + "/kernel.cl";
 	std::string kernelName = "step_double";
 
 	using std::chrono::high_resolution_clock;

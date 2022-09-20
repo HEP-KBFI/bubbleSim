@@ -134,17 +134,32 @@ void OpenCLWrapper::createContext(std::vector<cl::Device>& devices) {
     }
 
     for (const auto& value : platforms) {
-        if (value.getInfo<CL_PLATFORM_NAME>().find("NVIDIA") != std::string::npos) {
+	std::cout << "Platform=" << value.getInfo<CL_PLATFORM_NAME>() << std::endl; 
+        if (value.getInfo<CL_PLATFORM_NAME>().find("Portable Computing Language") != std::string::npos) {
+            std::vector<cl::Device> temp_devices;
+            value.getDevices(CL_DEVICE_TYPE_CPU, &temp_devices);
+            for (const auto& value2 : temp_devices) {
+                devices.push_back(value2);
+            }
+	    break;
+        }
+	else if (value.getInfo<CL_PLATFORM_NAME>().find("NVIDIA") != std::string::npos) {
             std::vector<cl::Device> temp_devices;
             value.getDevices(CL_DEVICE_TYPE_GPU, &temp_devices);
             for (const auto& value2 : temp_devices) {
                 devices.push_back(value2);
             }
+	    break;
         }
     }
 
     if (devices.size() == 0) {
         std::cerr << "Devices list is empty." << std::endl;
+        exit(1);
+    }
+    if (devices.size() > 1) {
+        std::cerr << "Found more than one device." << std::endl;
+        exit(1);
     }
 
     m_context = cl::Context::Context(devices, NULL, NULL, NULL, &errNum);
