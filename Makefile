@@ -4,7 +4,7 @@ TARGET_EXEC := bubbleSim.exe
 BUILD_DIR := ./build
 SRC_DIR := ./bubbleSim
 
-SRCS := $(SRC_DIR)/openclwrapper.cpp $(SRC_DIR)/simulation.cpp $(SRC_DIR)/source.cpp $(SRC_DIR)/datastreamer.cpp
+SRCS := $(SRC_DIR)/bubble.cpp $(SRC_DIR)/openclwrapper.cpp $(SRC_DIR)/simulation.cpp $(SRC_DIR)/source.cpp $(SRC_DIR)/datastreamer.cpp
 OBJS := $(SRCS:%=$(BUILD_DIR)/%.o)
 
 CXX=g++
