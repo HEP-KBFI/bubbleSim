@@ -20,16 +20,16 @@ class DataStreamer {
 	bool m_readBufferR;
 	bool m_readBufferSpeed;
 
-	Simulation& m_sim;
-	Bubble& m_bubble;
-	OpenCLWrapper& m_openCLWrapper;
+	Simulation m_sim;
+	Bubble m_bubble;
+	OpenCLWrapper m_openCLWrapper;
 
 public:
-	DataStreamer();
 	DataStreamer(Simulation& t_sim, Bubble& t_bubble, OpenCLWrapper& t_openCLWrapper);
 
 	void reset();
 
+	void streamBaseData(std::fstream& t_stream, bool t_isBubbleTrueVacuum);
 	/*
 	Streams for: 
 	

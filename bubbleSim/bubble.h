@@ -7,7 +7,6 @@ class Bubble {
 	numType m_speed; // 1)
 	
 	numType m_dV;
-	numType m_dVT;
 	numType m_sigma;
 	// Calculated parameters from input
 	numType m_area;
@@ -26,30 +25,30 @@ public:
 	numType getSpeed() { return m_speed; }
 	numType getGamma() { return m_gamma; }
 	numType getdV() { return m_dV; }
-	numType getdVT() { return m_dVT; }
 	numType getSigma() { return m_sigma; }
 	numType getArea() { return m_area; }
 	numType getVolume() { return m_volume; }
 	numType getGammaSpeed() { return m_gammaSpeed; }
 	numType getRadius2() { return m_radius2; }
 	numType getEnergy() { return m_energy; }
+	numType getRadiusAfterDt2() { return m_radiusAfterDt2; }
 
 	numType& getRadiusRef() { return m_radius; }
 	numType& getSpeedRef() { return m_speed; }
 	numType& getGammaRef() { return m_gamma; }
 	numType& getdVRef() { return m_dV; }
-	numType& getdVTRef() { return m_dVT; }
 	numType& getSigmaRef() { return m_sigma; }
 	numType& getAreaRef() { return m_area; }
 	numType& getVolumeRef() { return m_volume; }
 	numType& getGammaSpeedRef() { return m_gammaSpeed; }
 	numType& getRadius2Ref() { return m_radius2; }
 	numType& getEnergyRef() { return m_energy; }
+	numType& getRadiusAfterDt2Ref() { return m_radiusAfterDt2; }
 
-	Bubble();
-	Bubble(numType t_initialRadius, numType t_initialSpeed, numType t_dV, numType t_dVT, numType t_sigma);
+	Bubble(){}
+	Bubble(numType t_initialRadius, numType t_initialSpeed, numType t_dV, numType t_sigma);
 	
 	void evolveWall(numType dt, numType dP);
-	numType calculateRadiusAfterDt2Ref(numType dt);
+	numType calculateRadiusAfterDt2(numType dt);
 	numType calculateEnergy();
 };

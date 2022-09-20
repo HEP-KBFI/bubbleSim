@@ -1,13 +1,16 @@
 #pragma once
 #include "base.h"
 #include "simulation.h"
-#include "stream_data.h"
+#include "bubble.h"
+#include "openclwrapper.h"
+
+#include <nlohmann/json.hpp>
 
 #include <iomanip>
 #include <numeric>
 #include <chrono>
+#include <filesystem>
 
-#include "opencl.h"
 // #include <nlohmann/json.hpp>
 
 
