@@ -1,13 +1,16 @@
 #pragma once
 #define _USE_MATH_DEFINES
 
-#include <vector>
+
+#include <cmath>
+
 #include <array>
+#include <vector>
+
 #include <iostream>
 #include <fstream>
-#include <cmath>
-#include <ctime>
-#include <stdexcept>
 
-typedef double MainType;
+
+
+typedef double numType;
 typedef unsigned int u_int;

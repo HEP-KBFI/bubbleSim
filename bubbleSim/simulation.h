@@ -1,147 +1,171 @@
 #pragma once
 #include "base.h"
+#include "bubble.h"
+#include "openclwrapper.h"
 
-#include <ios>
 #include <random>
-#include "opencl.h"
 
-
-class Bubble {
-
-public:
-	MainType m_radius;
-	MainType m_speed;
-	MainType m_gamma;
-	MainType m_dV;
-	MainType m_dVT;
-	MainType m_sigma;
-	MainType m_area;
-	MainType m_volume;
-	MainType m_gammaSpeed;
-	MainType m_radius2;
-	MainType m_energy;
-	MainType m_radiusSpeedDt2;
-
-	Bubble();
-	Bubble(MainType t_radius, MainType t_speed, MainType t_dVT, MainType t_dV, MainType t_sigma);
-	MainType calculateRadius2() { return m_radius * m_radius; };
-	MainType calculateRadiusSpeedDt2(MainType dt);
-	MainType calculate_gammaSpeed() { return m_gamma * m_speed; };
-	MainType calculateEnergy();
-
-	void evolveWall(MainType dt, MainType dP);
-	// MainType getEnergy();
-};
 
 class Simulation {
+	/*
+	False at the end of variable means False vaccum (lower mass)
+	True at the end of variable means False vaccum (higher mass)
+	*/
 
-public:
-	MainType m_alpha;
-	MainType m_massIn, m_massOut, m_massDelta2;
-	// Particle temperatures for generating distributions:
-	MainType m_temperatureIn, m_temperatureOut;
-	// Number of particles
-	u_int m_particleCount, m_particleCountIn, m_particleCountOut;
-	// Generated volume sizes for the 'bubble' and 'outside':
-	MainType m_volumeIn, m_volumeOut, m_volumeInInitial, m_volumeOutInitial;
-	// Density parameters (density / number density):
-	MainType m_rhoIn, m_rhoOut, m_nIn, m_nOut;
-	// Cumulative probability density
-	std::vector<MainType> m_cpdIn, m_cpdOut, m_pValuesIn, m_pValuesOut;
-	// Simulation density parameters:
-	MainType m_rhoInSim, m_rhoOutSim, m_nInSim, m_nOutSim;
-	MainType m_rhoInSimInitial, m_rhoOutSimInitial, m_nInSimInitial, m_nOutSimInitial;
-	// Bubble radius parameters
-	MainType m_radiusInitial, m_radius, m_radiusCritical, m_radiusSim;
+	// Simulation parameters
+	numType m_alpha;
+	numType m_coupling;
+	// Masses of particles in true and false vacuum
+	numType m_massTrue, m_massFalse, m_massDelta2;
+	// Temperatures in true and false vacuum
+	numType m_temperatureTrue, m_temperatureFalse;
+	// Particle counts total / true vacuum / false vacuum
+	int m_particleCountTotal, m_particleCountTrue, m_particleCountFalse;
+	// Energy and number desnities (calculated from distribution)
+	numType m_rhoTrue, m_rhoFalse, m_nTrue, m_nFalse;
+	// Cumulative probability densities
+	// std::vector<numType> m_cpdTrue, m_cpdFalse, m_pValuesTrue, m_pValuesFalse;
+
+	// Simulation density and distribuion parameters:
+	numType m_rhoTrueSim, m_rhoFalseSim, m_nTrueSim, m_nFalseSim;
+	numType m_rhoTrueSimInitial, m_rhoFalseSimInitial, m_nTrueSimInitial, m_nFalseSimInitial;
+	std::vector<numType> m_cpdFalse, m_pFalse, m_cpdTrue, m_pTrue;
+
+
 	// Simulation energy parameters
-	MainType m_energyTotalInitial, m_energyTotal, m_energyParticlesInitial, m_energyParticles, m_energyBubble, m_energyBubbleInitial;
-	MainType m_energyParticlePrevStep;
-	// Sim paramters:
-	MainType m_time;
-	MainType m_dt;
-	// Physical parameters
-	MainType m_coupling;
+	numType m_energyTotalInitial, m_energyTotal, m_energyParticlesInitial, m_energyParticles, m_energyBubble, m_energyBubbleInitial;
+	// Simulation last step
+	numType m_energyBubbleLastStep, m_energyParticlesLastStep;
 
-	std::vector<MainType> m_X;
-	std::vector<MainType> m_P;
-	std::vector<MainType> m_E;
-	std::vector<MainType> m_M;
-	std::vector<MainType> m_dP;
-
-	// False vacuum and True vacuum
-	std::vector<int8_t> m_InteractedFalse;
-	std::vector<int8_t> m_PassedFalse;
-	std::vector<int8_t> m_InteractedTrue;
-	std::vector<int8_t> m_PassedTrue;
-
-	Simulation(
-		MainType t_alpha, MainType t_massIn, MainType t_massOut, MainType t_temperatureIn, MainType t_temperatureOut,
-		u_int t_particleCountIn, unsigned int t_particleCountOut, MainType t_coupling
-	);
+	// Sim time paramters:
+	// Cumulative time
+	numType m_time;
+	// One step time length
+	numType m_dt;
+	numType m_dPressureStep;
 	
-	MainType getParticleRadius(u_int& i);
-	MainType getParticleMomentum(u_int& i);
-	MainType getParticleEnergy1(u_int& i);
-	MainType getParticleEnergy2(u_int& i);
-	void setVolumeIn(MainType& t_newVolume) { m_volumeIn = t_newVolume; }
-	void setVolumeOut(MainType& t_newVolume) { m_volumeOut = t_newVolume; }
-	Bubble createBubble();
-	MainType countParticlesEnergy();
-	MainType countParticlesEnergyIn(Bubble& bubble);
-	MainType calculateTotalEnergy(Bubble& bubble);
-	MainType calculateTotalEnergyInitial(Bubble& bubble);
-	MainType countParticleEnergyDensity(u_int t_startParticleIndex, u_int t_endParticleIndex, MainType t_volume);
-	MainType countParticleNumberDensity(u_int t_particleCount, MainType t_volume);
-	MainType calculateNumberDensity(MainType& t_mass, MainType& t_temperature, MainType& t_dp, MainType& t_pUpperLimit);
-	MainType calculateEnergyDensity(MainType& t_mass, MainType& t_temperature, MainType& t_dp, MainType& t_pUpperLimit);
-	MainType interp(MainType& t_value, std::vector<MainType>& t_x, std::vector<MainType>& t_y);
-	void calculateCPD(MainType& t_mass, MainType& t_temperature, const int& t_size, std::vector<MainType>& v_cpd, std::vector<MainType>& v_p, MainType& t_dp, MainType& t_pUpperLimit);
-	std::array<MainType, 3> generateRandomDirectionArray(MainType& t_magnitude, std::uniform_real_distribution<MainType>& t_uniformDistribution, std::mt19937_64& t_generator);
-	std::array<MainType, 3> generatePointInBoxArray(MainType& t_lengthX, MainType& t_lengthY, MainType& t_lengthZ, std::uniform_real_distribution<MainType>& t_uniformDistribution, std::mt19937_64& t_generator);
-	void generateRandomDirection(MainType& t_magnitude, std::vector < MainType>& t_vector, std::uniform_real_distribution<MainType>& t_uniformDistribution, std::mt19937_64& t_generator);
-	void generatePointInBox(MainType& t_lengthX, MainType& t_lengthY, MainType& t_lengthZ, std::vector < MainType>& t_vector, std::uniform_real_distribution<MainType>& t_uniformDistribution, std::mt19937_64& t_generator);
-	void generateParticleMomentum(u_int t_particleCount, MainType t_mass, std::vector<MainType>& t_cpd, std::vector<MainType>& t_pValues);
-	void generateParticleCoordinateCube(u_int t_particleCount, MainType t_radiusSphere, MainType t_radiusCube);
-	void generateParticleCoordinateSphere(u_int t_particleCount, MainType t_radiusSphere1, MainType t_radiusSphere2);	
-};	
+	// Particle info
+	std::vector<numType> m_X;
+	std::vector<numType> m_P;
+	std::vector<numType> m_E;
+	std::vector<numType> m_M;
+	// Pressure from particle-bubble collisions
+	std::vector<numType> m_dP;
 
-class MultiprocessingCL {
+	// Logging parameters
+	std::vector<int8_t> m_interactedFalse;
+	std::vector<int8_t> m_passedFalse;
+	// True vaccum interaction also means that the particle gets through
+	std::vector<int8_t> m_interactedTrue;
+
+	// Random number generator
+	int m_seed;
+	std::random_device m_randDev;
+	std::mt19937_64 m_generator;
+	std::uniform_real_distribution<numType> m_distribution;
 
 public:
-	std::vector<cl::Device> m_devices;
-	cl::Platform m_platform;
-	cl::Context m_context;
-	cl::Program m_program;
-	cl::Kernel m_kernel;
-	cl::CommandQueue m_queue;
+	Simulation() {}
+	Simulation(
+		int t_seed, numType t_alpha, numType t_massTrue, numType t_massFalse, numType t_temperatureTrue, numType t_temperatureFalse,
+		unsigned int t_particleCountTrue, unsigned int t_particleCountFalse, numType t_coupling
+	);
+	Simulation& operator=(const Simulation& t) { return *this; }
+	
+	void set_dt(numType t_dt);
 
-	cl::Buffer m_bufferX;
-	cl::Buffer m_bufferP;
-	cl::Buffer m_bufferE;
-	cl::Buffer m_bufferM;
-	cl::Buffer m_bufferDP;
+	std::vector<numType>& getReferenceX() { return m_X; }
+	std::vector<numType>& getReferenceP() { return m_P; }
+	std::vector<numType>& getReferenceM() { return m_M; }
+	std::vector<numType>& getReferenceE() { return m_E; }
+	std::vector<numType>& getReference_dP() { return m_dP; }
+	std::vector<int8_t>& getReferenceInteractedFalse() { return m_interactedFalse; }
+	std::vector<int8_t>& getReferencePassedFalse() { return m_passedFalse; }
+	std::vector<int8_t>& getReferenceInteractedTrue() { return m_interactedTrue; }
+	numType& getReference_dt() { return m_dt; }
+	numType& getReferenceMassFalse() { return m_massFalse; }
+	numType& getReferenceMassTrue() { return m_massTrue; }
+	numType& getReferenceMassDelta2() { return m_massDelta2; }
 
-	cl::Buffer m_bufferDt;
-	cl::Buffer m_bufferMassIn;
-	cl::Buffer m_bufferMassOut;
-	cl::Buffer m_bufferMassDelta2;
+	
+	numType getNumberDensityFalse() { return m_nFalse; }
+	numType getEnergyDensityFalse() { return m_rhoFalse; }
+	numType getNumberDensityTrue() { return m_nTrue; }
+	numType getEnergyDensityTrue() { return m_rhoTrue; }
 
-	cl::Buffer m_bufferBubbleRadius;
-	cl::Buffer m_bufferBubbleRadius2;
-	cl::Buffer m_bufferBubbleRadiusSpeedDt2;
-	cl::Buffer m_bufferBubbleSpeed;
-	cl::Buffer m_bufferBubbleGamma;
-	cl::Buffer m_bufferBubbleGammaSpeed;
+	numType getMassFalse() { return m_massFalse; }
+	numType getMassTrue() { return m_massTrue; }
+	numType getTime() { return m_time; }
+	numType get_dt() { return m_dt; }
+	numType getdPressureStep() { return m_dPressureStep; }
+	int getParticleCountTotal() { return m_particleCountTotal; }
 
-	cl::Buffer m_bufferInteractedFalse;
-	cl::Buffer m_bufferPassedFalse;
-	cl::Buffer m_bufferInteractedTrue;
-	cl::Buffer m_bufferPassedTrue;
+	numType getBubbleEnergy() { return m_energyBubble; }
+	numType getBubbleEnergyLastStep() { return m_energyBubbleLastStep; }
 
-	MultiprocessingCL(std::string fileName, std::string kernelName, Simulation& sim, Bubble& bubble);
+	numType getParticlesEnergy() { return m_energyParticles; }
+	numType getParticlesEnergyLastStep() { return m_energyParticlesLastStep; }
+	
+	numType getTotalEnergy() { return m_energyTotal; }
+	numType getTotalEnergyInitial() { return m_energyTotalInitial; }
 
-	void runStep(u_int particleCount);
-	void readStep(u_int particleCount, std::vector<MainType>& dP);
-	void writeStep(Bubble& bubble);
-	void writeBubbleRadiusSpeedDt2Buffer(MainType& dt, Bubble& bubble);
-};
+	std::vector<numType>& getCPDFalseRef() { return m_cpdFalse; }
+	std::vector<numType>& getPFalseRef() { return m_pFalse; }
+	std::vector<numType>& getCPDTrueRef() { return m_cpdTrue; }
+	std::vector<numType>& getPTrueRef() { return m_pTrue; }
+
+	// Particle functions
+	numType getParticleEnergy(u_int i) { return m_E[i]; }
+	numType getParticleMass(u_int i) { return m_M[i]; }
+	numType calculateParticleRadius(u_int i);
+	numType calculateParticleMomentum(u_int i);
+	numType calculateParticleEnergy(u_int i);
+	
+	// Calculate distributions
+	void calculateCPD(numType t_mass, numType t_temperature, numType t_dp, numType t_pMax, int t_vectorSize, std::vector<numType>& t_cpd, std::vector<numType>& t_p);
+	numType calculateNumberDensity(numType t_mass, numType t_temperature, numType t_dp, numType t_pMax);
+	numType calculateEnergyDensity(numType t_mass, numType t_temperature, numType t_dp, numType t_pMax);
+
+	// Sampling and generating
+	numType interp(numType t_value, std::vector<numType>& t_x, std::vector<numType>& t_y);
+
+	void generateRandomDirectionPush(numType& t_radius, std::vector<numType>& t_resultVector);
+	void generateRandomDirectionReplace(numType& t_radius, std::vector<numType>& t_resultVector);
+	void generateParticleMomentum(std::vector<numType>& t_cpd, std::vector<numType>& t_p, numType& t_pResult, std::vector<numType>& t_resultPushVector);
+	void generatePointInBoxPush(numType& t_SideHalf, std::vector<numType>& t_result);
+	void generatePointInBoxReplace(numType& t_SideHalf, std::vector<numType>& t_result);
+	void generatePointInBoxPush(numType& t_xSideHalf, numType& t_ySideHalf, numType& t_zSideHalf, std::vector<numType>& t_result);
+	void generatePointInBoxReplace(numType& t_xSideHalf, numType& t_ySideHalf, numType& t_zSideHalf, std::vector<numType>& t_result);
+
+	void generateNParticlesInBox(numType t_mass, numType& t_sideHalf, u_int t_N, std::vector<numType>& t_cpd, std::vector<numType>& t_p);
+	void generateNParticlesInBox(numType t_mass, numType& t_radiusIn, numType& t_sideHalf, u_int t_N, std::vector<numType>& t_cpd, std::vector<numType>& t_p);
+	void generateNParticlesInBox(numType t_mass, numType& t_xSideHalf, numType& t_ySideHalf, numType& t_zSideHalf, u_int t_N, std::vector<numType>& t_cpd, std::vector<numType>& t_p);
+	void generateNParticlesInBox(numType t_mass, numType& t_radiusIn, numType& t_xSideHalf, numType& t_ySideHalf, numType& t_zSideHalf, u_int t_N, std::vector<numType>& t_cpd, std::vector<numType>& t_p);
+	void generateNParticlesInSphere(numType t_mass, numType& t_radius1, u_int t_N, std::vector<numType>& t_cpd, std::vector<numType>& t_p);
+	void generateNParticlesInSphere(numType t_mass, numType& t_radius1, numType t_radius2, u_int t_N, std::vector<numType>& t_cpd, std::vector<numType>& t_p);
+
+
+	// Get values from the simulation
+	numType countParticleNumberDensity(numType t_radius1);
+	numType countParticleNumberDensity(numType t_radius1, numType t_radius2);
+	numType countParticleEnergyDensity(numType t_radius1);
+	numType countParticleEnergyDensity(numType t_radius1, numType t_radius2);
+	numType countParticlesEnergy();
+	numType countParticlesEnergy(numType t_radius1);
+	numType countParticlesEnergy(numType t_radius1, numType t_radius2);
+
+	void step(Bubble& bubble, OpenCLWrapper& openCLWrapper);
+	/* 
+	void step(Bubble bubble, OpenCLWrapper openCLWrapper, std::string device);
+	
+
+	void stepCPU(Bubble bubble);
+
+	void stepGPU(Bubble bubble, OpenCLWrapper openCLWrapper);
+	*/
+	/*
+		Runs one time on GPU or CPU.
+	*/
+	
+
+}; 
