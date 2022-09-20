@@ -232,39 +232,39 @@ void OpenCLWrapper::readBufferX(std::vector<numType>& t_dataX) {
 }
 
 void OpenCLWrapper::readBufferP(std::vector<numType>& t_dataP) {
-	m_queue.enqueueReadBuffer(m_bufferX, CL_TRUE, 0, t_dataP.size() * sizeof(numType), t_dataP.data());
+	m_queue.enqueueReadBuffer(m_bufferP, CL_TRUE, 0, t_dataP.size() * sizeof(numType), t_dataP.data());
 }
 
 void OpenCLWrapper::readBuffer_dP(std::vector<numType>& t_data_dP) {
-	m_queue.enqueueReadBuffer(m_bufferX, CL_TRUE, 0, t_data_dP.size() * sizeof(numType), t_data_dP.data());
+	m_queue.enqueueReadBuffer(m_buffer_dP, CL_TRUE, 0, t_data_dP.size() * sizeof(numType), t_data_dP.data());
 }
 
 void OpenCLWrapper::readBufferM(std::vector<numType>& t_dataM) {
-	m_queue.enqueueReadBuffer(m_bufferX, CL_TRUE, 0, t_dataM.size() * sizeof(numType), t_dataM.data());
+	m_queue.enqueueReadBuffer(m_bufferM, CL_TRUE, 0, t_dataM.size() * sizeof(numType), t_dataM.data());
 }
 
 void OpenCLWrapper::readBufferE(std::vector<numType>& t_dataE) {
-	m_queue.enqueueReadBuffer(m_bufferX, CL_TRUE, 0, t_dataE.size() * sizeof(numType), t_dataE.data());
+	m_queue.enqueueReadBuffer(m_bufferE, CL_TRUE, 0, t_dataE.size() * sizeof(numType), t_dataE.data());
 }
 
 void OpenCLWrapper::readBufferInteractedFalse(std::vector<int8_t>& t_dataInteractedFalse) {
-	m_queue.enqueueReadBuffer(m_bufferX, CL_TRUE, 0, t_dataInteractedFalse.size() * sizeof(int8_t), t_dataInteractedFalse.data());
+	m_queue.enqueueReadBuffer(m_bufferInteractedFalse, CL_TRUE, 0, t_dataInteractedFalse.size() * sizeof(int8_t), t_dataInteractedFalse.data());
 }
 
 void OpenCLWrapper::readBufferPassedFalse(std::vector<int8_t>& t_dataPassedFalse) {
-	m_queue.enqueueReadBuffer(m_bufferX, CL_TRUE, 0, t_dataPassedFalse.size() * sizeof(int8_t), t_dataPassedFalse.data());
+	m_queue.enqueueReadBuffer(m_bufferPassedFalse, CL_TRUE, 0, t_dataPassedFalse.size() * sizeof(int8_t), t_dataPassedFalse.data());
 }
 
 void OpenCLWrapper::readBufferInteractedTrue(std::vector<int8_t>& t_dataInteractedTrue) {
-	m_queue.enqueueReadBuffer(m_bufferX, CL_TRUE, 0, t_dataInteractedTrue.size() * sizeof(int8_t), t_dataInteractedTrue.data());
+	m_queue.enqueueReadBuffer(m_bufferInteractedTrue, CL_TRUE, 0, t_dataInteractedTrue.size() * sizeof(int8_t), t_dataInteractedTrue.data());
 }
 
 void OpenCLWrapper::readBufferR(numType& t_dataR) {
-	m_queue.enqueueReadBuffer(m_bufferX, CL_TRUE, 0, sizeof(numType), &t_dataR);
+	m_queue.enqueueReadBuffer(m_bufferBubbleRadius, CL_TRUE, 0, sizeof(numType), &t_dataR);
 }
 
 void OpenCLWrapper::readBufferSpeed(numType& t_dataSpeed) {
-	m_queue.enqueueReadBuffer(m_bufferX, CL_TRUE, 0, sizeof(numType), &t_dataSpeed);
+	m_queue.enqueueReadBuffer(m_bufferBubbleSpeed, CL_TRUE, 0, sizeof(numType), &t_dataSpeed);
 }
 
 void OpenCLWrapper::readBufferBubble(numType& t_dataR, numType& t_dataSpeed) {

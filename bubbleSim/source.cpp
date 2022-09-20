@@ -76,12 +76,6 @@ int main(int argc, char *argv[]) {
 		sim.getCPDFalseRef(), sim.getPFalseRef()
 	);
 	sim.set_dt(radius / 1000);
-	std::cout << "=============== Testing ===============" << std::endl;
-	numType n = sim.calculateNumberDensity(0.01, 0.5, 1e-4 * 0.5, 30 * 0.5);
-	std::cout << "n = " << n << std::endl;
-
-
-	std::cout << "=============== Testing end ===============" << std::endl << std::endl;
 	numType rho0 = sim.countParticleEnergyDensity(radius);
 	// Delta V_T / rho = alpha, Delta V_T = Delta V - T * n -> Delta V = rho * alpha + T * n
 	numType dV = alpha * rho0 + temperatureFalse * sim.getNumberDensityFalse();
@@ -99,6 +93,8 @@ int main(int argc, char *argv[]) {
 		sim.getReferenceInteractedTrue(), false
 		);
 
+	DataStreamer dataStream(sim, bubble, openCL);
+
 	/*
 		=============== Display text ===============
 	*/
@@ -115,17 +111,25 @@ int main(int argc, char *argv[]) {
 	std::cout << "dt: " << sim.get_dt() << std::endl;
 	std::cout << std::setprecision(9) << radius << std::endl;
 
-	for (int i = 0; i < 1000; i++) {
-		sim.step(bubble, openCL);
-		sim.step(bubble, openCL);
-		sim.step(bubble, openCL);
-		sim.step(bubble, openCL);
-		sim.step(bubble, openCL);
-		sim.step(bubble, openCL);
-		sim.step(bubble, openCL);
-		sim.step(bubble, openCL);
-		sim.step(bubble, openCL);
-		sim.step(bubble, openCL);
+	#ifdef LOG_DEBUG
+	int particleIndex1 = 0;
+	int particleIndex2 = sim.getParticleCountTotal() - 1;
+	std::cout << std::endl << std::setprecision(15) << "=============== DEBUG ===============" << std::endl;
+	std::cout << "Particle " << particleIndex1 << ": " << std::endl;
+	std::cout << "X: " << sim.getReferenceX()[3 * particleIndex1] << ", " << sim.getReferenceX()[3 * particleIndex1 + 1] << ", " << sim.getReferenceX()[3 * particleIndex1 + 2] << std::endl;
+	std::cout << "P: " << sim.getReferenceP()[3 * particleIndex1] << ", " << sim.getReferenceP()[3 * particleIndex1 + 1] << ", " << sim.getReferenceP()[3 * particleIndex1 + 2] << std::endl;
+	std::cout << "M: " << sim.getParticleMass(particleIndex1) << ", E: " << sim.getParticleEnergy(particleIndex1) << std::endl << std::endl;
+	std::cout << "Particle " << particleIndex2 << ": " << std::endl;
+	std::cout << "X: " << sim.getReferenceX()[3 * particleIndex2] << ", " << sim.getReferenceX()[3 * particleIndex2 + 1] << ", " << sim.getReferenceX()[3 * particleIndex2 + 2] << std::endl;
+	std::cout << "P: " << sim.getReferenceP()[3 * particleIndex2] << ", " << sim.getReferenceP()[3 * particleIndex2 + 1] << ", " << sim.getReferenceP()[3 * particleIndex2 + 2] << std::endl;
+	std::cout << "M: " << sim.getParticleMass(particleIndex2) << ", E: " << sim.getParticleEnergy(particleIndex2) << std::endl;
+	std::cout << std::setprecision(9) << "=============== DEBUG END ===============" << std::endl << std::endl;
+	#endif
+
+	for (int i = 0; i < 10; i++) {
+		for (int j = 0; j < 10; j++) {
+			sim.step(bubble, openCL);
+		}
 		std::cout << std::setprecision(15) << "dP: " << sim.getdPressureStep() << std::endl;
 		std::cout << "Bubble speed: " << bubble.getSpeed() << std::endl;
 		if (std::isnan(bubble.getSpeed())) {
@@ -133,5 +137,9 @@ int main(int argc, char *argv[]) {
 			exit(1);
 		}
 	}
+
+	
+
+	dataStream.streamMassRadiusDifference(false);
 
 }
