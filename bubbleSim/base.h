@@ -1,16 +1,13 @@
 #pragma once
 #define _USE_MATH_DEFINES
 
-
-#include <cmath>
-
 #include <array>
-#include <vector>
-
+#include <cmath>
 #include <cstdio>
-#include <iostream>
 #include <fstream>
+#include <iostream>
 #include <sstream>
+#include <vector>
 
 #define LOG_DEBUG
 
