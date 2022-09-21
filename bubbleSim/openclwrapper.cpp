@@ -21,70 +21,70 @@ OpenCLWrapper::OpenCLWrapper(
   // Set buffers
 
   m_bufferX =
-      cl::Buffer(m_context, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR,
+      cl::Buffer(m_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
                  3 * t_particleCount * sizeof(numType), t_X.data(), &errNum);
   m_bufferP =
-      cl::Buffer(m_context, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR,
+      cl::Buffer(m_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
                  3 * t_particleCount * sizeof(numType), t_P.data(), &errNum);
   m_bufferE =
-      cl::Buffer(m_context, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR,
+      cl::Buffer(m_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
                  t_particleCount * sizeof(numType), t_E.data(), &errNum);
   m_bufferM =
-      cl::Buffer(m_context, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR,
+      cl::Buffer(m_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
                  t_particleCount * sizeof(numType), t_M.data(), &errNum);
   m_buffer_dP =
-      cl::Buffer(m_context, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR,
+      cl::Buffer(m_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
                  t_particleCount * sizeof(numType), t_dP.data(), &errNum);
 
-  m_buffer_dt = cl::Buffer(m_context, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR,
+  m_buffer_dt = cl::Buffer(m_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
                            sizeof(numType), &t_dt, &errNum);
   if (t_isBubbleTrueVacuum) {
     m_bufferMassIn =
-        cl::Buffer(m_context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
+        cl::Buffer(m_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
                    sizeof(numType), &t_massTrue, &errNum);
     m_bufferMassOut =
-        cl::Buffer(m_context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
+        cl::Buffer(m_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
                    sizeof(numType), &t_massFalse, &errNum);
   } else {
     m_bufferMassIn =
-        cl::Buffer(m_context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
+        cl::Buffer(m_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
                    sizeof(numType), &t_massFalse, &errNum);
     m_bufferMassOut =
-        cl::Buffer(m_context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
+        cl::Buffer(m_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
                    sizeof(numType), &t_massTrue, &errNum);
   }
 
   m_bufferMassDelta2 =
-      cl::Buffer(m_context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
+      cl::Buffer(m_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
                  sizeof(numType), &t_massDelta2, &errNum);
 
   m_bufferBubbleRadius =
-      cl::Buffer(m_context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
+      cl::Buffer(m_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
                  sizeof(numType), &t_bubbleRadius, &errNum);
   m_bufferBubbleRadius2 =
-      cl::Buffer(m_context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
+      cl::Buffer(m_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
                  sizeof(numType), &t_bubbleRadius2, &errNum);
   m_bufferBubbleRadiusSpeedDt2 =
-      cl::Buffer(m_context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
+      cl::Buffer(m_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
                  sizeof(numType), &t_bubbleRadiusAfterDt2, &errNum);
   m_bufferBubbleSpeed =
-      cl::Buffer(m_context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
+      cl::Buffer(m_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
                  sizeof(numType), &t_bubbleSpeed, &errNum);
   m_bufferBubbleGamma =
-      cl::Buffer(m_context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
+      cl::Buffer(m_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
                  sizeof(numType), &t_bubbleGamma, &errNum);
   m_bufferBubbleGammaSpeed =
-      cl::Buffer(m_context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
+      cl::Buffer(m_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
                  sizeof(numType), &t_bubbleGammaSpeed, &errNum);
 
   m_bufferInteractedFalse = cl::Buffer(
-      m_context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
+      m_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
       t_particleCount * sizeof(int8_t), t_interactedFalse.data(), &errNum);
   m_bufferPassedFalse = cl::Buffer(
-      m_context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
+      m_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
       t_particleCount * sizeof(int8_t), t_passedFalse.data(), &errNum);
   m_bufferInteractedTrue = cl::Buffer(
-      m_context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
+      m_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
       t_particleCount * sizeof(int8_t), t_interactedTrue.data(), &errNum);
 
   errNum = m_kernel.setArg(0, m_bufferX);
