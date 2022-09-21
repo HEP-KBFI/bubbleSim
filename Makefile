@@ -7,7 +7,7 @@ SRC_DIR := ./bubbleSim
 SRCS := $(SRC_DIR)/bubble.cpp $(SRC_DIR)/openclwrapper.cpp $(SRC_DIR)/simulation.cpp $(SRC_DIR)/source.cpp $(SRC_DIR)/datastreamer.cpp
 OBJS := $(SRCS:%=$(BUILD_DIR)/%.o)
 
-#CXX=clang
+#CXX=clang++
 CXX=g++
 
 #link against common OCL headers
