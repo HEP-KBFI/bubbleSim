@@ -20,9 +20,9 @@ class DataStreamer {
 	bool m_readBufferR;
 	bool m_readBufferSpeed;
 
-	Simulation m_sim;
-	Bubble m_bubble;
-	OpenCLWrapper m_openCLWrapper;
+	Simulation& m_sim;
+	Bubble& m_bubble;
+	OpenCLWrapper& m_openCLWrapper;
 
 public:
 	DataStreamer(Simulation& t_sim, Bubble& t_bubble, OpenCLWrapper& t_openCLWrapper);
@@ -46,4 +46,6 @@ public:
 	== momentum profile
 
 	*/
+
+	void streamMassRadiusDifference(bool t_isBubbleTrueVacuum);
 };

@@ -3,6 +3,7 @@
 #include "simulation.h"
 #include "bubble.h"
 #include "openclwrapper.h"
+#include "datastreamer.h"
 
 #include <nlohmann/json.hpp>
 

@@ -7,10 +7,12 @@
 #include <array>
 #include <vector>
 
+#include <cstdio>
 #include <iostream>
 #include <fstream>
+#include <sstream>
 
-
+#define LOG_DEBUG
 
 typedef double numType;
 typedef unsigned int u_int;
