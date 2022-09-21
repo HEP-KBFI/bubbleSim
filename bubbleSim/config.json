@@ -8,9 +8,10 @@
 	"mass_true" : 1,
 	"T_false" : 0.5,
 	"T_true" : 0.5,
-	"N_false" : 1000000,
+	"N_false" : 100,
 	"N_true" : 0,
 	"coupling" : 0,
 	"bubble_speed" : 0.2,
-	"initial_radius" : 200
+	"initial_radius" : 200,
+	"max_steps" : 20
 }

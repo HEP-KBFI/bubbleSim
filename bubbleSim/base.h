@@ -10,6 +10,7 @@
 #include <vector>
 
 #define LOG_DEBUG
+#define MAX_STEPS
 
 typedef double numType;
 typedef unsigned int u_int;

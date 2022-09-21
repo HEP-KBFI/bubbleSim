@@ -49,4 +49,9 @@ class DataStreamer {
   */
 
   void streamMassRadiusDifference(bool t_isBubbleTrueVacuum);
+
+  void streamParticleInfo();
+
+  void streamParticleInfo(std::fstream& t_stream);
 };
+

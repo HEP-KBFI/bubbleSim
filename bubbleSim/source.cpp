@@ -94,6 +94,7 @@ int main(int argc, char* argv[]) {
   numType coupling = config["coupling"];
   numType initialBubbleSpeed = config["bubble_speed"];
   numType initialRadius = config["initial_radius"];
+  int i_maxSteps = config["max_steps"];
 
   /*
           =============== Initialization ===============
@@ -175,19 +176,32 @@ int main(int argc, char* argv[]) {
             << "=============== DEBUG END ===============" << std::endl
             << std::endl;
 #endif
-
+#ifdef MAX_STEPS
+  std::cout << i_maxSteps << std::endl;
+  for (int i = 0; i < i_maxSteps; i++) {
+      sim.step(bubble, openCL);
+      std::cout << std::setprecision(15) << "R: " << bubble.getRadius() << ", V: " << bubble.getSpeed() << ", dP: " << sim.getdPressureStep() << std::endl;
+      dataStream.streamParticleInfo();
+      if (std::isnan(bubble.getSpeed())) {
+        std::cerr << "Abort due to nan" << std::endl;
+        exit(1);
+    }
+  }
+#endif
+#ifndef MAX_STEPS
   for (int i = 0; i < 10; i++) {
     for (int j = 0; j < 10; j++) {
       sim.step(bubble, openCL);
+      if (std::isnan(bubble.getSpeed())) {
+        std::cerr << "Abort due to nan" << std::endl;
+        exit(1);
+      }
     }
-    std::cout << std::setprecision(15) << "dP: " << sim.getdPressureStep()
-              << std::endl;
-    std::cout << "Bubble speed: " << bubble.getSpeed() << std::endl;
-    if (std::isnan(bubble.getSpeed())) {
-      std::cerr << "Abort due to nan" << std::endl;
-      exit(1);
-    }
+    std::cout << std::setprecision(15) << "R: " << bubble.getRadius()
+              << ", V: " << bubble.getSpeed()
+              << ", dP: " << sim.getdPressureStep() << std::endl;
   }
+#endif  // !MAX_STEPS
 
   dataStream.streamMassRadiusDifference(false);
 }

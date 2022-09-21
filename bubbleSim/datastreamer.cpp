@@ -149,3 +149,19 @@ void DataStreamer::streamMassRadiusDifference(bool t_isBubbleTrueVacuum) {
               countMassTrue - countRadiusTrue,
               countMassFalse - countRadiusFalse);
 }
+
+void DataStreamer::streamParticleInfo() { 
+    for (int i = 0; i < m_sim.getParticleCountTotal(); i++) {
+        std::cout << m_sim.getReferenceX()[3 * i] << ", " << m_sim.getReferenceX()[3 * i + 1] << ", " << m_sim.getReferenceX()[3 * i + 2] << ", ";
+        std::cout << m_sim.getReferenceP()[3 * i] << ", " << m_sim.getReferenceP()[3 * i + 1] << ", " << m_sim.getReferenceP()[3 * i + 2] << ", ";
+        std::cout << m_sim.getParticleMass(i) << ", " << m_sim.getParticleEnergy(i) << std::endl;
+    }
+}
+
+void DataStreamer::streamParticleInfo(std::fstream& t_stream) {
+    for (int i = 0; i < m_sim.getParticleCountTotal(); i++) {
+        t_stream << m_sim.getReferenceX()[3 * i] << ", " << m_sim.getReferenceX()[3 * i + 1] << ", " << m_sim.getReferenceX()[3 * i + 2] << ", ";
+        t_stream << m_sim.getReferenceP()[3 * i] << ", " << m_sim.getReferenceP()[3 * i + 1] << ", " << m_sim.getReferenceP()[3 * i + 2] << ", ";
+        t_stream << m_sim.getParticleMass(i) << ", " << m_sim.getParticleEnergy(i) << std::endl;
+    }
+}
