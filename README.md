@@ -5,8 +5,8 @@ Compile and run on the cluster:
 ```
 export IMG=/home/software/singularity/base
 
+singularity exec $IMG make clean
 singularity exec $IMG make -j8
-cp bubbleSim/kernel.cl ./
 
 #Run on CPU
 singularity exec --env POCL_DEVICES=basic $IMG build/bubbleSim.exe bubbleSim/config.json
