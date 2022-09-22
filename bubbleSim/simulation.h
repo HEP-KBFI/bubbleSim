@@ -1,7 +1,8 @@
 #pragma once
+#include "base.h"
+
 #include <random>
 
-#include "base.h"
 #include "bubble.h"
 #include "openclwrapper.h"
 
