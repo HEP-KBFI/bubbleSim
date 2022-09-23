@@ -8,9 +8,10 @@
 #include <iostream>
 #include <sstream>
 #include <vector>
+#include <iomanip>
 
-#define LOG_DEBUG
-#define MAX_STEPS
+
+// #define LOG_DEBUG
 
 typedef double numType;
 typedef unsigned int u_int;
