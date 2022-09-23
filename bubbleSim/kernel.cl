@@ -11,48 +11,35 @@ void moveLinear(
 	*t_x2 = fma(t_v2, t_dt, *t_x2);
 	*t_x3 = fma(t_v3, t_dt, *t_x3);
 	}
-	
 double calculateTimeToWall(
 		double t_x1, double t_x2, double t_x3, 
-		double t_v1, double t_v2, double t_v3,
-		double t_dt, double t_rb, double t_vb,
-		double t_X2, double t_R2
+		double t_p1, double t_p2, double t_p3,
+		double t_E, double t_dt, double t_rb, double t_vb
 	) {
-	double timeToWall;
+	double time1, time2;
 	
-	double a = t_v1*t_v1 + t_v2 * t_v2 + t_v3 * t_v3 - t_vb * t_vb;
-	double b = t_x1*t_v1 + t_x2 * t_v2 + t_x3 * t_v3 - t_rb * t_vb;
-	double c = t_X2 - t_R2;
-	
-	//double squared_t_vb = t_vb * t_vb;
-	//double t_rb_t_vb = t_rb * t_vb;
-	
-	//double a = fma(t_v1, t_v1, fma(t_v2, t_v2, fma(t_v3, t_v3, -squared_t_vb)));
-	//double a_error = fma(t_vb, t_vb, - squared_t_vb);
-	//a = a - a_error;
-	
-	//double b = fma(t_x1, t_v1, fma(t_x2, t_v2, fma(t_x3, t_v3, - t_rb_t_vb)));
-	//double b_error = fma(t_rb, t_vb, - t_rb_t_vb);
-	//b = b - b_error;
-	
-	
-	if (a != 0){
-		// Try the smallest value first
-		timeToWall =  -(b + sqrt(fma(-a, c, pow(b, 2))))/a;
-		if ((timeToWall < 0) || (timeToWall > t_dt)) {
-			// Try second value
-			timeToWall =  (-b + sqrt(fma(-a, c, pow(b, 2))))/a;
-			}
-		}
-		else if ((a == 0.) && (b!=0.)){
-			timeToWall = -c/(b*2.0);
-		}
-		else {
-			timeToWall = 0.;
-		}
-	timeToWall = clamp(timeToWall, 0., t_dt);
-	return timeToWall;
+	double a = fma(t_p1, t_p1/pow(t_E, 2), fma(t_p2, t_p2/pow(t_E, 2), fma(t_p3, t_p3/pow(t_E, 2), - t_vb * t_vb)));
+	double b = fma(t_x1, t_p1/t_E, fma(t_x2, t_p2/t_E, fma(t_x3, t_p3/t_E, - t_rb * t_vb)));
+	double c = fma(t_x1, t_x1, fma(t_x2, t_x2, fma(t_x3, t_x3, - t_rb * t_rb)));
+	double d = fma(b, b, - a * c);
+	// b*b - a*c;
+	// double d = fma(-a, c, pow(b,2)); 
+	if (d < 0){
+		return 0;
 	}
+	
+	time1 = (-b - sqrt(d))/a;
+	time2 = (-b + sqrt(d))/a;
+	if ((0 < time1) && (time1 <= t_dt)){
+		return time1;
+	}
+	else if ((0 < time2) && (time2 <= t_dt)){
+		return time2;
+	}
+	else{
+		return 0.;
+	}
+}
 
 void calculateNormal(
 	double *t_n1, double *t_n2, double *t_n3, 
@@ -91,7 +78,8 @@ __kernel void step_double(
 	__constant double *gamma_v,
 	__global char *interactedFalse,
 	__global char *passedFalse,
-	__global char *interactedTrue
+	__global char *interactedTrue,
+	__global double *time2wall
 	){
 		
 	unsigned int gid = get_global_id(0);
@@ -124,17 +112,17 @@ __kernel void step_double(
 	double V_2 = P_2/E_particle;
 	double V_3 = P_3/E_particle;
 	
-	double X2 = X_1 * X_1 + X_2 * X_2 + X_3 * X_3;
+	// double X2 = X_1 * X_1 + X_2 * X_2 + X_3 * X_3;
+	double X2 = fma(X_1, X_1, fma(X_2, X_2, X_3 * X_3));
 	
 	double X_dt_1 = fma(V_1, Dt, X_1);
 	double X_dt_2 = fma(V_2, Dt, X_2);
 	double X_dt_3 = fma(V_3, Dt, X_3);
-	double X_dt2 = X_dt_1 * X_dt_1 + X_dt_2 * X_dt_2 + X_dt_3 * X_dt_3;
+	double X_dt2 = fma(X_dt_1, X_dt_1, fma( X_dt_2, X_dt_2, X_dt_3 * X_dt_3));
 	
 	double n_1, n_2, n_3;
 	double timeToWall, np;
-		
-		
+			
 	// If M_in < M_out -> Check if particle starts inside
 	// If M_in > M_out -> Check if particle starts outside
 	if (((X2 < R2) && (M_in < M_out)) || ((X2 > R2) && (M_in > M_out))){
@@ -146,21 +134,22 @@ __kernel void step_double(
 			// X_3 = fma(V_3, Dt, X_3);
 			moveLinear(&X_1, &X_2, &X_3, V_1, V_2, V_3, Dt);
 			dP[gid] = 0.;
-			
 			interactedFalse[gid] += 0;
 			passedFalse[gid] += 0;
 			interactedTrue[gid] += 0;
+			time2wall[gid] = 0.;
 		}
 		// Maybe get outside
 		else {
-			timeToWall = calculateTimeToWall(X_1, X_2, X_3, V_1, V_2, V_3, Dt, R, V_b, X2, R2);
-
+			timeToWall = calculateTimeToWall(X_1, X_2, X_3, P_1, P_2, P_3, E_particle, Dt, R, V_b);
+			time2wall[gid] = timeToWall;
 			// X_1 = fma(V_1, timeToWall, X_1);
 			// X_2 = fma(V_2, timeToWall, X_2);
 			// X_3 = fma(V_3, timeToWall, X_3);
 			moveLinear(&X_1, &X_2, &X_3, V_1, V_2, V_3, timeToWall);
 			// Update X2
-			X2 = X_1 * X_1 + X_2 * X_2 + X_3 * X_3;
+			// double X2 = X_1 * X_1 + X_2 * X_2 + X_3 * X_3;
+			double X2 = fma(X_1, X_1, fma(X_2, X_2, X_3 * X_3));
 			// n_1 = X_1 * Gamma/sqrt(X2);
 			// n_2 = X_2 * Gamma/sqrt(X2);
 			// n_3 = X_3 * Gamma/sqrt(X2);
@@ -173,6 +162,7 @@ __kernel void step_double(
 			
 			// ========== Interaction with the bubble ==========
 			// Particle bounces from the wall and stays where it was -> Stays in lower mass region
+			// Particle keeps lower mass
 			if (np*np < Delta_M2){
 				// P_i = P_i + 2 * np * n_i
 				P_1 = fma(np*2., n_1, P_1);
@@ -193,6 +183,7 @@ __kernel void step_double(
 				interactedTrue[gid] += 0;
 			}
 			// Particle gets through the bubble wall -> Gets higher mass
+			// Particle gets higher mass
 			else {
 				if (M_in < M_out){
 					M[gid] = M_out;
@@ -246,17 +237,21 @@ __kernel void step_double(
 			interactedFalse[gid] += 0;
 			passedFalse[gid] += 0;
 			interactedTrue[gid] += 0;
+			time2wall[gid] = 0.;
 		}
+		// Particle gets lower mass
 		// If M_in < M_out -> Particle goes inside from out of the bubble
-		// If M_in > M_out -> Particle goes outside from the bubble
+		// If M_in > M_out -> Particle goes outside from the bubble to inside
 		else {
-			timeToWall = calculateTimeToWall(X_1, X_2, X_3, V_1, V_2, V_3, Dt, R, V_b, X2, R2);
+			timeToWall = calculateTimeToWall(X_1, X_2, X_3, P_1, P_2, P_3, E_particle, Dt, R, V_b);
+			time2wall[gid] = timeToWall;
 			// X_1 = fma(V_1, timeToWall, X_1);
 			// X_2 = fma(V_2, timeToWall, X_2);
 			// X_3 = fma(V_3, timeToWall, X_3);
 			moveLinear(&X_1, &X_2, &X_3, V_1, V_2, V_3, timeToWall);
 			// Update X2
-			X2 = X_1 * X_1 + X_2 * X_2 + X_3 * X_3;
+			// double X2 = X_1 * X_1 + X_2 * X_2 + X_3 * X_3;
+			double X2 = fma(X_1, X_1, fma(X_2, X_2, X_3 * X_3));
 			// n_1 = X_1 * Gamma/sqrt(X2);
 			// n_2 = X_2 * Gamma/sqrt(X2);
 			// n_3 = X_3 * Gamma/sqrt(X2);
@@ -279,10 +274,10 @@ __kernel void step_double(
 			
 			// E_particle = sqrt(M[gid]*M[gid] + P_1*P_1 + P_2*P_2 + P_3*P_3);
 			if (M_in < M_out){
-				E_particle = sqrt(fma(P_1, P_1, fma(P_2, P_2, fma(P_3, P_3, pow(M_out, 2)))));
+				E_particle = sqrt(fma(P_1, P_1, fma(P_2, P_2, fma(P_3, P_3, pow(M_in, 2)))));
 			}
 			else {
-				E_particle = sqrt(fma(P_1, P_1, fma(P_2, P_2, fma(P_3, P_3, pow(M_in, 2)))));
+				E_particle = sqrt(fma(P_1, P_1, fma(P_2, P_2, fma(P_3, P_3, pow(M_out, 2)))));
 			}
 			
 			// Update velocity vector
