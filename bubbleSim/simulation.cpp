@@ -1,6 +1,6 @@
 #include "simulation.h"
 
-Simulation::Simulation(int t_seed, numType t_alpha, numType t_massTrue,
+Simulation::Simulation(int t_seed, numType t_massTrue,
                        numType t_massFalse, numType t_temperatureTrue,
                        numType t_temperatureFalse,
                        unsigned int t_particleCountTrue,
@@ -36,10 +36,10 @@ Simulation::Simulation(int t_seed, numType t_alpha, numType t_massTrue,
 
   m_rhoTrue = 0, m_rhoFalse = 0, m_nTrue = 0, m_nFalse = 0;
 
-  numType dpFalse = 1e-4 * m_temperatureFalse;
-  numType pMaxFalse = 30 * t_temperatureFalse;
-  numType dpTrue = 1e-4 * m_temperatureTrue;
-  numType pMaxTrue = 30 * t_temperatureTrue;
+  numType dpFalse = 1e-5 * m_temperatureFalse;
+  numType pMaxFalse = 14.5 * t_temperatureFalse;
+  numType dpTrue = 1e-5 * m_temperatureTrue;
+  numType pMaxTrue = 14.5 * t_temperatureTrue;
   int vectorSizeFalse = (int)(pMaxFalse / dpFalse);
   int vectorSizeTrue = (int)(pMaxFalse / dpFalse);
 
@@ -60,7 +60,6 @@ Simulation::Simulation(int t_seed, numType t_alpha, numType t_massTrue,
                  vectorSizeTrue, m_cpdTrue, m_pTrue);
   }
 
-  m_alpha = t_alpha;
   m_coupling = t_coupling;
 
   // Time
@@ -490,21 +489,22 @@ void Simulation::step(Bubble& bubble, OpenCLWrapper& openCLWrapper) {
 
   // Write bubble parameters to GPU
   bubble.calculateRadiusAfterDt2(m_dt);
-
-  openCLWrapper.makeStep1(bubble.getRadiusRef(), bubble.getRadius2Ref(),
-                          bubble.getSpeedRef(), bubble.getGammaRef(),
-                          bubble.getGammaSpeedRef(),
-                          bubble.getRadiusAfterDt2Ref());
+   openCLWrapper.makeStep1(bubble.getRadiusAfterDt2Ref());
   // Run one step on device
   openCLWrapper.makeStep2(m_particleCountTotal);
-
+  
   // Read dP vector. dP is "Energy" change for particles -> Bubble energy change
   // is -dP
   openCLWrapper.makeStep3(m_particleCountTotal, m_dP);
+  
+  
   m_dPressureStep = 0;
   for (int i = 0; i < m_particleCountTotal; i++) {
     m_dPressureStep += m_dP[i];
   }
   m_dPressureStep /= -bubble.getArea();
   bubble.evolveWall(m_dt, m_dPressureStep);
+  openCLWrapper.makeStep4(bubble.getRadiusRef(), bubble.getRadius2Ref(),
+                          bubble.getSpeedRef(), bubble.getGammaRef(),
+                          bubble.getGammaSpeedRef());
 }

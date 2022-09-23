@@ -13,7 +13,6 @@ class Simulation {
   */
 
   // Simulation parameters
-  numType m_alpha;
   numType m_coupling;
   // Masses of particles in true and false vacuum
   numType m_massTrue, m_massFalse, m_massDelta2;
@@ -67,7 +66,7 @@ class Simulation {
 
  public:
   Simulation() {}
-  Simulation(int t_seed, numType t_alpha, numType t_massTrue,
+  Simulation(int t_seed, numType t_massTrue,
              numType t_massFalse, numType t_temperatureTrue,
              numType t_temperatureFalse, unsigned int t_particleCountTrue,
              unsigned int t_particleCountFalse, numType t_coupling);
