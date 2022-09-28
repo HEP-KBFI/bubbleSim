@@ -21,46 +21,68 @@ std::string createFileNameFromCurrentDate() {
   for (i = 0; i < 8; i++) {
     ss << dis(gen);
   }
-  ss << "-";
-  for (i = 0; i < 4; i++) {
-    ss << dis(gen);
-  }
-  ss << "-4";
-  for (i = 0; i < 3; i++) {
-    ss << dis(gen);
-  }
-  ss << "-";
-  ss << dis2(gen);
-  for (i = 0; i < 3; i++) {
-    ss << dis(gen);
-  }
-  ss << "-";
-  for (i = 0; i < 12; i++) {
-    ss << dis(gen);
-  };
   result = std::string(c_name) + "_" + ss.str();
-  std::cout << result << std::endl;
   return result;
 }
+
+std::filesystem::path createSimulationFilePath(std::string& t_dataPath,
+    std::string& t_fileName) {
+  std::filesystem::path dataPath(t_dataPath);
+  std::filesystem::path filePath = dataPath / t_fileName;
+  if (!std::filesystem::is_directory(dataPath) ||
+      !std::filesystem::exists(dataPath)) {       // Check if src folder exists
+    std::filesystem::create_directory(dataPath);  // create src folder
+  }
+  if (!std::filesystem::is_directory(filePath) ||
+      !std::filesystem::exists(filePath)) {       // Check if src folder exists
+    std::filesystem::create_directory(filePath);  // create src folder
+  }
+  return filePath;
+}
+
+void createSimulationListStream(std::filesystem::path filePath, int t_seed,
+                                numType t_alpha, numType t_eta,
+                                numType t_upsilon, numType t_radius,
+                                numType t_speed, numType t_m_false,
+                                numType t_m_true, numType t_temperatureFalse,
+                                numType t_temperatureTrue, u_int t_countFalse,
+                                u_int t_countTrue, numType t_coupling, numType t_dt) {
+  std::fstream simulationListStream;
+
+  if (!std::filesystem::exists(filePath.parent_path() / "list.txt")) {
+    simulationListStream = std::fstream(filePath.parent_path() / "list.txt",
+                     std::ios::out | std::ios::in | std::ios::trunc);
+    simulationListStream
+        << "file_name, seed, alpha, eta, upsilon, radius, speed, m-, m+, "
+           "T-, T+, N-, N+, coupling, dt"
+        << std::endl;
+    simulationListStream << filePath.filename() << ", " << t_seed << ", "
+                         << t_alpha << ", " << t_eta << ", " << t_upsilon << ", "
+                         << t_radius << ", " << t_speed << ", " << t_m_false
+                         << ", " << t_m_true << ", " << t_temperatureFalse
+                         << ", " << t_temperatureTrue << ", " << t_countFalse
+                         << ", " << t_countTrue << ", " << t_coupling << ", "
+                         << t_dt << std::endl;
+  } else {
+    simulationListStream = std::fstream(filePath.parent_path() / "list.txt",
+                     std::ios::out | std::ios::in | std::ios::app);
+    simulationListStream << filePath.filename() << ", " << t_seed
+                         << ", " << t_alpha << ", " << t_eta << ", " << t_upsilon << ", "
+                         << t_radius << ", " << t_speed << ", "
+                         << t_m_false << ", " << t_m_true << ", "
+                         << t_temperatureFalse << ", " << t_temperatureTrue
+                         << ", " << t_countFalse << ", " << t_countTrue << ", "
+                         << t_coupling << ", " << t_dt << std::endl;
+  }
+}
+
 
 int main(int argc, char* argv[]) {
   if (argc != 2) {
     std::cerr << "Usage: bubbleSim.exe config.json" << std::endl;
     exit(0);
   }
-  // TODO
-  /*
-  std::filesystem::path a = std::filesystem::current_path();
-  std::filesystem::path b = std::filesystem::relative(a);
-  std::filesystem::path c = std::filesystem::absolute(a);
 
-  std::cout << a << std::endl;
-  std::cout << b << std::endl;
-  std::cout << c << std::endl;
-  */
-  std::filesystem::path current_path = std::filesystem::current_path();
-  std::cout << "File name: ";
-  createFileNameFromCurrentDate();
   std::string configPath = argv[1];
   std::string kernelPath = "kernel.cl";
   std::string kernelName = "step_double";
@@ -69,53 +91,143 @@ int main(int argc, char* argv[]) {
   using std::chrono::duration_cast;
   using std::chrono::high_resolution_clock;
   using std::chrono::milliseconds;
+  auto programStartTime = high_resolution_clock::now();
 
   std::ifstream configStream(configPath);
   std::cout << "Config path: " << configPath << std::endl;
   nlohmann::json config = nlohmann::json::parse(configStream);
+
   /*
           ===============  ===============
   */
 
   // If seed = 0 then it generates random seed.
-  int seed = config["seed"];
+  int seed = config["simulation"]["seed"];
+  int i_maxSteps = config["simulation"]["max_steps"];
 
-  numType alpha = config["alpha"];
-  numType eta = config["eta"];
-  numType upsilon = config["upsilon"];
-  numType sigma = config["sigma"];
+  numType alpha = config["parameters"]["alpha"];
+  numType eta = config["parameters"]["eta"];
+  numType upsilon = config["parameters"]["upsilon"];
 
-  numType massFalse = config["mass_false"];
-  numType massTrue = config["mass_true"];
-  numType temperatureFalse = config["T_false"];
-  numType temperatureTrue = config["T_true"];
-  unsigned int countParticlesFalse = config["N_false"];
-  unsigned int countParticlesTrue = config["N_true"];
-  numType coupling = config["coupling"];
-  numType initialBubbleSpeed = config["bubble_speed"];
-  numType initialRadius = config["initial_radius"];
-  int i_maxSteps = config["max_steps"];
+  numType massFalse = config["particles"]["mass_false"];
+  numType massTrue = config["particles"]["mass_true"];
+  numType temperatureFalse = config["particles"]["T_false"];
+  numType temperatureTrue = config["particles"]["T_true"];
+  unsigned int countParticlesFalse = config["particles"]["N_false"];
+  unsigned int countParticlesTrue = config["particles"]["N_true"];
+  numType coupling = config["particles"]["coupling"];
+
+  numType initialBubbleRadius = config["bubble"]["initial_radius"];
+  numType initialBubbleSpeed = config["bubble"]["initial_speed"];
+
+  bool b_toStream = config["stream"]["stream"];
+  bool b_streamData = config["stream"]["data"];
+  bool b_streamProfile = config["stream"]["profile"];
+  std::string s_dataPath = config["stream"]["dataPath"];
+  int i_streamFreq = config["stream"]["stream_freq"];
 
   /*
-          =============== Initialization ===============
-          1) Define simulation (calculates number and energy densities)
+    =============== Initialization ===============
+    1) Define simulation parameters (alpha, eta, upsilon, M+)
+
+    2) Define simulation object
+
+    3) Generate particles (coordinates and momentum) and set their masses
+
+    4) Get simulation parameters (number/energy desnity) and find dV and sigma
+
+    5) Set dt size.
+
+    6) Define bubble parameters (initial radius, initial speed, dV, sigma)
+
+    7) Define OpenCLWrapper -> give data structure references
+
+    8) Define streamer object
+
+    9) Set up fstream objects
+ */
+
+  // 1) Defining simulation parameters if required
+  /*
+  alpha = dV/rho, eta = M+/T, Upsilon = sigma/(dV * R_0)
+
+  Define M+ -> Get T -> Get rho -> get dV -> get sigma
+  M+ is defined in a config
   */
+  temperatureFalse = massTrue / eta;
+  temperatureTrue = 0;  // -> No particles generated in true vacuum
 
-  Simulation sim(seed, alpha, massTrue, massFalse, temperatureTrue,
-                 temperatureFalse, countParticlesTrue, countParticlesFalse,
-                 coupling);
-  numType radius = (numType)std::cbrt(
-      countParticlesFalse / (4 * sim.getNumberDensityFalse()) * 3 / M_PI);
-  sim.generateNParticlesInSphere(massFalse, radius, countParticlesFalse,
+  // 2) Simulation definition
+  Simulation sim(seed, massTrue, massFalse, temperatureTrue, temperatureFalse,
+                 countParticlesTrue, countParticlesFalse, coupling);
+
+  // 3) Generating particles
+  sim.generateNParticlesInSphere(massFalse, initialBubbleRadius,
+                                 sim.getParticleCountFalseInitial(),
                                  sim.getCPDFalseRef(), sim.getPFalseRef());
-  sim.set_dt(radius / 1000);
-  numType rho0 = sim.countParticleEnergyDensity(radius);
-  // Delta V_T / rho = alpha, Delta V_T = Delta V - T * n -> Delta V = rho *
-  // alpha + T * n
-  numType dV = alpha * rho0 + temperatureFalse * sim.getNumberDensityFalse();
 
-  Bubble bubble(radius, initialBubbleSpeed, dV, sigma);
+  // 4) dV and sigma
+  sim.setEnergyDensityFalseSimInitial(sim.countParticlesEnergy() * 3 /
+                                      (4 * M_PI * std::pow(initialBubbleRadius, 3)));
+  sim.setNumberDesnityFalseSimInitial(sim.getParticleCountFalseInitial() * 3 /
+                                      (4 * M_PI * std::pow(initialBubbleRadius, 3)));
+  numType dV;
+  numType Tn = sim.getNumberDensityFalseInitial() * temperatureFalse;
 
+  std::cout << std::pow(temperatureFalse, 4) * 3 / std::pow(M_PI, 2)
+            << std::endl;
+  std::cout << sim.getEnergyDensityFalse() << std::endl;
+  std::cout << sim.getEnergyDensityFalseInitial() << std::endl 
+            << std::endl;
+  std::cout << std::pow(temperatureFalse, 3) / std::pow(M_PI, 2)
+            << std::endl;
+  std::cout << sim.getNumberDensityFalse() << std::endl;
+  std::cout << sim.getNumberDensityFalseInitial() << std::endl << std::endl;
+  if (alpha > 0) {
+    // Expanding bubble -> dV < 0
+    dV = -sim.getEnergyDensityFalseInitial() * alpha + Tn;
+    std::cout << "dVT: " << -sim.getEnergyDensityFalseInitial() * alpha
+              << ", Tn: " << Tn << ", dV: " << dV << std::endl;
+    std::cout << massTrue * countParticlesFalse /
+                     (4 / 3 * M_PI * std::pow(initialBubbleRadius, 3) * eta) *
+                     (-3 * alpha + 1)
+              << std::endl;
+  } else {
+    // Collapsing bubble -> dV > 0
+    dV = -sim.getEnergyDensityFalseInitial() * alpha - Tn;
+    std::cout << "dVT: " << -sim.getEnergyDensityFalseInitial() * alpha
+              << ", Tn: " << Tn << ", dV: " << dV << std::endl;
+    std::cout << -9 * temperatureFalse * countParticlesFalse * alpha /
+                     (4 * M_PI * std::pow(initialBubbleRadius, 3))
+              << std::endl;
+    std::cout << -9 * massTrue * countParticlesFalse * alpha /
+                     (eta * 4 * M_PI * std::pow(initialBubbleRadius, 3))
+              << std::endl
+              << std::endl;
+    std::cout << 3 * temperatureFalse * countParticlesFalse /
+                     ( 4 * M_PI * std::pow(initialBubbleRadius, 3)) << std::endl;
+    std::cout << 3 * massTrue * countParticlesFalse /
+                     (eta * 4 * M_PI * std::pow(initialBubbleRadius, 3))
+              << std::endl;
+    std::cout << std::endl << massTrue * countParticlesFalse /
+                     (4. / 3 * M_PI * std::pow(initialBubbleRadius, 3) * eta) *
+                     (-3 * alpha - 1)
+              << std::endl;
+  }
+  numType sigma = upsilon * std::abs(dV) * initialBubbleRadius;
+
+  // 5) dt definition
+  sim.set_dt(0.1);
+
+  // 6) Bubble
+  Bubble bubble(initialBubbleRadius, initialBubbleSpeed, dV, sigma);
+
+  std::vector<double> v_time2wall(sim.getParticleCountTotal(), 0);
+
+  sim.setEnergyTotalInitial(sim.countParticlesEnergy() +
+                            bubble.calculateEnergy());
+
+  // 7) OpenCL wrapper
   OpenCLWrapper openCL(
       kernelPath, kernelName, sim.getParticleCountTotal(), sim.getReferenceX(),
       sim.getReferenceP(), sim.getReferenceE(), sim.getReferenceM(),
@@ -124,29 +236,111 @@ int main(int argc, char* argv[]) {
       bubble.getRadiusRef(), bubble.getRadius2Ref(),
       bubble.getRadiusAfterDt2Ref(), bubble.getSpeedRef(), bubble.getGammaRef(),
       bubble.getGammaSpeedRef(), sim.getReferenceInteractedFalse(),
-      sim.getReferencePassedFalse(), sim.getReferenceInteractedTrue(), false);
+      sim.getReferencePassedFalse(), sim.getReferenceInteractedTrue(),
+      v_time2wall, false);
 
-  DataStreamer dataStream(sim, bubble, openCL);
+  // 8) Streaming object
+  DataStreamer dataStreamer(sim, bubble, openCL);
 
+ 
   /*
           =============== Display text ===============
   */
-  std::cout << "=============== Text ===============" << std::endl;
-  std::cout << "    ========== Bubble ==========" << std::endl;
-  std::cout << "Initial bubble radius: " << bubble.getRadius()
+  numType numberDensityParam =
+      3 * countParticlesFalse / (4 * M_PI * std::pow(initialBubbleRadius, 3));
+  numType energyDensityParam = 3 * temperatureFalse * numberDensityParam;
+
+  std::cout << std::endl
+            << std::endl
+            << "=============== Initialization ===============" << std::endl;
+  std::cout << "==========  Bubble  ==========" << std::endl;
+  std::cout << std::setprecision(5)
+            << "Initial bubble radius: " << bubble.getRadius()
             << ", Initial bubble speed: " << bubble.getSpeed() << std::endl;
-  std::cout << "dV : " << bubble.getdV() << ", Sigma: " << bubble.getSigma()
+  std::cout << std::setprecision(10) << "dV : " << bubble.getdV()
+            << ", Sigma: " << bubble.getSigma() << std::endl;
+  std::cout << "Bubble energy: " << bubble.calculateEnergy() << std::endl;
+  std::cout << "  ========== Particles ==========" << std::endl;
+  std::cout << "Total particles' energy: " << sim.countParticlesEnergy()
             << std::endl;
 
-  std::cout << "Total particle energy: " << sim.countParticlesEnergy()
+  std::cout << std::endl
+            << "===============  SIMULATION PARAMETERS  ==============="
+            << std::endl
+            << std::endl;
+  std::cout << "dt: " << sim.get_dt() << ", alpha: " << alpha
+            << ", eta: " << eta << ", upsilon: " << upsilon << std::endl;
+
+  std::cout << std::endl
+            << "==========  NUMBER DENSITY  ==========" << std::endl;
+  std::cout << "Parameters: " << numberDensityParam
+            << "  Theory: " << std::pow(temperatureFalse, 3) / std::pow(M_PI, 2)
+            << std::endl;
+  std::cout << "Simulation: "
+            << sim.getParticleCountTotal() * 3 /
+                   (4 * M_PI * std::pow(bubble.getRadius(), 3))
+            << "  Sim/Param: "
+            << sim.getParticleCountTotal() * 3 /
+                   (4 * M_PI * std::pow(bubble.getRadius(), 3)) /
+                   numberDensityParam
+            << "\n"
+            << std::endl;
+  std::cout << "==========  ENERGY DENSITY  ==========" << std::endl;
+  std::cout << "Parameters: " << energyDensityParam << "  Theory: "
+            << 3 * std::pow(temperatureFalse, 4) / std::pow(M_PI, 2)
+            << std::endl;
+  std::cout << "Simulation: "
+            << sim.countParticlesEnergy() * 3 /
+                   (4 * M_PI * std::pow(bubble.getRadius(), 3))
+            << "  Sim/Param: "
+            << sim.countParticlesEnergy() * 3 /
+                   (4 * M_PI * std::pow(bubble.getRadius(), 3)) /
+                   energyDensityParam
+            << "\n"
+            << std::endl;
+  std::cout << "==========  AVERAGE PARTICLE ENERGY  ==========" << std::endl;
+  std::cout << "Parameters: " << energyDensityParam / numberDensityParam
+            << "  Theory: " << 3 * temperatureFalse << std::endl;
+  std::cout << "Simulation: "
+            << sim.countParticlesEnergy() / sim.getParticleCountTotal()
+            << "  Sim/Param: "
+            << sim.countParticlesEnergy() / sim.getParticleCountTotal() /
+                   (energyDensityParam / numberDensityParam)
+            << "\n"
+            << std::endl;
+  std::cout << "===============  END  ===============" << std::endl
             << std::endl;
 
-  std::cout << "=============== Text end ===============" << std::endl;
-  std::cout << "n = " << sim.getNumberDensityFalse()
-            << ", rho = " << sim.getEnergyDensityFalse() << std::endl;
-  std::cout << "dt: " << sim.get_dt() << std::endl;
-  std::cout << std::setprecision(9) << radius << std::endl;
+  exit(0);
+  // 9) Streams
+  std::fstream pStreamIn, pStreamOut, nStream, rhoStream, dataStream;
+  std::string dataFolderName = createFileNameFromCurrentDate();
+  std::filesystem::path filePath =
+      createSimulationFilePath(s_dataPath, dataFolderName);
 
+  if (b_toStream) {
+    std::cout << "Files saved to: " << filePath << std::endl;
+
+    if (b_streamData) {
+      dataStream = std::fstream(filePath / "data.csv",
+                                std::ios::out | std::ios::in | std::ios::trunc);
+    }
+    if (b_streamProfile) {
+      pStreamIn = std::fstream(filePath / "pIn.csv",
+                               std::ios::out | std::ios::in | std::ios::trunc);
+      pStreamOut = std::fstream(filePath / "pOut.csv",
+                                std::ios::out | std::ios::in | std::ios::trunc);
+      nStream = std::fstream(filePath / "n.csv",
+                             std::ios::out | std::ios::in | std::ios::trunc);
+      rhoStream = std::fstream(filePath / "rho.csv",
+                               std::ios::out | std::ios::in | std::ios::trunc);
+    }
+  }
+
+  createSimulationListStream(filePath, seed, alpha, eta, upsilon,
+                             initialBubbleRadius, initialBubbleSpeed, massFalse,
+                             massTrue, temperatureFalse, temperatureTrue,
+                             countParticlesFalse, countParticlesTrue, coupling, sim.get_dt());
 #ifdef LOG_DEBUG
   int particleIndex1 = 0;
   int particleIndex2 = sim.getParticleCountTotal() - 1;
@@ -176,32 +370,72 @@ int main(int argc, char* argv[]) {
             << "=============== DEBUG END ===============" << std::endl
             << std::endl;
 #endif
-#ifdef MAX_STEPS
-  std::cout << i_maxSteps << std::endl;
-  for (int i = 0; i < i_maxSteps; i++) {
+
+  /* simulationList
+     << "time,radius,speed,E_b,E_p,E_f,E,Count_f,Interacted_f,"
+                   "Passed_f,Interacted_t"
+                << std::endl;
+ */
+
+
+  if (i_maxSteps == 0) {
+    dataStreamer.streamBaseData(dataStream, false);
+    dataStreamer.reset();
+    for (int i = 0;; i++) {
       sim.step(bubble, openCL);
-      std::cout << std::setprecision(15) << "R: " << bubble.getRadius() << ", V: " << bubble.getSpeed() << ", dP: " << sim.getdPressureStep() << std::endl;
-      dataStream.streamParticleInfo();
-      if (std::isnan(bubble.getSpeed())) {
-        std::cerr << "Abort due to nan" << std::endl;
-        exit(1);
-    }
-  }
-#endif
-#ifndef MAX_STEPS
-  for (int i = 0; i < 10; i++) {
-    for (int j = 0; j < 10; j++) {
-      sim.step(bubble, openCL);
-      if (std::isnan(bubble.getSpeed())) {
-        std::cerr << "Abort due to nan" << std::endl;
-        exit(1);
+
+      if (i % i_streamFreq == 0) {
+        std::cout << "t: " <<  sim.getTime() << ", R: " << bubble.getRadius() << ", V: "
+                  << bubble.getSpeed()
+                  << std::endl;
+        dataStreamer.streamBaseData(dataStream, false);
+        dataStreamer.reset();
+      }
+      if (std::isnan(bubble.getRadius()) || bubble.getRadius() <= 0) {
+        std::cerr << "Ending simulaton. Radius is not a number or <= 0. (R_b="
+                  << bubble.getRadius() << ")" << std::endl;
+        break;
+      }
+      if (std::isnan(bubble.getSpeed()) || std::abs(bubble.getSpeed()) >= 1) {
+        std::cerr
+            << "Ending simulaton. Bubble speed not a number or >= 1. (V_b="
+            << bubble.getSpeed() << ")" << std::endl;
+        break;
       }
     }
-    std::cout << std::setprecision(15) << "R: " << bubble.getRadius()
-              << ", V: " << bubble.getSpeed()
-              << ", dP: " << sim.getdPressureStep() << std::endl;
+  } else {
+    for (int i = 0; i < i_maxSteps; i++) {
+      sim.step(bubble, openCL);
+      if (i % i_streamFreq == 0) {
+        dataStreamer.streamBaseData(dataStream, false);
+        dataStreamer.reset();
+        std::cout << "t: " << sim.getTime() << ", R: " << bubble.getRadius()
+                  << ", V: " << bubble.getSpeed() << std::endl;
+      }
+      if (std::isnan(bubble.getRadius()) || bubble.getRadius() <= 0) {
+        std::cerr << "Ending simulaton. Radius is not a number or <= 0. (R_b="
+                  << bubble.getRadius() << ")" << std::endl;
+        break;
+      }
+      if (std::isnan(bubble.getSpeed()) || std::abs(bubble.getSpeed()) >= 1) {
+        std::cerr
+            << "Ending simulaton. Bubble speed not a number or >= 1. (V_b="
+            << bubble.getSpeed() << ")" << std::endl;
+        break;
+      }
+    }
   }
-#endif  // !MAX_STEPS
 
-  dataStream.streamMassRadiusDifference(false);
+  dataStreamer.streamMassRadiusDifference(false);
+
+  auto programEndTime = high_resolution_clock::now();
+  auto ms_int = std::chrono::duration_cast<std::chrono::milliseconds>(
+      programEndTime - programStartTime);
+  int seconds = (int)(ms_int.count() / 1000) % 60;
+  int minutes = ((int)(ms_int.count() / (1000 * 60)) % 60);
+  int hours = ((int)(ms_int.count() / (1000 * 60 * 60)) % 24);
+
+  std::cout << std::endl
+            << "Program run: " << hours << "h " << minutes << "m " << seconds
+            << "s " << std::endl;
 }

@@ -1,4 +1,6 @@
 #pragma once
+#define _USE_MATH_DEFINES
+
 #include <fstream>
 
 #include "base.h"
@@ -20,6 +22,8 @@ class DataStreamer {
   bool m_readBufferR;
   bool m_readBufferSpeed;
 
+  bool m_readBufferTime2Wall;
+
   Simulation& m_sim;
   Bubble& m_bubble;
   OpenCLWrapper& m_openCLWrapper;
@@ -31,27 +35,16 @@ class DataStreamer {
   void reset();
 
   void streamBaseData(std::fstream& t_stream, bool t_isBubbleTrueVacuum);
-  /*
-  Streams for:
 
-  ==	time, dP, Radius, Speed, bubbleEnergy, bubbleEnergy - bubbleEnergyOld,
-          particleEnergy, particleEnergy - particleEnergyOld, particleEnergyIn,
-          (bubbleEnergy + particleEnergy) / sim.m_energyTotalInitial,
-          countParticleIn, countParticleInteractedFalse,
-  countParticleInteractedPassedFalse, countParticleInteratedTrue
-
-  == number density profile
-
-  == energy density profile
-
-  == momentum profile
-
-  */
-
-  void streamMassRadiusDifference(bool t_isBubbleTrueVacuum);
+  bool streamMassRadiusDifference(bool t_isBubbleTrueVacuum);
 
   void streamParticleInfo();
 
   void streamParticleInfo(std::fstream& t_stream);
-};
 
+  void streamProfiles(std::fstream& t_nStream, std::fstream& t_rhoStream,
+                      std::fstream& t_pInStream, std::fstream& t_pOutStream,
+                      u_int t_densityCountBins, u_int t_pCountBins,
+                      numType t_radiusMax, numType t_pMax,
+                      numType t_energyDensityNormalizer);
+};

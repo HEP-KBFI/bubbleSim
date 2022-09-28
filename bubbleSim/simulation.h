@@ -1,8 +1,9 @@
 #pragma once
-#include "base.h"
+#define _USE_MATH_DEFINES
 
 #include <random>
 
+#include "base.h"
 #include "bubble.h"
 #include "openclwrapper.h"
 
@@ -46,6 +47,7 @@ class Simulation {
 
   // Particle info
   std::vector<numType> m_X;
+  // Momentum (3*N)
   std::vector<numType> m_P;
   std::vector<numType> m_E;
   std::vector<numType> m_M;
@@ -66,13 +68,41 @@ class Simulation {
 
  public:
   Simulation() {}
-  Simulation(int t_seed, numType t_massTrue,
-             numType t_massFalse, numType t_temperatureTrue,
-             numType t_temperatureFalse, unsigned int t_particleCountTrue,
+  Simulation(int t_seed, numType t_massTrue, numType t_massFalse,
+             numType t_temperatureTrue, numType t_temperatureFalse,
+             unsigned int t_particleCountTrue,
              unsigned int t_particleCountFalse, numType t_coupling);
   Simulation& operator=(const Simulation& t) { return *this; }
 
   void set_dt(numType t_dt);
+
+  void setEnergyDensityTrueSimInitial(numType new_rho) {
+    m_rhoTrueSimInitial = new_rho;
+  }
+  void setEnergyDensityFalseSimInitial(numType new_rho) {
+    m_rhoFalseSimInitial = new_rho;
+  }
+  void setNumberDensityTrueSimInitial(numType new_n) {
+    m_nTrueSimInitial = new_n;
+  }
+  void setNumberDesnityFalseSimInitial(numType new_n) {
+    m_nFalseSimInitial = new_n;
+  }
+  void setEnergyTotalInitial(numType new_E) { m_energyTotalInitial = new_E; }
+  void setEnergyTotal(numType new_E) { m_energyTotal = new_E; }
+  void setEnergyParticlesInitial(numType new_E) {
+    m_energyParticlesInitial = new_E;
+  }
+  void setEnergyParticles(numType new_E) { m_energyParticles = new_E; }
+  void setEnergyBubble(numType new_E) { m_energyBubble = new_E; }
+  void setEnergyBubbleInitial(numType new_E) { m_energyBubbleInitial = new_E; }
+
+  void setEnergyBubbleLastStep(numType new_E) {
+    m_energyBubbleLastStep = new_E;
+  }
+  void setEnergyParticlesLastStep(numType new_E) {
+    m_energyParticlesLastStep = new_E;
+  }
 
   std::vector<numType>& getReferenceX() { return m_X; }
   std::vector<numType>& getReferenceP() { return m_P; }
@@ -93,6 +123,10 @@ class Simulation {
   numType getEnergyDensityFalse() { return m_rhoFalse; }
   numType getNumberDensityTrue() { return m_nTrue; }
   numType getEnergyDensityTrue() { return m_rhoTrue; }
+  numType getNumberDensityFalseInitial() { return m_nFalseSimInitial; }
+  numType getEnergyDensityFalseInitial() { return m_rhoFalseSimInitial; }
+  numType getNumberDensityTrueInitial() { return m_nTrueSimInitial; }
+  numType getEnergyDensityTrueInitial() { return m_rhoTrueSimInitial; }
 
   numType getMassFalse() { return m_massFalse; }
   numType getMassTrue() { return m_massTrue; }
@@ -100,6 +134,8 @@ class Simulation {
   numType get_dt() { return m_dt; }
   numType getdPressureStep() { return m_dPressureStep; }
   int getParticleCountTotal() { return m_particleCountTotal; }
+  int getParticleCountTrueInitial() { return m_particleCountTrue; }
+  int getParticleCountFalseInitial() { return m_particleCountFalse; }
 
   numType getBubbleEnergy() { return m_energyBubble; }
   numType getBubbleEnergyLastStep() { return m_energyBubbleLastStep; }

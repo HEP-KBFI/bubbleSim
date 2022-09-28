@@ -5,6 +5,7 @@
 
 # Dependencies
 dependencies/OpenCL
+/data
 
 
 # User-specific files

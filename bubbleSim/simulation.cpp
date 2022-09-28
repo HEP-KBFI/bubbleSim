@@ -1,8 +1,7 @@
 #include "simulation.h"
 
-Simulation::Simulation(int t_seed, numType t_massTrue,
-                       numType t_massFalse, numType t_temperatureTrue,
-                       numType t_temperatureFalse,
+Simulation::Simulation(int t_seed, numType t_massTrue, numType t_massFalse,
+                       numType t_temperatureTrue, numType t_temperatureFalse,
                        unsigned int t_particleCountTrue,
                        unsigned int t_particleCountFalse, numType t_coupling) {
   // Set up random number generator
@@ -37,9 +36,9 @@ Simulation::Simulation(int t_seed, numType t_massTrue,
   m_rhoTrue = 0, m_rhoFalse = 0, m_nTrue = 0, m_nFalse = 0;
 
   numType dpFalse = 1e-5 * m_temperatureFalse;
-  numType pMaxFalse = 14.5 * t_temperatureFalse;
+  numType pMaxFalse = 30 * t_temperatureFalse;
   numType dpTrue = 1e-5 * m_temperatureTrue;
-  numType pMaxTrue = 14.5 * t_temperatureTrue;
+  numType pMaxTrue = 30 * t_temperatureTrue;
   int vectorSizeFalse = (int)(pMaxFalse / dpFalse);
   int vectorSizeTrue = (int)(pMaxFalse / dpFalse);
 
@@ -73,13 +72,10 @@ Simulation::Simulation(int t_seed, numType t_massTrue,
   m_E.reserve(m_particleCountTotal);
   m_M.reserve(m_particleCountTotal);
   m_dP = std::vector<numType>(m_particleCountTotal, 0.);
-  m_interactedFalse.reserve(m_particleCountTotal);
-  ;
-  m_passedFalse.reserve(m_particleCountTotal);
-  ;
-  // True vaccum interaction also means that the particle gets through
-  m_interactedTrue.reserve(m_particleCountTotal);
-  ;
+  m_interactedFalse = std::vector<int8_t>(m_particleCountTotal, 0);
+  m_passedFalse = std::vector<int8_t>(m_particleCountTotal, 0);
+  m_interactedTrue = std::vector<int8_t>(m_particleCountTotal, 0);
+
 
   // Other sim parameters
   m_rhoTrueSim = 0, m_rhoFalseSim = 0, m_nTrueSim = 0, m_nFalseSim = 0;
@@ -164,7 +160,7 @@ numType Simulation::calculateNumberDensity(numType t_mass,
     n += t_dp * std::pow(p, 2) *
          std::exp(-std::sqrt(std::fma(p, p, m2)) / t_temperature);
   }
-  n = n / (numType)(2 * std::pow(M_PI, 2));
+  n = n / (numType)(2. * std::pow(M_PI, 2));
   return n;
 }
 
@@ -486,23 +482,23 @@ void Simulation::step(Bubble& bubble, OpenCLWrapper& openCLWrapper) {
     std::cout << "Error: dt <= 0.\nExiting program." << std::endl;
     exit(1);
   }
-
+  m_time += m_dt;
   // Write bubble parameters to GPU
   bubble.calculateRadiusAfterDt2(m_dt);
-   openCLWrapper.makeStep1(bubble.getRadiusAfterDt2Ref());
+  openCLWrapper.makeStep1(bubble.getRadiusAfterDt2Ref());
   // Run one step on device
   openCLWrapper.makeStep2(m_particleCountTotal);
-  
+
   // Read dP vector. dP is "Energy" change for particles -> Bubble energy change
   // is -dP
   openCLWrapper.makeStep3(m_particleCountTotal, m_dP);
-  
-  
+
   m_dPressureStep = 0;
   for (int i = 0; i < m_particleCountTotal; i++) {
     m_dPressureStep += m_dP[i];
   }
-  m_dPressureStep /= -bubble.getArea();
+  //m_dPressureStep /= -bubble.getArea();
+  m_dPressureStep = 0;
   bubble.evolveWall(m_dt, m_dPressureStep);
   openCLWrapper.makeStep4(bubble.getRadiusRef(), bubble.getRadius2Ref(),
                           bubble.getSpeedRef(), bubble.getGammaRef(),
