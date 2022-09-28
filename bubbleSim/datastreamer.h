@@ -22,8 +22,6 @@ class DataStreamer {
   bool m_readBufferR;
   bool m_readBufferSpeed;
 
-  bool m_readBufferTime2Wall;
-
   Simulation& m_sim;
   Bubble& m_bubble;
   OpenCLWrapper& m_openCLWrapper;

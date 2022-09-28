@@ -222,8 +222,6 @@ int main(int argc, char* argv[]) {
   // 6) Bubble
   Bubble bubble(initialBubbleRadius, initialBubbleSpeed, dV, sigma);
 
-  std::vector<double> v_time2wall(sim.getParticleCountTotal(), 0);
-
   sim.setEnergyTotalInitial(sim.countParticlesEnergy() +
                             bubble.calculateEnergy());
 
@@ -236,8 +234,7 @@ int main(int argc, char* argv[]) {
       bubble.getRadiusRef(), bubble.getRadius2Ref(),
       bubble.getRadiusAfterDt2Ref(), bubble.getSpeedRef(), bubble.getGammaRef(),
       bubble.getGammaSpeedRef(), sim.getReferenceInteractedFalse(),
-      sim.getReferencePassedFalse(), sim.getReferenceInteractedTrue(),
-      v_time2wall, false);
+      sim.getReferencePassedFalse(), sim.getReferenceInteractedTrue(), false);
 
   // 8) Streaming object
   DataStreamer dataStreamer(sim, bubble, openCL);
@@ -311,7 +308,7 @@ int main(int argc, char* argv[]) {
   std::cout << "===============  END  ===============" << std::endl
             << std::endl;
 
-  exit(0);
+  // exit(0);
   // 9) Streams
   std::fstream pStreamIn, pStreamOut, nStream, rhoStream, dataStream;
   std::string dataFolderName = createFileNameFromCurrentDate();
@@ -404,7 +401,7 @@ int main(int argc, char* argv[]) {
       }
     }
   } else {
-    for (int i = 0; i < i_maxSteps; i++) {
+    for (int i = 1; i <= i_maxSteps; i++) {
       sim.step(bubble, openCL);
       if (i % i_streamFreq == 0) {
         dataStreamer.streamBaseData(dataStream, false);

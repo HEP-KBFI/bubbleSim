@@ -9,7 +9,7 @@ OpenCLWrapper::OpenCLWrapper(
     numType& t_bubbleRadius2, numType& t_bubbleRadiusAfterDt2,
     numType& t_bubbleSpeed, numType& t_bubbleGamma, numType& t_bubbleGammaSpeed,
     std::vector<int8_t>& t_interactedFalse, std::vector<int8_t>& t_passedFalse,
-    std::vector<int8_t>& t_interactedTrue, std::vector<double>& t_time2wall, bool t_isBubbleTrueVacuum) {
+    std::vector<int8_t>& t_interactedTrue, bool t_isBubbleTrueVacuum) {
   int errNum;
 
   createContext(m_devices);
@@ -361,3 +361,23 @@ void OpenCLWrapper::readBufferBubble(numType& t_dataR, numType& t_dataSpeed) {
   readBufferR(t_dataR);
   readBufferSpeed(t_dataSpeed);
 }
+
+void OpenCLWrapper::writeResetInteractedFalseBuffer(
+    std::vector<int8_t>& v_interacted) {
+  std::fill(v_interacted.begin(), v_interacted.end(), 0);
+  m_queue.enqueueWriteBuffer(m_bufferInteractedFalse, CL_TRUE, 0,
+                             v_interacted.size() * sizeof(int8_t),
+                             v_interacted.data());
+};
+void OpenCLWrapper::writeResetPassedFalseBuffer(std::vector<int8_t>& v_passed) {
+  std::fill(v_passed.begin(), v_passed.end(), 0);
+  m_queue.enqueueWriteBuffer(m_bufferPassedFalse, CL_TRUE, 0,
+                             v_passed.size() * sizeof(int8_t), v_passed.data());
+};
+void OpenCLWrapper::writeResetInteractedTrueBuffer(
+    std::vector<int8_t>& v_interacted) {
+  std::fill(v_interacted.begin(), v_interacted.end(), 0);
+  m_queue.enqueueWriteBuffer(m_bufferInteractedTrue, CL_TRUE, 0,
+                             v_interacted.size() * sizeof(int8_t),
+                             v_interacted.data());
+};

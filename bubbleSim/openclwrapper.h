@@ -39,7 +39,6 @@ class OpenCLWrapper {
   cl::Buffer m_bufferInteractedTrue;
   cl::Buffer m_bufferPassedTrue;
 
-  cl::Buffer m_bufferTime2wall;
 
  public:
   OpenCLWrapper() {}
@@ -54,7 +53,7 @@ class OpenCLWrapper {
                 numType& t_bubbleGammaSpeed,
                 std::vector<int8_t>& t_interactedFalse,
                 std::vector<int8_t>& t_passedFalse,
-                std::vector<int8_t>& t_interactedTrue, std::vector<double>& t_time2wall,
+                std::vector<int8_t>& t_interactedTrue,
                 bool t_isBubbleTrueVacuum);
 
   cl::CommandQueue& getReferenceQueue() { return m_queue; }
@@ -83,7 +82,6 @@ class OpenCLWrapper {
   void readBufferR(numType& t_dataR);
   void readBufferSpeed(numType& t_dataSpeed);
   void readBufferBubble(numType& t_dataR, numType& t_dataSpeed);
-  void readBufferTime2Wall(std::vector<double>& t_time2wall);
 
   void writeResetInteractedFalseBuffer(std::vector<int8_t>& v_interacted);
   void writeResetPassedFalseBuffer(std::vector<int8_t>& v_interacted);

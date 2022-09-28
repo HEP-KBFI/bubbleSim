@@ -15,7 +15,6 @@ DataStreamer::DataStreamer(Simulation& t_sim, Bubble& t_bubble,
 
   m_readBufferR = true;
   m_readBufferSpeed = true;
-  m_readBufferTime2Wall = true;
 }
 
 void DataStreamer::reset() {
@@ -31,7 +30,6 @@ void DataStreamer::reset() {
 
   m_readBufferR = true;
   m_readBufferSpeed = true;
-  m_readBufferTime2Wall = true;
 }
 
 void DataStreamer::streamBaseData(std::fstream& t_stream,
