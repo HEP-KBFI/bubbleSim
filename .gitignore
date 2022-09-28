@@ -5,7 +5,7 @@
 
 # Dependencies
 dependencies/OpenCL
-/data
+bubbleSim/data
 
 
 # User-specific files
