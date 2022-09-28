@@ -14,3 +14,12 @@ singularity exec --env POCL_DEVICES=basic $IMG build/bubbleSim.exe bubbleSim/con
 #Run on GPU (only on a GPU machine)
 singularity exec --nv --env LD_LIBRARY_PATH=/usr/local/cuda/lib64 $IMG build/bubbleSim.exe bubbleSim/config.json
 ```
+
+Submit to GPU queue:
+```
+#Run one simulation per GPU
+sbatch scripts/bubblesim-gpu.sh
+
+#Run 4 simulations in parallel on one GPU
+sbatch scripts/bubblesim-gpu-p4.sh config1.json config2.json config3.json config4.json
+```

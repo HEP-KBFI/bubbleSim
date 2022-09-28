@@ -12,7 +12,6 @@ OpenCLWrapper::OpenCLWrapper(
     std::vector<int8_t>& t_interactedTrue, bool t_isBubbleTrueVacuum) {
   int errNum;
 
-  m_platform.getDevices(CL_DEVICE_TYPE_GPU, &m_devices);
   createContext(m_devices);
   createProgram(m_context, m_deviceUsed, fileName);
   createKernel(m_program, kernelName.c_str());  // cl::Kernel
@@ -78,13 +77,13 @@ OpenCLWrapper::OpenCLWrapper(
                  sizeof(numType), &t_bubbleGammaSpeed, &errNum);
 
   m_bufferInteractedFalse = cl::Buffer(
-      m_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+      m_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
       t_particleCount * sizeof(int8_t), t_interactedFalse.data(), &errNum);
   m_bufferPassedFalse = cl::Buffer(
-      m_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+      m_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
       t_particleCount * sizeof(int8_t), t_passedFalse.data(), &errNum);
   m_bufferInteractedTrue = cl::Buffer(
-      m_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+      m_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
       t_particleCount * sizeof(int8_t), t_interactedTrue.data(), &errNum);
 
   errNum = m_kernel.setArg(0, m_bufferX);
@@ -178,7 +177,8 @@ void OpenCLWrapper::createContext(std::vector<cl::Device>& devices) {
 
   // try to find NVIDIA device
   for (const auto& value : platforms) {
-    if (value.getInfo<CL_PLATFORM_NAME>().find("NVIDIA") != std::string::npos) {
+    const auto& platform_name = value.getInfo<CL_PLATFORM_NAME>();
+    if (platform_name.find("NVIDIA") != std::string::npos) {
       std::vector<cl::Device> temp_devices;
       value.getDevices(CL_DEVICE_TYPE_GPU, &temp_devices);
       for (const auto& value2 : temp_devices) {
@@ -187,12 +187,13 @@ void OpenCLWrapper::createContext(std::vector<cl::Device>& devices) {
       break;
     }
   }
-
+ 
   // try to find CPU device
   if (devices.size() == 0) {
     for (const auto& value : platforms) {
-      if (value.getInfo<CL_PLATFORM_NAME>().find(
-              "Portable Computing Language") != std::string::npos) {
+      const auto& platform_name = value.getInfo<CL_PLATFORM_NAME>();
+      if ((platform_name.find(
+              "Portable Computing Language") != std::string::npos) || (platform_name.find("Oclgrind") != std::string::npos)) {
         std::vector<cl::Device> temp_devices;
         value.getDevices(CL_DEVICE_TYPE_CPU, &temp_devices);
         for (const auto& value2 : temp_devices) {
