@@ -40,7 +40,7 @@ jobs:
         run: |
           make clean
           OPTFLAGS="-O0 -fsanitize=address -g" make
-          ./build/bubbleSim.exe bubbleSim/config.json &> log_asan.txt
+          ASAN_OPTIONS="verbose=1,abort_on_error=1" ./build/bubbleSim.exe bubbleSim/config.json &> log_asan.txt
           head -n10 log_asan.txt
           tail -n10 log_asan.txt
            
