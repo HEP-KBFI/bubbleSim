@@ -111,7 +111,7 @@ void DataStreamer::streamBaseData(std::fstream& t_stream,
       m_sim.getReferenceInteractedTrue());
  }
 
-bool DataStreamer::streamMassRadiusDifference(bool t_isBubbleTrueVacuum) {
+int DataStreamer::streamMassRadiusDifference(bool t_isBubbleTrueVacuum) {
   int countMassTrue = 0, countMassFalse = 0;
   int countRadiusTrue = 0, countRadiusFalse = 0;
 
@@ -150,11 +150,7 @@ bool DataStreamer::streamMassRadiusDifference(bool t_isBubbleTrueVacuum) {
   std::printf("True/False vacuum difference (M-R): %d / %d\n",
               countMassTrue - countRadiusTrue,
               countMassFalse - countRadiusFalse);
-  if ((countMassTrue - countRadiusTrue) != 0) {
-    return false;
-  } else {
-    return true;
-  }
+  return (countMassTrue - countRadiusTrue);
 }
 
 void DataStreamer::streamParticleInfo() {
