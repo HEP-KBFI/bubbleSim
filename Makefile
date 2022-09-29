@@ -9,7 +9,7 @@ OBJS := $(SRCS:%=$(BUILD_DIR)/%.o)
 
 #link against common OCL headers
 CXXFLAGS=-std=c++2a -I./dependencies/json/ $(OPTFLAGS)
-LDFLAGS=-lOpenCL -lm -lstdc++
+LDFLAGS=-lOpenCL -lm -lstdc++ $(OPTFLAGS)
 
 # The final build step of the executable
 $(BUILD_DIR)/$(TARGET_EXEC): $(OBJS)
