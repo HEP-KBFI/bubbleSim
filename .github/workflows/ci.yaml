@@ -32,11 +32,13 @@ jobs:
           head -n10 log_basic.txt
           tail -n10 log_basic.txt
       - name: oclgrind
+        run: |
           oclgrind ./build/bubbleSim.exe bubbleSim/config.json &> log_oclgrind.txt
           head -n10 log_basic.txt
           tail -n10 log_basic.txt
       - name: asan
         run: |
+          make clean
           OPTFLAGS="-O0 -fsanitize=address -g" make
           ./build/bubbleSim.exe bubbleSim/config.json &> log_asan.txt
           head -n10 log_asan.txt
