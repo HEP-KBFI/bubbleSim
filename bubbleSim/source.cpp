@@ -154,9 +154,12 @@ int main(int argc, char* argv[]) {
   Define M+ -> Get T -> Get rho -> get dV -> get sigma
   M+ is defined in a config
   */
-  temperatureFalse = massTrue / eta;
+  temperatureFalse = std::cbrt(3 * countParticlesFalse * std::pow(M_PI,2)/(4 * M_PI * std::pow(initialBubbleRadius, 3)));
+  massTrue = eta * temperatureFalse;
   temperatureTrue = 0;  // -> No particles generated in true vacuum
+  numType bubbleVolume = 4 * M_PI / 3 * std::pow(initialBubbleRadius, 3);
 
+ 
   // 2) Simulation definition
   Simulation sim(seed, massTrue, massFalse, temperatureTrue, temperatureFalse,
                  countParticlesTrue, countParticlesFalse, coupling);
@@ -166,6 +169,7 @@ int main(int argc, char* argv[]) {
                                  sim.getParticleCountFalseInitial(),
                                  sim.getCPDFalseRef(), sim.getPFalseRef());
 
+
   // 4) dV and sigma
   sim.setEnergyDensityFalseSimInitial(sim.countParticlesEnergy() * 3 /
                                       (4 * M_PI * std::pow(initialBubbleRadius, 3)));
@@ -174,45 +178,13 @@ int main(int argc, char* argv[]) {
   numType dV;
   numType Tn = sim.getNumberDensityFalseInitial() * temperatureFalse;
 
-  std::cout << std::pow(temperatureFalse, 4) * 3 / std::pow(M_PI, 2)
-            << std::endl;
-  std::cout << sim.getEnergyDensityFalse() << std::endl;
-  std::cout << sim.getEnergyDensityFalseInitial() << std::endl 
-            << std::endl;
-  std::cout << std::pow(temperatureFalse, 3) / std::pow(M_PI, 2)
-            << std::endl;
-  std::cout << sim.getNumberDensityFalse() << std::endl;
-  std::cout << sim.getNumberDensityFalseInitial() << std::endl << std::endl;
+
   if (alpha > 0) {
     // Expanding bubble -> dV < 0
     dV = -sim.getEnergyDensityFalseInitial() * alpha + Tn;
-    std::cout << "dVT: " << -sim.getEnergyDensityFalseInitial() * alpha
-              << ", Tn: " << Tn << ", dV: " << dV << std::endl;
-    std::cout << massTrue * countParticlesFalse /
-                     (4 / 3 * M_PI * std::pow(initialBubbleRadius, 3) * eta) *
-                     (-3 * alpha + 1)
-              << std::endl;
   } else {
     // Collapsing bubble -> dV > 0
     dV = -sim.getEnergyDensityFalseInitial() * alpha - Tn;
-    std::cout << "dVT: " << -sim.getEnergyDensityFalseInitial() * alpha
-              << ", Tn: " << Tn << ", dV: " << dV << std::endl;
-    std::cout << -9 * temperatureFalse * countParticlesFalse * alpha /
-                     (4 * M_PI * std::pow(initialBubbleRadius, 3))
-              << std::endl;
-    std::cout << -9 * massTrue * countParticlesFalse * alpha /
-                     (eta * 4 * M_PI * std::pow(initialBubbleRadius, 3))
-              << std::endl
-              << std::endl;
-    std::cout << 3 * temperatureFalse * countParticlesFalse /
-                     ( 4 * M_PI * std::pow(initialBubbleRadius, 3)) << std::endl;
-    std::cout << 3 * massTrue * countParticlesFalse /
-                     (eta * 4 * M_PI * std::pow(initialBubbleRadius, 3))
-              << std::endl;
-    std::cout << std::endl << massTrue * countParticlesFalse /
-                     (4. / 3 * M_PI * std::pow(initialBubbleRadius, 3) * eta) *
-                     (-3 * alpha - 1)
-              << std::endl;
   }
   numType sigma = upsilon * std::abs(dV) * initialBubbleRadius;
 
@@ -254,11 +226,21 @@ int main(int argc, char* argv[]) {
   std::cout << std::setprecision(5)
             << "Initial bubble radius: " << bubble.getRadius()
             << ", Initial bubble speed: " << bubble.getSpeed() << std::endl;
-  std::cout << std::setprecision(10) << "dV : " << bubble.getdV()
+  std::cout << std::setprecision(10) << "dV: " << bubble.getdV()
+            << ", dV(param): " << -numberDensityParam * temperatureFalse * (3*alpha + 1)
             << ", Sigma: " << bubble.getSigma() << std::endl;
   std::cout << "Bubble energy: " << bubble.calculateEnergy() << std::endl;
   std::cout << "  ========== Particles ==========" << std::endl;
-  std::cout << "Total particles' energy: " << sim.countParticlesEnergy()
+  std::cout << "Total particles' energy: " << sim.countParticlesEnergy() << ", m_+: " << massTrue
+            << std::endl;
+
+  std::cout << "T(n): "
+            << std::cbrt(3 * countParticlesFalse * std::pow(M_PI, 2) /
+                         (4 * M_PI * std::pow(initialBubbleRadius, 3)))
+            << ", T(rho): "
+            << std::pow( sim.countParticlesEnergy() * std::pow(M_PI, 2) /
+                            (4 * M_PI * std::pow(initialBubbleRadius, 3)),
+                        1. / 4)
             << std::endl;
 
   std::cout << std::endl
@@ -308,7 +290,6 @@ int main(int argc, char* argv[]) {
   std::cout << "===============  END  ===============" << std::endl
             << std::endl;
 
-  // exit(0);
   // 9) Streams
   std::fstream pStreamIn, pStreamOut, nStream, rhoStream, dataStream;
   std::string dataFolderName = createFileNameFromCurrentDate();
@@ -375,10 +356,15 @@ int main(int argc, char* argv[]) {
  */
 
 
+  std::cout << "t: " << sim.getTime() << ", R: " << bubble.getRadius()
+            << ", V: " << bubble.getSpeed() << std::endl;
+  dataStreamer.streamBaseData(dataStream, false);
+  dataStreamer.reset();
+
   if (i_maxSteps == 0) {
     dataStreamer.streamBaseData(dataStream, false);
     dataStreamer.reset();
-    for (int i = 0;; i++) {
+    for (int i = 1;; i++) {
       sim.step(bubble, openCL);
 
       if (i % i_streamFreq == 0) {
@@ -422,7 +408,7 @@ int main(int argc, char* argv[]) {
       }
     }
   }
-
+  dataStreamer.reset();
   dataStreamer.streamMassRadiusDifference(false);
 
   auto programEndTime = high_resolution_clock::now();

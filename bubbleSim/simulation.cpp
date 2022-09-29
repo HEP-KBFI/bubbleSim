@@ -497,8 +497,8 @@ void Simulation::step(Bubble& bubble, OpenCLWrapper& openCLWrapper) {
   for (int i = 0; i < m_particleCountTotal; i++) {
     m_dPressureStep += m_dP[i];
   }
-  //m_dPressureStep /= -bubble.getArea();
-  m_dPressureStep = 0;
+  m_dPressureStep /= -bubble.getArea();
+
   bubble.evolveWall(m_dt, m_dPressureStep);
   openCLWrapper.makeStep4(bubble.getRadiusRef(), bubble.getRadius2Ref(),
                           bubble.getSpeedRef(), bubble.getGammaRef(),
