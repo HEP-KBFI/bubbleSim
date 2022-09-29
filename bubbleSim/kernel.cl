@@ -78,8 +78,7 @@ __kernel void step_double(
 	__constant double *gamma_v,
 	__global char *interactedFalse,
 	__global char *passedFalse,
-	__global char *interactedTrue,
-	__global double *time2wall
+	__global char *interactedTrue
 	){
 		
 	unsigned int gid = get_global_id(0);
@@ -137,12 +136,10 @@ __kernel void step_double(
 			interactedFalse[gid] += 0;
 			passedFalse[gid] += 0;
 			interactedTrue[gid] += 0;
-			time2wall[gid] = 0.;
 		}
 		// Maybe get outside
 		else {
 			timeToWall = calculateTimeToWall(X_1, X_2, X_3, P_1, P_2, P_3, E_particle, Dt, R, V_b);
-			time2wall[gid] = timeToWall;
 			// X_1 = fma(V_1, timeToWall, X_1);
 			// X_2 = fma(V_2, timeToWall, X_2);
 			// X_3 = fma(V_3, timeToWall, X_3);
@@ -237,14 +234,12 @@ __kernel void step_double(
 			interactedFalse[gid] += 0;
 			passedFalse[gid] += 0;
 			interactedTrue[gid] += 0;
-			time2wall[gid] = 0.;
 		}
 		// Particle gets lower mass
 		// If M_in < M_out -> Particle goes inside from out of the bubble
 		// If M_in > M_out -> Particle goes outside from the bubble to inside
 		else {
 			timeToWall = calculateTimeToWall(X_1, X_2, X_3, P_1, P_2, P_3, E_particle, Dt, R, V_b);
-			time2wall[gid] = timeToWall;
 			// X_1 = fma(V_1, timeToWall, X_1);
 			// X_2 = fma(V_2, timeToWall, X_2);
 			// X_3 = fma(V_3, timeToWall, X_3);
