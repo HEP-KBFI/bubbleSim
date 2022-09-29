@@ -24,5 +24,23 @@ jobs:
       - name: run
         run: |
           mkdir data
-          POCL_DEVICES=basic ./build/bubbleSim.exe bubbleSim/config.json
-          oclgrind ./build/bubbleSim.exe bubbleSim/config.json
+          POCL_DEVICES=pthread ./build/bubbleSim.exe bubbleSim/config.json &> log_pthread.txt
+          head -n10 log_pthread.txt
+          tail -n10 log_pthread.txt
+
+          POCL_DEVICES=basic ./build/bubbleSim.exe bubbleSim/config.json &> log_basic.txt
+          head -n10 log_basic.txt
+          tail -n10 log_basic.txt
+      - name: oclgrind
+        run: |
+          oclgrind ./build/bubbleSim.exe bubbleSim/config.json &> log_oclgrind.txt
+          head -n10 log_basic.txt
+          tail -n10 log_basic.txt
+      - name: asan
+        run: |
+          make clean
+          OPTFLAGS="-O0 -fsanitize=address -g" make
+          ASAN_OPTIONS="verbose=1,abort_on_error=1" ./build/bubbleSim.exe bubbleSim/config.json &> log_asan.txt
+          head -n10 log_asan.txt
+          tail -n10 log_asan.txt
+           
