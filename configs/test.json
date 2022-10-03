@@ -9,7 +9,7 @@
 		"upsilon": 0.0332678594173761
 	},
 	"bubble": {
-		"initial_radius": 200.0,
+		"initial_radius": 100.0,
 		"initial_speed": -0.6,
 		"is_true_vacuum": false
 	},
@@ -18,7 +18,7 @@
 		"mass_true": 1,
 		"T_false": 0.0,
 		"T_true": 0.0,
-		"N_false": 100000,
+		"N_false": 50000,
 		"N_true": 0,
 		"coupling": 0.0
 	},
