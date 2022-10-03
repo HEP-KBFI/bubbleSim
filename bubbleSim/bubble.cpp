@@ -31,7 +31,7 @@ void Bubble::evolveWall(numType dt, numType dP) {
   numType velocityElement = std::fma(-m_speed, m_speed, 1);
 
   m_speed +=
-      std::sqrt(pow(velocityElement, 3)) * (std::fma(-m_dV, dt, dP)) / m_sigma -
+      std::sqrt(pow(velocityElement, 3)) * std::fma(-m_dV, dt,  dP) / m_sigma -
       2 * velocityElement * dt / m_radius;
   m_radius = newRadius;
 

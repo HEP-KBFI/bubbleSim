@@ -39,6 +39,7 @@ class OpenCLWrapper {
   cl::Buffer m_bufferInteractedTrue;
   cl::Buffer m_bufferPassedTrue;
 
+
  public:
   OpenCLWrapper() {}
   OpenCLWrapper(std::string fileName, std::string kernelName,
@@ -55,18 +56,21 @@ class OpenCLWrapper {
                 std::vector<int8_t>& t_interactedTrue,
                 bool t_isBubbleTrueVacuum);
 
+  cl::CommandQueue& getReferenceQueue() { return m_queue; }
+  cl::Buffer& getReferenceInteractedFalse() { return m_bufferInteractedFalse; }
+  cl::Buffer& getReferenceInteractedTrue() { return m_bufferInteractedTrue; }
+  cl::Buffer& getReferencePassedFalse() { return m_bufferPassedFalse; }
   void createContext(std::vector<cl::Device>& devices);
   void createProgram(cl::Context& context, cl::Device& device,
                      std::string& kernelFile);
   void createKernel(cl::Program& program, const char* name);
   void createQueue(cl::Context& context, cl::Device& device);
 
-  void makeStep1(numType& t_radius, numType& t_radius2, numType& t_speed,
-                 numType& t_gamma, numType& t_gammaSpeed,
-                 numType& radiusAfterDt2);
+  void makeStep1(numType& radiusAfterDt2);
   void makeStep2(int& particleCount);
   void makeStep3(int& particleCount, std::vector<numType>& t_dP);
-
+  void makeStep4(numType& t_radius, numType& t_radius2, numType& t_speed,
+                 numType& t_gamma, numType& t_gammaSpeed);
   void readBufferX(std::vector<numType>& t_dataX);
   void readBufferP(std::vector<numType>& t_dataP);
   void readBuffer_dP(std::vector<numType>& t_data_dP);
@@ -78,4 +82,8 @@ class OpenCLWrapper {
   void readBufferR(numType& t_dataR);
   void readBufferSpeed(numType& t_dataSpeed);
   void readBufferBubble(numType& t_dataR, numType& t_dataSpeed);
+
+  void writeResetInteractedFalseBuffer(std::vector<int8_t>& v_interacted);
+  void writeResetPassedFalseBuffer(std::vector<int8_t>& v_interacted);
+  void writeResetInteractedTrueBuffer(std::vector<int8_t>& v_interacted);
 };

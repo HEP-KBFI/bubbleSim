@@ -270,19 +270,7 @@ void OpenCLWrapper::createQueue(cl::Context& context, cl::Device& device) {
   }
 }
 
-void OpenCLWrapper::makeStep1(numType& t_radius, numType& t_radius2,
-                              numType& t_speed, numType& t_gamma,
-                              numType& t_gammaSpeed, numType& radiusAfterDt2) {
-  m_queue.enqueueWriteBuffer(m_bufferBubbleRadius, CL_TRUE, 0, sizeof(numType),
-                             &t_radius);
-  m_queue.enqueueWriteBuffer(m_bufferBubbleRadius2, CL_TRUE, 0, sizeof(numType),
-                             &t_radius2);
-  m_queue.enqueueWriteBuffer(m_bufferBubbleSpeed, CL_TRUE, 0, sizeof(numType),
-                             &t_speed);
-  m_queue.enqueueWriteBuffer(m_bufferBubbleGamma, CL_TRUE, 0, sizeof(numType),
-                             &t_gamma);
-  m_queue.enqueueWriteBuffer(m_bufferBubbleGammaSpeed, CL_TRUE, 0,
-                             sizeof(numType), &t_gammaSpeed);
+void OpenCLWrapper::makeStep1(numType& radiusAfterDt2) {
   m_queue.enqueueWriteBuffer(m_bufferBubbleRadiusSpeedDt2, CL_TRUE, 0,
                              sizeof(numType), &radiusAfterDt2);
 }
@@ -295,6 +283,21 @@ void OpenCLWrapper::makeStep2(int& particleCount) {
 void OpenCLWrapper::makeStep3(int& particleCount, std::vector<numType>& t_dP) {
   m_queue.enqueueReadBuffer(m_buffer_dP, CL_TRUE, 0,
                             particleCount * sizeof(numType), t_dP.data());
+}
+
+void OpenCLWrapper::makeStep4(numType& t_radius, numType& t_radius2,
+    numType& t_speed, numType& t_gamma,
+    numType& t_gammaSpeed) {
+  m_queue.enqueueWriteBuffer(m_bufferBubbleRadius, CL_TRUE, 0, sizeof(numType),
+                             &t_radius);
+  m_queue.enqueueWriteBuffer(m_bufferBubbleRadius2, CL_TRUE, 0, sizeof(numType),
+                             &t_radius2);
+  m_queue.enqueueWriteBuffer(m_bufferBubbleSpeed, CL_TRUE, 0, sizeof(numType),
+                             &t_speed);
+  m_queue.enqueueWriteBuffer(m_bufferBubbleGamma, CL_TRUE, 0, sizeof(numType),
+                             &t_gamma);
+  m_queue.enqueueWriteBuffer(m_bufferBubbleGammaSpeed, CL_TRUE, 0,
+                             sizeof(numType), &t_gammaSpeed);
 }
 
 void OpenCLWrapper::readBufferX(std::vector<numType>& t_dataX) {
@@ -358,3 +361,23 @@ void OpenCLWrapper::readBufferBubble(numType& t_dataR, numType& t_dataSpeed) {
   readBufferR(t_dataR);
   readBufferSpeed(t_dataSpeed);
 }
+
+void OpenCLWrapper::writeResetInteractedFalseBuffer(
+    std::vector<int8_t>& v_interacted) {
+  std::fill(v_interacted.begin(), v_interacted.end(), 0);
+  m_queue.enqueueWriteBuffer(m_bufferInteractedFalse, CL_TRUE, 0,
+                             v_interacted.size() * sizeof(int8_t),
+                             v_interacted.data());
+};
+void OpenCLWrapper::writeResetPassedFalseBuffer(std::vector<int8_t>& v_passed) {
+  std::fill(v_passed.begin(), v_passed.end(), 0);
+  m_queue.enqueueWriteBuffer(m_bufferPassedFalse, CL_TRUE, 0,
+                             v_passed.size() * sizeof(int8_t), v_passed.data());
+};
+void OpenCLWrapper::writeResetInteractedTrueBuffer(
+    std::vector<int8_t>& v_interacted) {
+  std::fill(v_interacted.begin(), v_interacted.end(), 0);
+  m_queue.enqueueWriteBuffer(m_bufferInteractedTrue, CL_TRUE, 0,
+                             v_interacted.size() * sizeof(int8_t),
+                             v_interacted.data());
+};
