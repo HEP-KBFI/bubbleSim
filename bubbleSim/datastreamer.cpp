@@ -199,7 +199,7 @@ void DataStreamer::streamProfiles(std::fstream& t_nStream,
                                   std::fstream& t_rhoStream,
                                   std::fstream& t_pInStream,
                                   std::fstream& t_pOutStream,
-                                  u_int t_densityCountBins, u_int t_pCountBins,
+                                  int t_densityCountBins, int t_pCountBins,
                                   numType t_radiusMax, numType t_pMax,
                                   numType t_energyDensityNormalizer) {
   std::vector<int> nBins(t_densityCountBins, 0);
@@ -230,13 +230,13 @@ void DataStreamer::streamProfiles(std::fstream& t_nStream,
   /*
     Streaming data to files
   */
-
   for (j = 0; j < t_densityCountBins; j++) {
     t_nStream << nBins[j];
     t_rhoStream << rhoBins[j] /
                        (4 * M_PI * std::pow(dr, 3) * (j * j + j + 1.0 / 3.0)) /
                        t_energyDensityNormalizer;
-    if (j != t_densityCountBins) {
+    
+    if (j != t_densityCountBins - 1) {
       t_nStream << ",";
       t_rhoStream << ",";
     } else {
@@ -249,8 +249,8 @@ void DataStreamer::streamProfiles(std::fstream& t_nStream,
     t_pInStream << pInBins[j];
     t_pOutStream << pOutBins[j];
     if (j != t_pCountBins - 1) {
-      t_pInStream << ", ";
-      t_pOutStream << ", ";
+      t_pInStream << ",";
+      t_pOutStream << ",";
     } else {
       t_pInStream << std::endl;
       t_pOutStream << std::endl;
