@@ -73,9 +73,11 @@ jobs:
 
       - name: oclgrind
         run: |
-          oclgrind --log oclgrind.log ./build/bubbleSim.exe configs/test.json &> log_oclgrind.txt
+          make clean
+          make -j4
+          oclgrind --data-races --uninitialized --log oclgrind.log ./build/bubbleSim.exe configs/test_oclgrind.json &> log_oclgrind.txt
           tail -n10 oclgrind.log
-
+          
           #fail if oclgrind.log is not empty
           if [[ -s oclgrind.log ]] ; then
             echo "oclgrind log is not empty"
