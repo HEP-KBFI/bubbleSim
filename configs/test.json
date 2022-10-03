@@ -18,7 +18,7 @@
 		"mass_true": 1,
 		"T_false": 0.0,
 		"T_true": 0.0,
-		"N_false": 421875,
+		"N_false": 100000,
 		"N_true": 0,
 		"coupling": 0.0
 	},
