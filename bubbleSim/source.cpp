@@ -90,10 +90,10 @@ int main(int argc, char* argv[]) {
   /*
           ===============  ===============
   */
-
   // If seed = 0 then it generates random seed.
   int seed = config["simulation"]["seed"];
   int i_maxSteps = config["simulation"]["max_steps"];
+  numType dt = config["simulation"]["dt"];
 
   numType alpha = config["parameters"]["alpha"];
   numType eta = config["parameters"]["eta"];
@@ -182,7 +182,7 @@ int main(int argc, char* argv[]) {
   numType sigma = upsilon * std::abs(dV) * initialBubbleRadius;
 
   // 5) dt definition
-  sim.set_dt(0.1);
+  sim.set_dt(dt);
 
   // 6) Bubble
   Bubble bubble(initialBubbleRadius, initialBubbleSpeed, dV, sigma);
