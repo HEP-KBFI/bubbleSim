@@ -111,7 +111,7 @@ void DataStreamer::streamBaseData(std::fstream& t_stream,
       m_sim.getReferenceInteractedTrue());
  }
 
-int DataStreamer::streamMassRadiusDifference(bool t_isBubbleTrueVacuum) {
+int DataStreamer::countMassRadiusDifference(bool t_isBubbleTrueVacuum) {
   int countMassTrue = 0, countMassFalse = 0;
   int countRadiusTrue = 0, countRadiusFalse = 0;
 

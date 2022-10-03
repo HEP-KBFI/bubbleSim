@@ -408,7 +408,7 @@ int main(int argc, char* argv[]) {
       temperatureTrue, countParticlesFalse, countParticlesTrue, coupling, dV,
       sim.getNumberDensityFalseInitial(), sim.getEnergyDensityFalseInitial(),
       sim.get_dt(),
-      dataStreamer.streamMassRadiusDifference(b_isBubbleTrueVacuum));
+      dataStreamer.countMassRadiusDifference(b_isBubbleTrueVacuum));
 
 
 
