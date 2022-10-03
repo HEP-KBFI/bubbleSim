@@ -150,7 +150,7 @@ int DataStreamer::streamMassRadiusDifference(bool t_isBubbleTrueVacuum) {
   std::printf("True/False vacuum difference (M-R): %d / %d\n",
               countMassTrue - countRadiusTrue,
               countMassFalse - countRadiusFalse);
-  return (countMassTrue - countRadiusTrue);
+  return countMassFalse - countRadiusFalse;
 }
 
 void DataStreamer::streamParticleInfo() {

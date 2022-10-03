@@ -401,15 +401,14 @@ int main(int argc, char* argv[]) {
     }
   }
   dataStreamer.reset();
-  int i_positionDifference;
-  i_positionDifference = dataStreamer.streamMassRadiusDifference(b_isBubbleTrueVacuum);
 
-  createSimulationInfoFile(filePath, seed, alpha, eta, upsilon,
-                           initialBubbleRadius, initialBubbleSpeed, massFalse,
-                           massTrue, temperatureFalse, temperatureTrue,
-                           countParticlesFalse, countParticlesTrue, coupling,
-                           dV, sim.getNumberDensityFalseInitial(),
-                           sim.getEnergyDensityFalseInitial(), sim.get_dt(), i_positionDifference);
+  createSimulationInfoFile(
+      filePath, seed, alpha, eta, upsilon, initialBubbleRadius,
+      initialBubbleSpeed, massFalse, massTrue, temperatureFalse,
+      temperatureTrue, countParticlesFalse, countParticlesTrue, coupling, dV,
+      sim.getNumberDensityFalseInitial(), sim.getEnergyDensityFalseInitial(),
+      sim.get_dt(),
+      dataStreamer.streamMassRadiusDifference(b_isBubbleTrueVacuum));
 
 
 

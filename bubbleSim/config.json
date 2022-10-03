@@ -1,7 +1,7 @@
 {
 	"simulation": {
 		"seed" : 1234,
-		"max_steps" : 50000
+		"max_steps" : 100
 	},
 	"parameters": {
 		"alpha" : -0.6,

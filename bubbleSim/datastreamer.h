@@ -34,7 +34,7 @@ class DataStreamer {
 
   void streamBaseData(std::fstream& t_stream, bool t_isBubbleTrueVacuum);
 
-  bool streamMassRadiusDifference(bool t_isBubbleTrueVacuum);
+  int countMassRadiusDifference(bool t_isBubbleTrueVacuum);
 
   void streamParticleInfo();
 
