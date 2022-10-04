@@ -212,7 +212,7 @@ void DataStreamer::streamProfiles(std::fstream& t_nStream,
   numType p;
   numType dp = t_pMax / t_pCountBins;
   int j;
-
+  
   /*
     Data processing, gathering
   */
@@ -220,12 +220,12 @@ void DataStreamer::streamProfiles(std::fstream& t_nStream,
     r = m_sim.calculateParticleRadius(i);
     p = m_sim.calculateParticleMomentum(i);
     if (r > m_bubble.getRadius()) {
-      pOutBins[(int)(p / dp)] += 1;
+      pOutBins[std::min((int)(p / dp), t_pCountBins-1)] += 1;
     } else {
-      pInBins[(int)(p / dp)] += 1;
+      pInBins[std::min((int)(p / dp), t_pCountBins-1)] += 1;
     }
-    nBins[(int)(r / dr)] += 1;
-    rhoBins[(int)(r / dr)] += m_sim.getParticleEnergy(i);
+    nBins[std::min((int)(r / dr), t_densityCountBins-1)] += 1;
+    rhoBins[std::min((int)(r / dr), t_densityCountBins-1)] += m_sim.getParticleEnergy(i);
   }
   /*
     Streaming data to files

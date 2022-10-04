@@ -354,7 +354,7 @@ int main(int argc, char* argv[]) {
     if (b_streamProfile) {
       dataStreamer.streamProfiles(
           nStream, rhoStream, pStreamIn, pStreamOut, i_densityBins,
-          i_momentumBins, 1.5 * initialBubbleRadius, temperatureFalse * 30,
+          i_momentumBins, 2 * initialBubbleRadius, temperatureFalse * 30,
           sim.getEnergyDensityFalseSimInitial());
     }
     dataStreamer.reset();
@@ -419,7 +419,7 @@ int main(int argc, char* argv[]) {
     if (b_streamProfile) {
       dataStreamer.streamProfiles(
           nStream, rhoStream, pStreamIn, pStreamOut, i_densityBins,
-          i_momentumBins, 1.5 * initialBubbleRadius, temperatureFalse * 30,
+          i_momentumBins, 2 * initialBubbleRadius, temperatureFalse * 30,
           sim.getEnergyDensityFalseSimInitial());
     }
     dataStreamer.reset();
