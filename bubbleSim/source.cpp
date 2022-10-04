@@ -298,6 +298,8 @@ int main(int argc, char* argv[]) {
     if (b_streamData) {
       dataStream = std::fstream(filePath / "data.csv",
                                 std::ios::out | std::ios::in | std::ios::trunc);
+      dataStream << "time,dP,R_b,V_b,E_b,E_p,E_f,E,C_f,C_if,Cpf,C_it"
+                 << std::endl;
     }
     if (b_streamProfile) {
       pStreamIn = std::fstream(filePath / "pIn.csv",
