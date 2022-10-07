@@ -42,7 +42,7 @@ class DataStreamer {
 
   void streamProfiles(std::fstream& t_nStream, std::fstream& t_rhoStream,
                       std::fstream& t_pInStream, std::fstream& t_pOutStream,
-                      u_int t_densityCountBins, u_int t_pCountBins,
+                      int t_densityCountBins, int t_pCountBins,
                       numType t_radiusMax, numType t_pMax,
                       numType t_energyDensityNormalizer);
 };

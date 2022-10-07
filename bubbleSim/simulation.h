@@ -127,6 +127,8 @@ class Simulation {
   numType getEnergyDensityFalseInitial() { return m_rhoFalseSimInitial; }
   numType getNumberDensityTrueInitial() { return m_nTrueSimInitial; }
   numType getEnergyDensityTrueInitial() { return m_rhoTrueSimInitial; }
+  numType getEnergyDensityTrueSimInitial() { return m_rhoTrueSimInitial; }
+  numType getEnergyDensityFalseSimInitial() { return m_rhoFalseSimInitial; }
 
   numType getMassFalse() { return m_massFalse; }
   numType getMassTrue() { return m_massTrue; }

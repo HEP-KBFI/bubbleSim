@@ -184,13 +184,13 @@ void DataStreamer::streamParticleInfo() {
 
 void DataStreamer::streamParticleInfo(std::fstream& t_stream) {
   for (int i = 0; i < m_sim.getParticleCountTotal(); i++) {
-    t_stream << m_sim.getReferenceX()[3 * i] << ", "
-             << m_sim.getReferenceX()[3 * i + 1] << ", "
-             << m_sim.getReferenceX()[3 * i + 2] << ", ";
-    t_stream << m_sim.getReferenceP()[3 * i] << ", "
-             << m_sim.getReferenceP()[3 * i + 1] << ", "
-             << m_sim.getReferenceP()[3 * i + 2] << ", ";
-    t_stream << m_sim.getParticleMass(i) << ", " << m_sim.getParticleEnergy(i)
+    t_stream << m_sim.getReferenceX()[3 * i] << ","
+             << m_sim.getReferenceX()[3 * i + 1] << ","
+             << m_sim.getReferenceX()[3 * i + 2] << ",";
+    t_stream << m_sim.getReferenceP()[3 * i] << ","
+             << m_sim.getReferenceP()[3 * i + 1] << ","
+             << m_sim.getReferenceP()[3 * i + 2] << ",";
+    t_stream << m_sim.getParticleMass(i) << "," << m_sim.getParticleEnergy(i)
              << std::endl;
   }
 }
@@ -199,7 +199,7 @@ void DataStreamer::streamProfiles(std::fstream& t_nStream,
                                   std::fstream& t_rhoStream,
                                   std::fstream& t_pInStream,
                                   std::fstream& t_pOutStream,
-                                  u_int t_densityCountBins, u_int t_pCountBins,
+                                  int t_densityCountBins, int t_pCountBins,
                                   numType t_radiusMax, numType t_pMax,
                                   numType t_energyDensityNormalizer) {
   std::vector<int> nBins(t_densityCountBins, 0);
@@ -211,8 +211,8 @@ void DataStreamer::streamProfiles(std::fstream& t_nStream,
   numType dr = t_radiusMax / t_densityCountBins;
   numType p;
   numType dp = t_pMax / t_pCountBins;
-  u_int j;
-
+  int j;
+  
   /*
     Data processing, gathering
   */
@@ -220,12 +220,12 @@ void DataStreamer::streamProfiles(std::fstream& t_nStream,
     r = m_sim.calculateParticleRadius(i);
     p = m_sim.calculateParticleMomentum(i);
     if (r > m_bubble.getRadius()) {
-      pOutBins[(int)(p / dp)] += 1;
+      pOutBins[std::min((int)(p / dp), t_pCountBins-1)] += 1;
     } else {
-      pInBins[(int)(p / dp)] += 1;
+      pInBins[std::min((int)(p / dp), t_pCountBins-1)] += 1;
     }
-    nBins[(int)(r / dr)] += 1;
-    rhoBins[(int)(r / dr)] += m_sim.getParticleEnergy(i);
+    nBins[std::min((int)(r / dr), t_densityCountBins-1)] += 1;
+    rhoBins[std::min((int)(r / dr), t_densityCountBins-1)] += m_sim.getParticleEnergy(i);
   }
   /*
     Streaming data to files
@@ -236,7 +236,7 @@ void DataStreamer::streamProfiles(std::fstream& t_nStream,
     t_rhoStream << rhoBins[j] /
                        (4 * M_PI * std::pow(dr, 3) * (j * j + j + 1.0 / 3.0)) /
                        t_energyDensityNormalizer;
-    if (j != t_densityCountBins) {
+    if (j != t_densityCountBins - 1) {
       t_nStream << ",";
       t_rhoStream << ",";
     } else {
@@ -249,8 +249,8 @@ void DataStreamer::streamProfiles(std::fstream& t_nStream,
     t_pInStream << pInBins[j];
     t_pOutStream << pOutBins[j];
     if (j != t_pCountBins - 1) {
-      t_pInStream << ", ";
-      t_pOutStream << ", ";
+      t_pInStream << ",";
+      t_pOutStream << ",";
     } else {
       t_pInStream << std::endl;
       t_pOutStream << std::endl;
