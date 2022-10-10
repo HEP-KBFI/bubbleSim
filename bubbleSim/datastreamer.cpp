@@ -56,13 +56,13 @@ void DataStreamer::streamBaseData(std::fstream& t_stream,
   }
 
   if (m_readBufferInteractedTrue) {
-    m_openCLWrapper.readBufferInteractedTrue(m_sim.getReferenceInteractedTrue());
+    m_openCLWrapper.readBufferInteractedTrue(
+        m_sim.getReferenceInteractedTrue());
     m_readBufferInteractedTrue = false;
   }
 
   if (m_readBufferPassedFalse) {
-    m_openCLWrapper.readBufferPassedFalse(
-        m_sim.getReferencePassedFalse());
+    m_openCLWrapper.readBufferPassedFalse(m_sim.getReferencePassedFalse());
     m_readBufferPassedFalse = false;
   }
 
@@ -98,18 +98,19 @@ void DataStreamer::streamBaseData(std::fstream& t_stream,
   t_stream << m_bubble.calculateEnergy() << ",";
   t_stream << particlesEnergy << ",";
   t_stream << particleEnergyFalse << ","
-           << (particlesEnergy + m_bubble.calculateEnergy()) / m_sim.getTotalEnergyInitial() << ",";
+           << (particlesEnergy + m_bubble.calculateEnergy()) /
+                  m_sim.getTotalEnergyInitial()
+           << ",";
   t_stream << countParticleFalse << "," << countParticleInteractedFalse << ","
            << countParticlePassedFalse << ",";
   t_stream << countParticleInteratedTrue << std::endl;
 
   m_openCLWrapper.writeResetInteractedFalseBuffer(
       m_sim.getReferenceInteractedFalse());
-  m_openCLWrapper.writeResetPassedFalseBuffer(
-      m_sim.getReferencePassedFalse());
+  m_openCLWrapper.writeResetPassedFalseBuffer(m_sim.getReferencePassedFalse());
   m_openCLWrapper.writeResetInteractedTrueBuffer(
       m_sim.getReferenceInteractedTrue());
- }
+}
 
 int DataStreamer::countMassRadiusDifference(bool t_isBubbleTrueVacuum) {
   int countMassTrue = 0, countMassFalse = 0;
@@ -212,7 +213,7 @@ void DataStreamer::streamProfiles(std::fstream& t_nStream,
   numType p;
   numType dp = t_pMax / t_pCountBins;
   int j;
-  
+
   /*
     Data processing, gathering
   */
@@ -220,12 +221,13 @@ void DataStreamer::streamProfiles(std::fstream& t_nStream,
     r = m_sim.calculateParticleRadius(i);
     p = m_sim.calculateParticleMomentum(i);
     if (r > m_bubble.getRadius()) {
-      pOutBins[std::min((int)(p / dp), t_pCountBins-1)] += 1;
+      pOutBins[std::min((int)(p / dp), t_pCountBins - 1)] += 1;
     } else {
-      pInBins[std::min((int)(p / dp), t_pCountBins-1)] += 1;
+      pInBins[std::min((int)(p / dp), t_pCountBins - 1)] += 1;
     }
-    nBins[std::min((int)(r / dr), t_densityCountBins-1)] += 1;
-    rhoBins[std::min((int)(r / dr), t_densityCountBins-1)] += m_sim.getParticleEnergy(i);
+    nBins[std::min((int)(r / dr), t_densityCountBins - 1)] += 1;
+    rhoBins[std::min((int)(r / dr), t_densityCountBins - 1)] +=
+        m_sim.getParticleEnergy(i);
   }
   /*
     Streaming data to files
