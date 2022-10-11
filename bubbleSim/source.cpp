@@ -91,7 +91,7 @@ int main(int argc, char* argv[]) {
   int seed = config["simulation"]["seed"];
   int i_maxSteps = config["simulation"]["max_steps"];
   numType dt = config["simulation"]["dt"];
-
+  bool b_dVisPositive = config["simulation"]["dV_positive"];
   numType alpha = config["parameters"]["alpha"];
   numType eta = config["parameters"]["eta"];
   numType upsilon = config["parameters"]["upsilon"];
@@ -166,17 +166,14 @@ int main(int argc, char* argv[]) {
   sim.setNumberDesnityFalseSimInitial(sim.getParticleCountFalseInitial() /
                                       bubbleVolume);
 
-  numType dV;
   numType Tn = sim.getNumberDensityFalseInitial() * temperatureFalse;
+  numType dV = alpha * sim.getEnergyDensityFalseInitial() - Tn;
+  numType sigma = upsilon * dV * initialBubbleRadius;
 
-  if (alpha > 0) {
+  if (!b_dVisPositive) {
     // Expanding bubble -> dV < 0
-    dV = -sim.getEnergyDensityFalseInitial() * alpha + Tn;
-  } else {
-    // Collapsing bubble -> dV > 0
-    dV = -sim.getEnergyDensityFalseInitial() * alpha - Tn;
+    dV = -dV;
   }
-  numType sigma = upsilon * std::abs(dV) * initialBubbleRadius;
 
   // 5) dt definition
   sim.set_dt(dt);
@@ -211,76 +208,80 @@ int main(int argc, char* argv[]) {
 
   std::cout << std::endl
             << std::endl
-            << "=============== Initialization ===============" << std::endl;
-  std::cout << "==========  Bubble  ==========" << std::endl;
+            << "=============== Config ===============" << std::endl;
+  std::cout << "===== Simulation:" << std::endl;
+  std::cout << "seed: " << seed << ", max_steps: " << i_maxSteps
+            << ", dt: " << dt << ", dV_isPositive: " << b_dVisPositive
+            << std::endl;
   std::cout << std::setprecision(5)
-            << "Initial bubble radius: " << bubble.getRadius()
-            << ", Initial bubble speed: " << bubble.getSpeed() << std::endl;
+            << "===== Unitless parameters: " << std::endl;
+  std::cout << "alpha: " << alpha << ", eta: " << eta
+            << ", upsilon: " << upsilon << std::endl;
+  std::cout << "===== Bubble:" << std::endl;
+  std::cout << "Radius: " << bubble.getRadius()
+            << ", Speed: " << bubble.getSpeed()
+            << ", VacuumInBubble: " << b_isBubbleTrueVacuum << std::endl;
+  std::cout << "M(true): " << massTrue << ", M(false): " << massFalse
+            << ", N(true): " << countParticlesTrue
+            << ", N(false): " << countParticlesFalse << std::endl;
+  std::cout << std::endl
+            << "=============== Initialization ===============" << std::endl;
+  std::cout << "===== Bubble:" << std::endl;
   std::cout << std::setprecision(10) << "dV: " << bubble.getdV()
             << ", dV(param): "
-            << -numberDensityParam * temperatureFalse * (3 * alpha + 1)
-            << ", Sigma: " << bubble.getSigma() << std::endl;
-  std::cout << "Bubble energy: " << bubble.calculateEnergy() << std::endl;
-  std::cout << "  ========== Particles ==========" << std::endl;
-  std::cout << "Total particles' energy: " << sim.countParticlesEnergy()
-            << ", m_+: " << massTrue << std::endl;
-
-  std::cout << "T(n): "
-            << std::cbrt(3 * countParticlesFalse * std::pow(M_PI, 2) /
-                         (4 * M_PI * std::pow(initialBubbleRadius, 3)))
-            << ", T(rho): "
-            << std::pow(sim.countParticlesEnergy() * std::pow(M_PI, 2) /
-                            (4 * M_PI * std::pow(initialBubbleRadius, 3)),
-                        1. / 4)
+            << countParticlesFalse * massTrue * (3 * alpha - 1) /
+                   (eta * bubble.getVolume())
+            << ", Ratio: "
+            << bubble.getdV() / (countParticlesFalse * massTrue *
+                                 (3 * alpha - 1) / (eta * bubble.getVolume()))
             << std::endl;
-
-  std::cout << std::endl
-            << "===============  SIMULATION PARAMETERS  ==============="
-            << std::endl
+  std::cout << "sigma: " << bubble.getSigma() << ", sigma(param): "
+            << bubble.getRadius() * countParticlesFalse * upsilon * massTrue *
+                   (3 * alpha - 1) / (eta * bubble.getVolume())
+            << ", Ratio: "
+            << bubble.getSigma() /
+                   (bubble.getRadius() * countParticlesFalse * upsilon *
+                    massTrue * (3 * alpha - 1) / (eta * bubble.getVolume()))
             << std::endl;
-  std::cout << "dt: " << sim.get_dt() << ", alpha: " << alpha
-            << ", eta: " << eta << ", upsilon: " << upsilon << std::endl;
-
-  std::cout << std::endl
-            << "==========  NUMBER DENSITY  ==========" << std::endl;
-  std::cout << "Parameters: " << numberDensityParam << "  Theory: "
+  std::cout
+      << "Bubble energy: " << bubble.calculateEnergy()
+      << ", Bubble energy(param): "
+      << countParticlesFalse * massTrue / eta * (3 * alpha - 1) *
+             (1 + 3 * upsilon / std::sqrt(1 - std::pow(bubble.getSpeed(), 2)))
+      << ", Ratio: "
+      << bubble.calculateEnergy() /
+             (countParticlesFalse * massTrue / eta * (3 * alpha - 1) *
+              (1 + 3 * upsilon / std::sqrt(1 - std::pow(bubble.getSpeed(), 2))))
+      << std::endl;
+  std::cout << "===== Thermodynamcis:" << std::endl;
+  std::cout << "n(param): " << countParticlesFalse / bubble.getVolume()
+            << ", n(theor): "
             << std::pow(temperatureFalse, 3) / std::pow(M_PI, 2) * std::exp(-mu)
+            << ", n(sim): " << sim.getParticleCountTotal() / bubble.getVolume()
+            << ", Ratio: "
+            << (sim.getParticleCountTotal() / bubble.getVolume()) /
+                   (countParticlesFalse / bubble.getVolume())
+
             << std::endl;
-  std::cout << "Simulation: "
-            << sim.getParticleCountTotal() * 3 /
-                   (4 * M_PI * std::pow(bubble.getRadius(), 3))
-            << "  Sim/Param: "
-            << sim.getParticleCountTotal() * 3 /
-                   (4 * M_PI * std::pow(bubble.getRadius(), 3)) /
-                   numberDensityParam
-            << "\n"
-            << std::endl;
-  std::cout << "==========  ENERGY DENSITY  ==========" << std::endl;
-  std::cout << "Parameters: " << energyDensityParam << "  Theory: "
+  std::cout << "rho(param): "
+            << sim.getParticleCountTotal() * 3 * massTrue /
+                   (eta * bubble.getVolume())
+            << ", rho(theor): "
             << 3 * std::pow(temperatureFalse, 4) / std::pow(M_PI, 2) *
                    std::exp(-mu)
+            << ", rho(sim): " << sim.countParticlesEnergy() / bubble.getVolume()
+            << ", Ratio: "
+            << (sim.countParticlesEnergy() / bubble.getVolume()) /
+                   (sim.getParticleCountTotal() * 3 * massTrue /
+                    (eta * bubble.getVolume()))
             << std::endl;
-  std::cout << "Simulation: "
-            << sim.countParticlesEnergy() * 3 /
-                   (4 * M_PI * std::pow(bubble.getRadius(), 3))
-            << "  Sim/Param: "
-            << sim.countParticlesEnergy() * 3 /
-                   (4 * M_PI * std::pow(bubble.getRadius(), 3)) /
-                   energyDensityParam
-            << "\n"
+  std::cout << "<E>(param): " << 3 * massTrue / eta
+            << ", <E>(theor): " << 3 * temperatureFalse << ", <E>(sim): "
+            << sim.countParticlesEnergy() / countParticlesFalse << ", Ratio: "
+            << (sim.countParticlesEnergy() / countParticlesFalse) /
+                   (3 * massTrue / eta)
             << std::endl;
-  std::cout << "==========  AVERAGE PARTICLE ENERGY  ==========" << std::endl;
-  std::cout << "Parameters: " << energyDensityParam / numberDensityParam
-            << "  Theory: " << 3 * temperatureFalse << std::endl;
-  std::cout << "Simulation: "
-            << sim.countParticlesEnergy() / sim.getParticleCountTotal()
-            << "  Sim/Param: "
-            << sim.countParticlesEnergy() / sim.getParticleCountTotal() /
-                   (energyDensityParam / numberDensityParam)
-            << "\n"
-            << std::endl;
-  std::cout << "===============  END  ===============" << std::endl
-            << std::endl;
+  exit(0);
 
   // 9) Streams
   std::fstream pStreamIn, pStreamOut, nStream, rhoStream, dataStream;
@@ -338,7 +339,7 @@ int main(int argc, char* argv[]) {
             << "=============== DEBUG END ===============" << std::endl
             << std::endl;
 #endif
-
+  std::cout << "===== STARTING SIMULATION =====" << std::endl;
   std::cout << "t: " << sim.getTime() << ", R: " << bubble.getRadius()
             << ", V: " << bubble.getSpeed() << std::endl;
 
