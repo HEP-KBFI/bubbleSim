@@ -1,21 +1,23 @@
 {
     "simulation": {
-        "seed": 25491,
+        "seed": 1,
         "max_steps": 100000,
-        "dt": 0.05
+        "dt": 0.05,
+        "dV_positive": true
     },
     "parameters": {
-        "alpha": -0.6,
-        "eta": 3.0,
+        "alpha": 0.6,
+        "eta": 1.72,
         "upsilon": 0.0332678594173761
     },
     "bubble": {
         "initial_radius": 200.0,
         "initial_speed": -0.6,
-        "is_true_vacuum": false
+        "is_true_vacuum": false,
+        "interaction": true
     },
     "particles": {
-        "mass_false": 0.0,
+        "mass_false": 0.5,
         "mass_true": 1,
         "T_false": 0.0,
         "T_true": 0.0,
