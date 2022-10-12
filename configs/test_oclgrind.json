@@ -13,7 +13,8 @@
 	"bubble": {
 		"initial_radius": 100.0,
 		"initial_speed": -0.6,
-		"is_true_vacuum": false
+		"is_true_vacuum": false,
+		"interaction": true
 	},
 	"particles": {
 		"mass_false": 0.0,

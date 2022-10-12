@@ -76,7 +76,6 @@ Simulation::Simulation(int t_seed, numType t_massTrue, numType t_massFalse,
   m_passedFalse = std::vector<int8_t>(m_particleCountTotal, 0);
   m_interactedTrue = std::vector<int8_t>(m_particleCountTotal, 0);
 
-
   // Other sim parameters
   m_rhoTrueSim = 0, m_rhoFalseSim = 0, m_nTrueSim = 0, m_nFalseSim = 0;
   m_nTrueSimInitial = 0, m_rhoTrueSimInitial = 0, m_nFalseSimInitial = 0,
@@ -475,6 +474,11 @@ numType Simulation::countParticlesEnergy(numType t_radius1, numType t_radius2) {
     }
   }
   return energy;
+}
+
+void Simulation::step(Bubble& bubble, numType t_dP) {
+  m_time += m_dt;
+  bubble.evolveWall(m_dt, m_dPressureStep);
 }
 
 void Simulation::step(Bubble& bubble, OpenCLWrapper& openCLWrapper) {
