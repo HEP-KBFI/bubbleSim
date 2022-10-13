@@ -154,7 +154,8 @@ int main(int argc, char* argv[]) {
   Define M+ -> Get T -> Get rho -> get dV -> get sigma
   M+ is defined in a config
   */
-  temperatureFalse = massTrue / eta;
+  temperatureFalse =
+      std::sqrt(std::pow(massTrue, 2) - std::pow(massFalse, 2)) / eta;
   temperatureTrue = 0;  // -> No particles generated in true vacuum
 
   numType bubbleVolume = 4 * M_PI / 3 * std::pow(initialBubbleRadius, 3);
