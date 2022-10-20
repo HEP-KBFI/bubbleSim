@@ -1,0 +1,37 @@
+{
+    "simulation": {
+        "seed": 1,
+        "max_steps": 100000,
+        "dt": 0.05,
+        "dV_positive": true
+    },
+    "parameters": {
+        "alpha": 0.6,
+        "eta": 3.08,
+        "upsilon": 0.0332678594173761
+    },
+    "bubble": {
+        "initial_radius": 200.0,
+        "initial_speed": -0.6,
+        "is_true_vacuum": false,
+        "interaction": true
+    },
+    "particles": {
+        "mass_false": 0.5,
+        "mass_true": 1,
+        "T_false": 0.0,
+        "T_true": 0.0,
+        "N_false": 750000,
+        "N_true": 0,
+        "coupling": 0.0
+    },
+    "stream": {
+        "stream": true,
+        "stream_freq": 10,
+        "data_path": "data",
+        "data": true,
+        "profile": true,
+        "profile_density_bins": 1000,
+        "profile_momentum_bins": 1000
+    }
+}

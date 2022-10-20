@@ -224,6 +224,7 @@ class Simulation {
   numType countParticlesEnergy(numType t_radius1);
   numType countParticlesEnergy(numType t_radius1, numType t_radius2);
 
+  void step(Bubble& bubble, numType t_dP);
   void step(Bubble& bubble, OpenCLWrapper& openCLWrapper);
   /*
   void step(Bubble bubble, OpenCLWrapper openCLWrapper, std::string device);
