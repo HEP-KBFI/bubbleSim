@@ -9,25 +9,20 @@
 #include "simulation.h"
 
 class DataStreamer {
-  bool m_readBufferX;
-  bool m_readBufferP;
+  bool m_readBufferParticle;
+  bool m_readBufferBubble;
   bool m_readBuffer_dP;
-  bool m_readBufferM;
-  bool m_readBufferE;
 
   bool m_readBufferInteractedFalse;
   bool m_readBufferPassedFalse;
   bool m_readBufferInteractedTrue;
 
-  bool m_readBufferR;
-  bool m_readBufferSpeed;
-
   Simulation& m_sim;
-  Bubble& m_bubble;
+  PhaseBubble& m_bubble;
   OpenCLWrapper& m_openCLWrapper;
 
  public:
-  DataStreamer(Simulation& t_sim, Bubble& t_bubble,
+  DataStreamer(Simulation& t_sim, PhaseBubble& t_bubble,
                OpenCLWrapper& t_openCLWrapper);
 
   void reset();

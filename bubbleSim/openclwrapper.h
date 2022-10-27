@@ -5,9 +5,10 @@
 #define CL_HPP_TARGET_OPENCL_VERSION 120
 
 #include <CL/cl.hpp>
+#pragma comment(lib, "OpenCL.lib")
 
 #include "base.h"
-#pragma comment(lib, "OpenCL.lib")
+#include "components.h"
 
 class OpenCLWrapper {
   // OpenCL stuff
@@ -20,10 +21,7 @@ class OpenCLWrapper {
   cl::CommandQueue m_queue;
 
   // Buffers
-  cl::Buffer m_bufferX;
-  cl::Buffer m_bufferP;
-  cl::Buffer m_bufferE;
-  cl::Buffer m_bufferM;
+  cl::Buffer m_bufferParticle;
   cl::Buffer m_buffer_dP;
 
   cl::Buffer m_buffer_dt;
@@ -31,30 +29,18 @@ class OpenCLWrapper {
   cl::Buffer m_bufferMassOut;
   cl::Buffer m_bufferMassDelta2;
 
-  cl::Buffer m_bufferBubbleRadius;
-  cl::Buffer m_bufferBubbleRadius2;
-  cl::Buffer m_bufferBubbleRadiusSpeedDt2;
-  cl::Buffer m_bufferBubbleSpeed;
-  cl::Buffer m_bufferBubbleGamma;
-  cl::Buffer m_bufferBubbleGammaSpeed;
+  cl::Buffer m_bufferBubble;
 
   cl::Buffer m_bufferInteractedFalse;
   cl::Buffer m_bufferPassedFalse;
   cl::Buffer m_bufferInteractedTrue;
-  cl::Buffer m_bufferPassedTrue;
-
 
  public:
   OpenCLWrapper() {}
   OpenCLWrapper(std::string fileName, std::string kernelName,
-                u_int t_particleCount, std::vector<numType>& t_X,
-                std::vector<numType>& t_P, std::vector<numType>& t_E,
-                std::vector<numType>& t_M, std::vector<numType>& t_dP,
-                numType& t_dt, numType& t_massIn, numType& t_massOut,
-                numType t_massDelta2, numType& t_bubbleRadius,
-                numType& t_bubbleRadius2, numType& t_bubbleRadiusAfterDt2,
-                numType& t_bubbleSpeed, numType& t_bubbleGamma,
-                numType& t_bubbleGammaSpeed,
+                std::vector<Particle> t_particles, std::vector<numType>& t_dP,
+                numType& t_dt, numType& t_massTrue, numType& t_massFalse,
+                numType t_massDelta2, Bubble t_bubble,
                 std::vector<int8_t>& t_interactedFalse,
                 std::vector<int8_t>& t_passedFalse,
                 std::vector<int8_t>& t_interactedTrue,
@@ -70,22 +56,16 @@ class OpenCLWrapper {
   void createKernel(cl::Program& program, const char* name);
   void createQueue(cl::Context& context, cl::Device& device);
 
-  void makeStep1(numType& radiusAfterDt2);
+  void makeStep1(Bubble& t_bubble);
   void makeStep2(int& particleCount);
   void makeStep3(int& particleCount, std::vector<numType>& t_dP);
-  void makeStep4(numType& t_radius, numType& t_radius2, numType& t_speed,
-                 numType& t_gamma, numType& t_gammaSpeed);
-  void readBufferX(std::vector<numType>& t_dataX);
-  void readBufferP(std::vector<numType>& t_dataP);
+  void makeStep4(Bubble& t_bubble);
+  void readBufferParticle(std::vector<Particle>& t_vectorParticle);
   void readBuffer_dP(std::vector<numType>& t_data_dP);
-  void readBufferM(std::vector<numType>& t_dataM);
-  void readBufferE(std::vector<numType>& t_dataE);
+
   void readBufferInteractedFalse(std::vector<int8_t>& t_dataInteractedFalse);
   void readBufferPassedFalse(std::vector<int8_t>& t_dataPassedFalse);
   void readBufferInteractedTrue(std::vector<int8_t>& t_dataTrue);
-  void readBufferR(numType& t_dataR);
-  void readBufferSpeed(numType& t_dataSpeed);
-  void readBufferBubble(numType& t_dataR, numType& t_dataSpeed);
 
   void writeResetInteractedFalseBuffer(std::vector<int8_t>& v_interacted);
   void writeResetPassedFalseBuffer(std::vector<int8_t>& v_interacted);

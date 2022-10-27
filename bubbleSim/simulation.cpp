@@ -66,12 +66,9 @@ Simulation::Simulation(int t_seed, numType t_massTrue, numType t_massFalse,
   m_time = 0.;
   m_dPressureStep = 0.;
 
+  m_dP = std::vector<double>(m_particleCountTotal, 0.);
+
   // Data reserve
-  m_X.reserve(3 * m_particleCountTotal);
-  m_P.reserve(3 * m_particleCountTotal);
-  m_E.reserve(m_particleCountTotal);
-  m_M.reserve(m_particleCountTotal);
-  m_dP = std::vector<numType>(m_particleCountTotal, 0.);
   m_interactedFalse = std::vector<int8_t>(m_particleCountTotal, 0);
   m_passedFalse = std::vector<int8_t>(m_particleCountTotal, 0);
   m_interactedTrue = std::vector<int8_t>(m_particleCountTotal, 0);
@@ -98,24 +95,26 @@ void Simulation::set_dt(numType t_dt) {
 // Particle functions
 numType Simulation::calculateParticleRadius(u_int i) {
   // dot(X, X)
-  return std::sqrt(std::fma(m_X[3 * i], m_X[3 * i],
-                            std::fma(m_X[3 * i + 1], m_X[3 * i + 1],
-                                     m_X[3 * i + 2] * m_X[3 * i + 2])));
+  return std::sqrt(std::fma(m_particles[i].x, m_particles[i].x,
+                            std::fma(m_particles[i].y, m_particles[i].y,
+                                     m_particles[i].z * m_particles[i].z)));
 }
 
 numType Simulation::calculateParticleMomentum(u_int i) {
   // return std::sqrt(m_P[3 * i] * m_P[3 * i] + m_P[3 * i + 1] * m_P[3 * i + 1]
   // + m_P[3 * i + 2] * m_P[3 * i + 2]);
-  return std::sqrt(std::fma(m_P[3 * i], m_P[3 * i],
-                            std::fma(m_P[3 * i + 1], m_P[3 * i + 1],
-                                     m_P[3 * i + 2] * m_P[3 * i + 2])));
+
+  return std::sqrt(std::fma(m_particles[i].p_x, m_particles[i].p_x,
+                            std::fma(m_particles[i].p_y, m_particles[i].p_y,
+                                     m_particles[i].p_z * m_particles[i].p_z)));
 }
 
 numType Simulation::calculateParticleEnergy(u_int i) {
-  return std::sqrt(std::fma(
-      m_P[3 * i], m_P[3 * i],
-      std::fma(m_P[3 * i + 1], m_P[3 * i + 1],
-               std::fma(m_P[3 * i + 2], m_P[3 * i + 2], m_M[i] * m_M[i]))));
+  return std::sqrt(
+      std::fma(m_particles[i].p_x, m_particles[i].p_x,
+               std::fma(m_particles[i].p_y, m_particles[i].p_y,
+                        std::fma(m_particles[i].p_z, m_particles[i].p_z,
+                                 m_particles[i].m * m_particles[i].m))));
 }
 
 // Calculate distributions
@@ -205,105 +204,56 @@ numType Simulation::interp(numType t_value, std::vector<numType>& t_x,
   }
 }
 
-void Simulation::generateRandomDirectionPush(
-    numType& t_radius, std::vector<numType>& t_resultVector) {
+void Simulation::generateRandomDirection(numType& x, numType& y, numType& z,
+                                         numType t_radius) {
   numType phi = std::acos(1 - 2 * m_distribution(m_generator));  // inclination
-  numType theta = 2 * M_PI * m_distribution(m_generator);        // asimuth
-  t_resultVector.push_back(t_radius * std::sin(phi) * std::cos(theta));  // x
-  t_resultVector.push_back(t_radius * std::sin(phi) * std::sin(theta));  // y
-  t_resultVector.push_back(t_radius * std::cos(phi));                    // z
+  numType theta = 2 * M_PI * m_distribution(m_generator);
+  x = t_radius * std::sin(phi) * std::cos(theta);  // x
+  y = t_radius * std::sin(phi) * std::sin(theta);  // y
+  z = t_radius * std::cos(phi);                    // z
 }
 
-void Simulation::generateRandomDirectionReplace(
-    numType& t_radius, std::vector<numType>& t_resultVector) {
-  numType phi = std::acos(1 - 2 * m_distribution(m_generator));  // inclination
-  numType theta = 2 * M_PI * m_distribution(m_generator);        // asimuth
-  t_resultVector[0] = t_radius * std::sin(phi) * std::cos(theta);  // x
-  t_resultVector[1] = t_radius * std::sin(phi) * std::sin(theta);  // y
-  t_resultVector[2] = t_radius * std::cos(phi);                    // z
-}
-
-void Simulation::generateParticleMomentum(
-    std::vector<numType>& t_cpd, std::vector<numType>& t_p, numType& t_pResult,
-    std::vector<numType>& t_resultPushVector) {
+void Simulation::generateParticleMomentum(numType& p_x, numType& p_y,
+                                          numType& p_z,
+                                          std::vector<numType>& t_cpd,
+                                          std::vector<numType>& t_p,
+                                          numType& t_pResult) {
   t_pResult = interp(m_distribution(m_generator), t_cpd, t_p);
-  generateRandomDirectionPush(t_pResult, t_resultPushVector);
+  generateRandomDirection(p_x, p_y, p_z, t_pResult);
 }
 
-void Simulation::generatePointInBoxPush(numType& t_SideHalf,
-                                        std::vector<numType>& t_result) {
-  t_result.push_back(t_SideHalf - 2 * t_SideHalf * m_distribution(m_generator));
-  t_result.push_back(t_SideHalf - 2 * t_SideHalf * m_distribution(m_generator));
-  t_result.push_back(t_SideHalf - 2 * t_SideHalf * m_distribution(m_generator));
+void Simulation::generatePointInBox(numType& x, numType& y, numType& z,
+                                    numType& t_SideHalf) {
+  x = t_SideHalf - 2 * t_SideHalf * m_distribution(m_generator);
+  y = t_SideHalf - 2 * t_SideHalf * m_distribution(m_generator);
+  z = t_SideHalf - 2 * t_SideHalf * m_distribution(m_generator);
 }
 
-void Simulation::generatePointInBoxPush(numType& t_xSideHalf,
-                                        numType& t_ySideHalf,
-                                        numType& t_zSideHalf,
-                                        std::vector<numType>& t_result) {
-  t_result.push_back(t_xSideHalf -
-                     2 * t_xSideHalf * m_distribution(m_generator));
-  t_result.push_back(t_ySideHalf -
-                     2 * t_ySideHalf * m_distribution(m_generator));
-  t_result.push_back(t_zSideHalf -
-                     2 * t_zSideHalf * m_distribution(m_generator));
-}
-
-void Simulation::generatePointInBoxReplace(numType& t_SideHalf,
-                                           std::vector<numType>& t_result) {
-  t_result[0] = t_SideHalf - 2 * t_SideHalf * m_distribution(m_generator);
-  t_result[1] = t_SideHalf - 2 * t_SideHalf * m_distribution(m_generator);
-  t_result[2] = t_SideHalf - 2 * t_SideHalf * m_distribution(m_generator);
-}
-
-void Simulation::generatePointInBoxReplace(numType& t_xSideHalf,
-                                           numType& t_ySideHalf,
-                                           numType& t_zSideHalf,
-                                           std::vector<numType>& t_result) {
-  t_result[0] = t_xSideHalf - 2 * t_xSideHalf * m_distribution(m_generator);
-  t_result[1] = t_ySideHalf - 2 * t_ySideHalf * m_distribution(m_generator);
-  t_result[2] = t_zSideHalf - 2 * t_zSideHalf * m_distribution(m_generator);
+void Simulation::generatePointInBox(numType& x, numType& y, numType& z,
+                                    numType& t_xSideHalf, numType& t_ySideHalf,
+                                    numType& t_zSideHalf) {
+  x = t_xSideHalf - 2 * t_xSideHalf * m_distribution(m_generator);
+  y = t_ySideHalf - 2 * t_ySideHalf * m_distribution(m_generator);
+  z = t_zSideHalf - 2 * t_zSideHalf * m_distribution(m_generator);
 }
 
 void Simulation::generateNParticlesInBox(numType t_mass, numType& t_sideHalf,
                                          u_int t_N, std::vector<numType>& t_cpd,
                                          std::vector<numType>& t_p) {
+  numType x, y, z;
+  numType p_x, p_y, p_z;
+  numType E;
   numType m2 = std::pow(t_mass, 2);
   numType pValue;
+
   for (u_int i = 0; i < t_N; i++) {
     // Generates 3D space coordinates and pushes to m_X vector
-    generatePointInBoxPush(t_sideHalf, m_X);
-    // Generates 3D space coordinates and pushes to m_P vector
-    generateParticleMomentum(t_cpd, t_p, pValue, m_P);
+    generatePointInBox(x, y, z, t_sideHalf);
 
-    m_M.push_back(t_mass);
-    m_E.push_back(std::sqrt(m2 + pow(pValue, 2)));
-  }
-}
-
-void Simulation::generateNParticlesInBox(numType t_mass, numType& t_radiusIn,
-                                         numType& t_sideHalf, u_int t_N,
-                                         std::vector<numType>& t_cpd,
-                                         std::vector<numType>& t_p) {
-  numType m2 = std::pow(t_mass, 2);
-  numType radius;
-  numType pValue;
-  std::vector<numType> v_xVector = {0, 0, 0};
-  for (u_int i = 0; i < t_N; i++) {
-    // Generates 3D space coordinates and pushes to m_X vector
-    do {
-      generatePointInBoxReplace(t_sideHalf, v_xVector);
-      radius = std::sqrt(std::fma(
-          v_xVector[0], v_xVector[0],
-          fma(v_xVector[1], v_xVector[1], v_xVector[2] * v_xVector[2])));
-    } while (radius < t_radiusIn);
-    m_X.push_back(v_xVector[0]);
-    m_X.push_back(v_xVector[1]);
-    m_X.push_back(v_xVector[2]);
     // Generates 3D space coordinates and pushes to m_P vector
-    generateParticleMomentum(t_cpd, t_p, pValue, m_P);
-    m_M.push_back(t_mass);
-    m_E.push_back(std::sqrt(m2 + pow(pValue, 2)));
+    generateParticleMomentum(p_x, p_y, p_z, t_cpd, t_p, pValue);
+    E = std::sqrt(m2 + pow(pValue, 2));
+    m_particles.push_back(Particle{x, y, z, p_x, p_y, p_z, E, t_mass});
   }
 }
 
@@ -312,16 +262,43 @@ void Simulation::generateNParticlesInBox(numType t_mass, numType& t_xSideHalf,
                                          numType& t_zSideHalf, u_int t_N,
                                          std::vector<numType>& t_cpd,
                                          std::vector<numType>& t_p) {
+  numType x, y, z;
+  numType p_x, p_y, p_z;
+  numType E;
   numType m2 = std::pow(t_mass, 2);
   numType pValue;
+
   for (u_int i = 0; i < t_N; i++) {
     // Generates 3D space coordinates and pushes to m_X vector
-    generatePointInBoxPush(t_xSideHalf, t_ySideHalf, t_zSideHalf, m_X);
+    generatePointInBox(x, y, z, t_xSideHalf, t_ySideHalf, t_zSideHalf);
     // Generates 3D space coordinates and pushes to m_P vector
-    generateParticleMomentum(t_cpd, t_p, pValue, m_P);
+    generateParticleMomentum(p_x, p_y, p_z, t_cpd, t_p, pValue);
 
-    m_M.push_back(t_mass);
-    m_E.push_back(std::sqrt(m2 + pow(pValue, 2)));
+    E = std::sqrt(m2 + pow(pValue, 2));
+    m_particles.push_back(Particle{x, y, z, p_x, p_y, p_z, E, t_mass});
+  }
+}
+
+void Simulation::generateNParticlesInBox(numType t_mass, numType& t_radiusIn,
+                                         numType& t_sideHalf, u_int t_N,
+                                         std::vector<numType>& t_cpd,
+                                         std::vector<numType>& t_p) {
+  numType x, y, z;
+  numType p_x, p_y, p_z;
+  numType E;
+  numType m2 = std::pow(t_mass, 2);
+  numType pValue;
+  numType radius;
+  for (u_int i = 0; i < t_N; i++) {
+    // Generates 3D space coordinates and pushes to m_X vector
+    do {
+      generatePointInBox(x, y, z, t_sideHalf);
+      radius = std::sqrt(std::fma(x, x, fma(y, y, z * z)));
+    } while (radius < t_radiusIn);
+    // Generates 3D space coordinates and pushes to m_P vector
+    generateParticleMomentum(p_x, p_y, p_z, t_cpd, t_p, pValue);
+    E = std::sqrt(m2 + pow(pValue, 2));
+    m_particles.push_back(Particle{x, y, z, p_x, p_y, p_z, E, t_mass});
   }
 }
 
@@ -331,26 +308,22 @@ void Simulation::generateNParticlesInBox(numType t_mass, numType& t_radiusIn,
                                          numType& t_zSideHalf, u_int t_N,
                                          std::vector<numType>& t_cpd,
                                          std::vector<numType>& t_p) {
+  numType x, y, z;
+  numType p_x, p_y, p_z;
+  numType E;
   numType m2 = std::pow(t_mass, 2);
-  numType radius;
   numType pValue;
-  std::vector<numType> v_xVector = {0, 0, 0};
+  numType radius;
   for (u_int i = 0; i < t_N; i++) {
     // Generates 3D space coordinates and pushes to m_X vector
     do {
-      generatePointInBoxReplace(t_xSideHalf, t_ySideHalf, t_zSideHalf,
-                                v_xVector);
-      radius = std::sqrt(std::fma(
-          v_xVector[0], v_xVector[0],
-          fma(v_xVector[1], v_xVector[1], v_xVector[2] * v_xVector[2])));
+      generatePointInBox(x, y, z, t_xSideHalf, t_ySideHalf, t_zSideHalf);
+      radius = std::sqrt(std::fma(x, x, fma(y, y, z * z)));
     } while (radius < t_radiusIn);
-    m_X.push_back(v_xVector[0]);
-    m_X.push_back(v_xVector[1]);
-    m_X.push_back(v_xVector[2]);
     // Generates 3D space coordinates and pushes to m_P vector
-    generateParticleMomentum(t_cpd, t_p, pValue, m_P);
-    m_M.push_back(t_mass);
-    m_E.push_back(std::sqrt(m2 + pow(pValue, 2)));
+    generateParticleMomentum(p_x, p_y, p_z, t_cpd, t_p, pValue);
+    E = std::sqrt(m2 + pow(pValue, 2));
+    m_particles.push_back(Particle{x, y, z, p_x, p_y, p_z, E, t_mass});
   }
 }
 
@@ -358,25 +331,24 @@ void Simulation::generateNParticlesInSphere(numType t_mass, numType& t_radius1,
                                             u_int t_N,
                                             std::vector<numType>& t_cpd,
                                             std::vector<numType>& t_p) {
+  numType x, y, z;
+  numType p_x, p_y, p_z;
+  numType E;
   numType m2 = std::pow(t_mass, 2);
-  numType radius;
   numType pValue;
-  std::vector<numType> v_xVector = {0, 0, 0};
+  numType radius;
+
   for (u_int i = 0; i < t_N; i++) {
     // Generates 3D space coordinates and pushes to m_X vector
     do {
-      generatePointInBoxReplace(t_radius1, v_xVector);
-      radius = std::sqrt(std::fma(
-          v_xVector[0], v_xVector[0],
-          fma(v_xVector[1], v_xVector[1], v_xVector[2] * v_xVector[2])));
+      generatePointInBox(x, y, z, t_radius1);
+      radius = std::sqrt(std::fma(x, x, fma(y, y, z * z)));
     } while (radius > t_radius1);
-    m_X.push_back(v_xVector[0]);
-    m_X.push_back(v_xVector[1]);
-    m_X.push_back(v_xVector[2]);
+
     // Generates 3D space coordinates and pushes to m_P vector
-    generateParticleMomentum(t_cpd, t_p, pValue, m_P);
-    m_M.push_back(t_mass);
-    m_E.push_back(std::sqrt(m2 + pow(pValue, 2)));
+    generateParticleMomentum(p_x, p_y, p_z, t_cpd, t_p, pValue);
+    E = std::sqrt(m2 + pow(pValue, 2));
+    m_particles.push_back(Particle{x, y, z, p_x, p_y, p_z, E, t_mass});
   }
 }
 
@@ -384,25 +356,24 @@ void Simulation::generateNParticlesInSphere(numType t_mass, numType& t_radius1,
                                             numType t_radius2, u_int t_N,
                                             std::vector<numType>& t_cpd,
                                             std::vector<numType>& t_p) {
+  numType x, y, z;
+  numType p_x, p_y, p_z;
+  numType E;
   numType m2 = std::pow(t_mass, 2);
-  numType radius;
   numType pValue;
-  std::vector<numType> v_xVector = {0, 0, 0};
+  numType radius;
+
   for (u_int i = 0; i < t_N; i++) {
     // Generates 3D space coordinates and pushes to m_X vector
     do {
-      generatePointInBoxReplace(t_radius1, v_xVector);
-      radius = std::sqrt(std::fma(
-          v_xVector[0], v_xVector[0],
-          fma(v_xVector[1], v_xVector[1], v_xVector[2] * v_xVector[2])));
+      generatePointInBox(x, y, z, t_radius1);
+      radius = std::sqrt(std::fma(x, x, fma(y, y, z * z)));
     } while ((t_radius1 > radius) || (radius > t_radius2));
-    m_X.push_back(v_xVector[0]);
-    m_X.push_back(v_xVector[1]);
-    m_X.push_back(v_xVector[2]);
+
     // Generates 3D space coordinates and pushes to m_P vector
-    generateParticleMomentum(t_cpd, t_p, pValue, m_P);
-    m_M.push_back(t_mass);
-    m_E.push_back(std::sqrt(m2 + pow(pValue, 2)));
+    generateParticleMomentum(p_x, p_y, p_z, t_cpd, t_p, pValue);
+    E = std::sqrt(m2 + pow(pValue, 2));
+    m_particles.push_back(Particle{x, y, z, p_x, p_y, p_z, E, t_mass});
   }
 }
 
@@ -449,7 +420,7 @@ numType Simulation::countParticleEnergyDensity(numType t_radius1,
 numType Simulation::countParticlesEnergy() {
   numType energy = 0.;
   for (int i = 0; i < m_particleCountTotal; i++) {
-    energy += m_E[i];
+    energy += m_particles[i].E;
   }
   return energy;
 }
@@ -458,7 +429,7 @@ numType Simulation::countParticlesEnergy(numType t_radius1) {
   numType energy = 0.;
   for (int i = 0; i < m_particleCountTotal; i++) {
     if (calculateParticleRadius(i) < t_radius1) {
-      energy += m_E[i];
+      energy += m_particles[i].E;
     }
   }
   return energy;
@@ -470,41 +441,37 @@ numType Simulation::countParticlesEnergy(numType t_radius1, numType t_radius2) {
   for (int i = 0; i < m_particleCountTotal; i++) {
     radius = calculateParticleRadius(i);
     if ((radius > t_radius1) && (radius < t_radius2)) {
-      energy += m_E[i];
+      energy += m_particles[i].E;
     }
   }
   return energy;
 }
 
-void Simulation::step(Bubble& bubble, numType t_dP) {
+void Simulation::step(PhaseBubble& bubble, numType t_dP) {
   m_time += m_dt;
   bubble.evolveWall(m_dt, m_dPressureStep);
 }
 
-void Simulation::step(Bubble& bubble, OpenCLWrapper& openCLWrapper) {
+void Simulation::step(PhaseBubble& phaseBubble, OpenCLWrapper& openCLWrapper) {
   if (m_dt <= 0) {
     std::cout << "Error: dt <= 0.\nExiting program." << std::endl;
     exit(1);
   }
   m_time += m_dt;
   // Write bubble parameters to GPU
-  bubble.calculateRadiusAfterDt2(m_dt);
-  openCLWrapper.makeStep1(bubble.getRadiusAfterDt2Ref());
+  phaseBubble.calculateRadiusAfterStep2(m_dt);
+  openCLWrapper.makeStep1(phaseBubble.getRef_Bubble());
   // Run one step on device
   openCLWrapper.makeStep2(m_particleCountTotal);
-
-  // Read dP vector. dP is "Energy" change for particles -> Bubble energy change
-  // is -dP
+  // Read dP vector. dP is "Energy" change for particles -> PhaseBubble energy
+  // change is -dP
   openCLWrapper.makeStep3(m_particleCountTotal, m_dP);
-
   m_dPressureStep = 0;
   for (int i = 0; i < m_particleCountTotal; i++) {
     m_dPressureStep += m_dP[i];
   }
-  m_dPressureStep /= -bubble.getArea();
+  m_dPressureStep /= -phaseBubble.calculateArea();
 
-  bubble.evolveWall(m_dt, m_dPressureStep);
-  openCLWrapper.makeStep4(bubble.getRadiusRef(), bubble.getRadius2Ref(),
-                          bubble.getSpeedRef(), bubble.getGammaRef(),
-                          bubble.getGammaSpeedRef());
+  phaseBubble.evolveWall(m_dt, m_dPressureStep);
+  openCLWrapper.makeStep4(phaseBubble.getRef_Bubble());
 }

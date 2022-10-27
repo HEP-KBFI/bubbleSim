@@ -169,7 +169,7 @@ int main(int argc, char* argv[]) {
   // 3) Generating particles
   sim.generateNParticlesInSphere(massFalse, initialBubbleRadius,
                                  sim.getParticleCountFalseInitial(),
-                                 sim.getCPDFalseRef(), sim.getPFalseRef());
+                                 sim.getRef_CPDFalse(), sim.getRef_PFalse());
 
   // 4) dV and sigma
   sim.setEnergyDensityFalseSimInitial(sim.countParticlesEnergy() /
@@ -189,23 +189,19 @@ int main(int argc, char* argv[]) {
   // 5) dt definition
   sim.set_dt(dt);
 
-  // 6) Bubble
-  Bubble bubble(initialBubbleRadius, initialBubbleSpeed, dV, sigma);
+  // 6) PhaseBubble
+  PhaseBubble bubble(initialBubbleRadius, initialBubbleSpeed, dV, sigma);
 
   sim.setEnergyTotalInitial(sim.countParticlesEnergy() +
                             bubble.calculateEnergy());
 
   // 7) OpenCL wrapper
-  OpenCLWrapper openCL(
-      kernelPath, kernelName, sim.getParticleCountTotal(), sim.getReferenceX(),
-      sim.getReferenceP(), sim.getReferenceE(), sim.getReferenceM(),
-      sim.getReference_dP(), sim.getReference_dt(), sim.getReferenceMassTrue(),
-      sim.getReferenceMassFalse(), sim.getReferenceMassDelta2(),
-      bubble.getRadiusRef(), bubble.getRadius2Ref(),
-      bubble.getRadiusAfterDt2Ref(), bubble.getSpeedRef(), bubble.getGammaRef(),
-      bubble.getGammaSpeedRef(), sim.getReferenceInteractedFalse(),
-      sim.getReferencePassedFalse(), sim.getReferenceInteractedTrue(),
-      b_isBubbleTrueVacuum);
+  OpenCLWrapper openCL(kernelPath, kernelName, sim.getRef_Particles(),
+                       sim.getRef_dP(), sim.getRef_dt(), sim.getRef_MassTrue(),
+                       sim.getRef_MassFalse(), sim.getRef_MassDelta2(),
+                       bubble.getRef_Bubble(), sim.getRef_InteractedFalse(),
+                       sim.getRef_PassedFalse(), sim.getRef_InteractedTrue(),
+                       b_isBubbleTrueVacuum);
 
   // 8) Streaming object
   DataStreamer dataStreamer(sim, bubble, openCL);
@@ -242,18 +238,19 @@ int main(int argc, char* argv[]) {
   std::cout << std::setprecision(10) << "dV: " << bubble.getdV()
             << ", dV(param): "
             << countParticlesFalse * massTrue * (3 * alpha - 1) /
-                   (eta * bubble.getVolume())
+                   (eta * bubble.calculateVolume())
             << ", Ratio: "
-            << bubble.getdV() / (countParticlesFalse * massTrue *
-                                 (3 * alpha - 1) / (eta * bubble.getVolume()))
+            << bubble.getdV() /
+                   (countParticlesFalse * massTrue * (3 * alpha - 1) /
+                    (eta * bubble.calculateVolume()))
             << std::endl;
   std::cout << "sigma: " << bubble.getSigma() << ", sigma(param): "
             << bubble.getRadius() * countParticlesFalse * upsilon * massTrue *
-                   (3 * alpha - 1) / (eta * bubble.getVolume())
+                   (3 * alpha - 1) / (eta * bubble.calculateVolume())
             << ", Ratio: "
-            << bubble.getSigma() /
-                   (bubble.getRadius() * countParticlesFalse * upsilon *
-                    massTrue * (3 * alpha - 1) / (eta * bubble.getVolume()))
+            << bubble.getSigma() / (bubble.getRadius() * countParticlesFalse *
+                                    upsilon * massTrue * (3 * alpha - 1) /
+                                    (eta * bubble.calculateVolume()))
             << std::endl;
   std::cout
       << "Bubble energy: " << bubble.calculateEnergy()
@@ -266,26 +263,28 @@ int main(int argc, char* argv[]) {
               (1 + 3 * upsilon / std::sqrt(1 - std::pow(bubble.getSpeed(), 2))))
       << std::endl;
   std::cout << "===== Thermodynamcis:" << std::endl;
-  std::cout << "n(param): " << countParticlesFalse / bubble.getVolume()
+  std::cout << "n(param): " << countParticlesFalse / bubble.calculateVolume()
             << ", n(theor): "
             << std::pow(temperatureFalse, 3) / std::pow(M_PI, 2) * std::exp(-mu)
-            << ", n(sim): " << sim.getParticleCountTotal() / bubble.getVolume()
+            << ", n(sim): "
+            << sim.getParticleCountTotal() / bubble.calculateVolume()
             << ", Ratio: "
-            << (sim.getParticleCountTotal() / bubble.getVolume()) /
-                   (countParticlesFalse / bubble.getVolume())
+            << (sim.getParticleCountTotal() / bubble.calculateVolume()) /
+                   (countParticlesFalse / bubble.calculateVolume())
 
             << std::endl;
   std::cout << "rho(param): "
             << sim.getParticleCountTotal() * 3 * massTrue /
-                   (eta * bubble.getVolume())
+                   (eta * bubble.calculateVolume())
             << ", rho(theor): "
             << 3 * std::pow(temperatureFalse, 4) / std::pow(M_PI, 2) *
                    std::exp(-mu)
-            << ", rho(sim): " << sim.countParticlesEnergy() / bubble.getVolume()
+            << ", rho(sim): "
+            << sim.countParticlesEnergy() / bubble.calculateVolume()
             << ", Ratio: "
-            << (sim.countParticlesEnergy() / bubble.getVolume()) /
+            << (sim.countParticlesEnergy() / bubble.calculateVolume()) /
                    (sim.getParticleCountTotal() * 3 * massTrue /
-                    (eta * bubble.getVolume()))
+                    (eta * bubble.calculateVolume()))
             << std::endl;
   std::cout << "<E>(param): " << 3 * massTrue / eta
             << ", <E>(theor): " << 3 * temperatureFalse << ", <E>(sim): "
@@ -367,6 +366,7 @@ int main(int argc, char* argv[]) {
     } else {
       sim.step(bubble, 0);
     }
+
     if (i % i_streamFreq == 0) {
       std::cout << "t: " << sim.getTime() << ", R: " << bubble.getRadius()
                 << ", V: " << bubble.getSpeed() << std::endl;
@@ -377,6 +377,7 @@ int main(int argc, char* argv[]) {
         dataStreamer.reset();
       }
     }
+
     if (std::isnan(bubble.getRadius()) || bubble.getRadius() <= 0) {
       std::cerr << "Ending simulaton. Radius is not a number or <= 0. (R_b="
                 << bubble.getRadius() << ")" << std::endl;

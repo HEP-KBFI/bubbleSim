@@ -5,6 +5,7 @@
 
 #include "base.h"
 #include "bubble.h"
+#include "components.h"
 #include "openclwrapper.h"
 
 class Simulation {
@@ -46,12 +47,7 @@ class Simulation {
   numType m_dPressureStep;
 
   // Particle info
-  std::vector<numType> m_X;
-  // Momentum (3*N)
-  std::vector<numType> m_P;
-  std::vector<numType> m_E;
-  std::vector<numType> m_M;
-  // Pressure from particle-bubble collisions
+  std::vector<Particle> m_particles;
   std::vector<numType> m_dP;
 
   // Logging parameters
@@ -104,20 +100,15 @@ class Simulation {
     m_energyParticlesLastStep = new_E;
   }
 
-  std::vector<numType>& getReferenceX() { return m_X; }
-  std::vector<numType>& getReferenceP() { return m_P; }
-  std::vector<numType>& getReferenceM() { return m_M; }
-  std::vector<numType>& getReferenceE() { return m_E; }
-  std::vector<numType>& getReference_dP() { return m_dP; }
-  std::vector<int8_t>& getReferenceInteractedFalse() {
-    return m_interactedFalse;
-  }
-  std::vector<int8_t>& getReferencePassedFalse() { return m_passedFalse; }
-  std::vector<int8_t>& getReferenceInteractedTrue() { return m_interactedTrue; }
-  numType& getReference_dt() { return m_dt; }
-  numType& getReferenceMassFalse() { return m_massFalse; }
-  numType& getReferenceMassTrue() { return m_massTrue; }
-  numType& getReferenceMassDelta2() { return m_massDelta2; }
+  std::vector<Particle>& getRef_Particles() { return m_particles; }
+  std::vector<numType>& getRef_dP() { return m_dP; }
+  std::vector<int8_t>& getRef_InteractedFalse() { return m_interactedFalse; }
+  std::vector<int8_t>& getRef_PassedFalse() { return m_passedFalse; }
+  std::vector<int8_t>& getRef_InteractedTrue() { return m_interactedTrue; }
+  numType& getRef_dt() { return m_dt; }
+  numType& getRef_MassFalse() { return m_massFalse; }
+  numType& getRef_MassTrue() { return m_massTrue; }
+  numType& getRef_MassDelta2() { return m_massDelta2; }
 
   numType getNumberDensityFalse() { return m_nFalse; }
   numType getEnergyDensityFalse() { return m_rhoFalse; }
@@ -148,14 +139,14 @@ class Simulation {
   numType getTotalEnergy() { return m_energyTotal; }
   numType getTotalEnergyInitial() { return m_energyTotalInitial; }
 
-  std::vector<numType>& getCPDFalseRef() { return m_cpdFalse; }
-  std::vector<numType>& getPFalseRef() { return m_pFalse; }
-  std::vector<numType>& getCPDTrueRef() { return m_cpdTrue; }
-  std::vector<numType>& getPTrueRef() { return m_pTrue; }
+  std::vector<numType>& getRef_CPDFalse() { return m_cpdFalse; }
+  std::vector<numType>& getRef_PFalse() { return m_pFalse; }
+  std::vector<numType>& getRef_CPDTrue() { return m_cpdTrue; }
+  std::vector<numType>& getRef_PTrue() { return m_pTrue; }
 
   // Particle functions
-  numType getParticleEnergy(u_int i) { return m_E[i]; }
-  numType getParticleMass(u_int i) { return m_M[i]; }
+  numType getParticleEnergy(u_int i) { return m_particles[i].E; }
+  numType getParticleMass(u_int i) { return m_particles[i].m; }
   numType calculateParticleRadius(u_int i);
   numType calculateParticleMomentum(u_int i);
   numType calculateParticleEnergy(u_int i);
@@ -173,23 +164,18 @@ class Simulation {
   numType interp(numType t_value, std::vector<numType>& t_x,
                  std::vector<numType>& t_y);
 
-  void generateRandomDirectionPush(numType& t_radius,
-                                   std::vector<numType>& t_resultVector);
-  void generateRandomDirectionReplace(numType& t_radius,
-                                      std::vector<numType>& t_resultVector);
-  void generateParticleMomentum(std::vector<numType>& t_cpd,
-                                std::vector<numType>& t_p, numType& t_pResult,
-                                std::vector<numType>& t_resultPushVector);
-  void generatePointInBoxPush(numType& t_SideHalf,
-                              std::vector<numType>& t_result);
-  void generatePointInBoxReplace(numType& t_SideHalf,
-                                 std::vector<numType>& t_result);
-  void generatePointInBoxPush(numType& t_xSideHalf, numType& t_ySideHalf,
-                              numType& t_zSideHalf,
-                              std::vector<numType>& t_result);
-  void generatePointInBoxReplace(numType& t_xSideHalf, numType& t_ySideHalf,
-                                 numType& t_zSideHalf,
-                                 std::vector<numType>& t_result);
+  void generatePointInBox(numType& x, numType& y, numType& z,
+                          numType& t_SideHalf);
+  void generatePointInBox(numType& x, numType& y, numType& z,
+                          numType& t_xSideHalf, numType& t_ySideHalf,
+                          numType& t_zSideHalf);
+
+  void generateRandomDirection(numType& x, numType& y, numType& z,
+                               numType t_radius);
+
+  void generateParticleMomentum(numType& p_x, numType& p_y, numType& p_z,
+                                std::vector<numType>& t_cpd,
+                                std::vector<numType>& t_p, numType& t_pResult);
 
   void generateNParticlesInBox(numType t_mass, numType& t_sideHalf, u_int t_N,
                                std::vector<numType>& t_cpd,
@@ -224,15 +210,16 @@ class Simulation {
   numType countParticlesEnergy(numType t_radius1);
   numType countParticlesEnergy(numType t_radius1, numType t_radius2);
 
-  void step(Bubble& bubble, numType t_dP);
-  void step(Bubble& bubble, OpenCLWrapper& openCLWrapper);
+  void step(PhaseBubble& bubble, numType t_dP);
+  void step(PhaseBubble& bubble, OpenCLWrapper& openCLWrapper);
   /*
-  void step(Bubble bubble, OpenCLWrapper openCLWrapper, std::string device);
+  void step(PhaseBubble bubble, OpenCLWrapper openCLWrapper, std::string
+  device);
 
 
-  void stepCPU(Bubble bubble);
+  void stepCPU(PhaseBubble bubble);
 
-  void stepGPU(Bubble bubble, OpenCLWrapper openCLWrapper);
+  void stepGPU(PhaseBubble bubble, OpenCLWrapper openCLWrapper);
   */
   /*
           Runs one time on GPU or CPU.
