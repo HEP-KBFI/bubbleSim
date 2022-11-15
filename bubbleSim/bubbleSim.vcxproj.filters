@@ -33,6 +33,9 @@
     <ClInclude Include="datastreamer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="components.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="simulation.cpp">

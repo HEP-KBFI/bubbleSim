@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClInclude Include="base.h" />
     <ClInclude Include="bubble.h" />
+    <ClInclude Include="components.h" />
     <ClInclude Include="datastreamer.h" />
     <ClInclude Include="openclwrapper.h" />
     <ClInclude Include="simulation.h" />
