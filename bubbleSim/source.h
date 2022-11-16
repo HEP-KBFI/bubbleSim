@@ -8,7 +8,8 @@
 #include <numeric>
 
 #include "base.h"
-#include "bubble.h"
+#include "config_reader.hpp"
 #include "datastreamer.h"
+#include "objects.h"
 #include "openclwrapper.h"
 #include "simulation.h"

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -21,9 +21,12 @@
   <ItemGroup>
     <ClInclude Include="base.h" />
     <ClInclude Include="bubble.h" />
-    <ClInclude Include="components.h" />
+    <ClInclude Include="config_reader.hpp" />
+    <ClInclude Include="objects.h" />
+    <ClInclude Include="particle.h" />
     <ClInclude Include="datastreamer.h" />
     <ClInclude Include="openclwrapper.h" />
+    <ClInclude Include="random_number.hpp" />
     <ClInclude Include="simulation.h" />
     <ClInclude Include="source.h" />
   </ItemGroup>
@@ -33,6 +36,17 @@
     <ClCompile Include="openclwrapper.cpp" />
     <ClCompile Include="simulation.cpp" />
     <ClCompile Include="source.cpp" />
+    <ClCompile Include="particle.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\kernels\assign_cell.cl" />
+    <None Include="..\kernels\boundary_bounce.cl" />
+    <None Include="..\kernels\collision.cl" />
+    <None Include="..\kernels\find_comf.cl" />
+    <None Include="..\kernels\generate_rotation.cl" />
+    <None Include="..\kernels\kernel.cl" />
+    <None Include="..\kernels\label_collision.cl" />
+    <None Include="..\kernels\label_position.cl" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

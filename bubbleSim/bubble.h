@@ -1,6 +1,16 @@
 #pragma once
 #include "base.h"
-#include "components.h"
+
+typedef struct Bubble {
+  cl_numType radius;
+  cl_numType radius2;           // Squared
+  cl_numType radiusAfterStep2;  // (radius + speed * dt)^2
+
+  cl_numType speed;
+
+  cl_numType gamma;
+  cl_numType gammaXspeed;  // gamma * speed
+} Bubble;
 
 class PhaseBubble {
   // Input parameters

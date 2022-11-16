@@ -13,6 +13,18 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Kernels">
+      <UniqueIdentifier>{ad3d76ba-6f94-404f-bc5d-04c6fe891d8f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Objects">
+      <UniqueIdentifier>{ead60fb0-b85b-4979-a0a9-ef637c5cf283}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Objects">
+      <UniqueIdentifier>{0187af86-67e0-4ada-9316-2c50a6d1db91}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Generators">
+      <UniqueIdentifier>{70c9ae99-7764-4421-ad94-5ac76b6b096b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="simulation.h">
@@ -27,14 +39,20 @@
     <ClInclude Include="openclwrapper.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="bubble.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="datastreamer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="components.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="bubble.h">
+      <Filter>Header Files\Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="particle.h">
+      <Filter>Header Files\Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="objects.h">
+      <Filter>Header Files\Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="random_number.hpp">
+      <Filter>Source Files\Generators</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -44,14 +62,43 @@
     <ClCompile Include="source.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="bubble.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="openclwrapper.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="datastreamer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="bubble.cpp">
+      <Filter>Source Files\Objects</Filter>
+    </ClCompile>
+    <ClCompile Include="particle.cpp">
+      <Filter>Source Files\Objects</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\kernels\collision.cl">
+      <Filter>Kernels</Filter>
+    </None>
+    <None Include="..\kernels\find_comf.cl">
+      <Filter>Kernels</Filter>
+    </None>
+    <None Include="..\kernels\generate_rotation.cl">
+      <Filter>Kernels</Filter>
+    </None>
+    <None Include="..\kernels\kernel.cl">
+      <Filter>Kernels</Filter>
+    </None>
+    <None Include="..\kernels\label_collision.cl">
+      <Filter>Kernels</Filter>
+    </None>
+    <None Include="..\kernels\label_position.cl">
+      <Filter>Kernels</Filter>
+    </None>
+    <None Include="..\kernels\assign_cell.cl">
+      <Filter>Kernels</Filter>
+    </None>
+    <None Include="..\kernels\boundary_bounce.cl">
+      <Filter>Kernels</Filter>
+    </None>
   </ItemGroup>
 </Project>

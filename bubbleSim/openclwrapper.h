@@ -8,7 +8,7 @@
 #pragma comment(lib, "OpenCL.lib")
 
 #include "base.h"
-#include "components.h"
+#include "objects.h"
 
 class OpenCLWrapper {
   // OpenCL stuff

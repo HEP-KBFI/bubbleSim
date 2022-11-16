@@ -85,7 +85,7 @@ void DataStreamer::streamBaseData(std::fstream& t_stream,
   t_stream << particlesEnergy << ",";
   t_stream << particleEnergyFalse << ","
            << (particlesEnergy + m_bubble.calculateEnergy()) /
-                  m_sim.getTotalEnergyInitial()
+                  m_sim.getInitialTotalEnergy()
            << ",";
   t_stream << countParticleFalse << "," << countParticleInteractedFalse << ","
            << countParticlePassedFalse << ",";
