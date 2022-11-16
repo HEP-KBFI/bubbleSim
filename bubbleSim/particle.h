@@ -27,33 +27,30 @@ class ParticleGenerator {
 
   std::array<std::vector<numType>, 2> m_cumulativeProbabilityFunction;
 
-  numType generateNParticlesInBox(numType t_mass, numType& t_sideHalf,
-                                  u_int t_N, RandomNumberGenerator& t_generator,
-                                  std::vector<Particle>& t_particles);
-
-  numType generateNParticlesInBox(numType t_mass, numType& t_radiusIn,
-                                  numType& t_sideHalf, u_int t_N,
+  numType generateNParticlesInBox(numType& t_sideHalf, u_int t_N,
                                   RandomNumberGenerator& t_generator,
                                   std::vector<Particle>& t_particles);
 
-  numType generateNParticlesInBox(numType t_mass, numType& t_xSideHalf,
-                                  numType& t_ySideHalf, numType& t_zSideHalf,
+  numType generateNParticlesInBox(numType& t_radiusIn, numType& t_sideHalf,
                                   u_int t_N, RandomNumberGenerator& t_generator,
                                   std::vector<Particle>& t_particles);
 
-  numType generateNParticlesInBox(numType t_mass, numType& t_radiusIn,
-                                  numType& t_xSideHalf, numType& t_ySideHalf,
+  numType generateNParticlesInBox(numType& t_xSideHalf, numType& t_ySideHalf,
                                   numType& t_zSideHalf, u_int t_N,
                                   RandomNumberGenerator& t_generator,
                                   std::vector<Particle>& t_particles);
 
-  numType generateNParticlesInSphere(numType t_mass, numType& t_radiusMax,
-                                     u_int t_N,
+  numType generateNParticlesInBox(numType& t_radiusIn, numType& t_xSideHalf,
+                                  numType& t_ySideHalf, numType& t_zSideHalf,
+                                  u_int t_N, RandomNumberGenerator& t_generator,
+                                  std::vector<Particle>& t_particles);
+
+  numType generateNParticlesInSphere(numType& t_radiusMax, u_int t_N,
                                      RandomNumberGenerator& t_generator,
                                      std::vector<Particle>& t_particles);
 
-  numType generateNParticlesInSphere(numType t_mass, numType& t_radiusMin,
-                                     numType t_radiusMax, u_int t_N,
+  numType generateNParticlesInSphere(numType& t_radiusMin, numType t_radiusMax,
+                                     u_int t_N,
                                      RandomNumberGenerator& t_generator,
                                      std::vector<Particle>& t_particles);
 
@@ -86,4 +83,214 @@ class ParticleGenerator {
                           numType& t_xSideHalf, numType& t_ySideHalf,
                           numType& t_zSideHalf,
                           RandomNumberGenerator& t_generator);
+};
+
+class ParticleCollection {
+  /*
+  False at the end of variable means False vaccum (lower mass)
+  True at the end of variable means False vaccum (higher mass)
+  */
+
+  // Masses of particles in true and false vacuum
+  numType m_massTrue, m_massFalse, m_massDelta2;
+  cl::Buffer m_massInBuffer;
+  cl::Buffer m_massOutBuffer;
+  cl::Buffer m_massDelta2Buffer;
+  numType m_coupling;
+  // Temperatures in true and false vacuum
+  numType m_temperatureTrue, m_temperatureFalse;
+  // Particle counts total / true vacuum / false vacuum
+  size_t m_particleCountTotal, m_particleCountTrue, m_particleCountFalse;
+
+  // Initial simulation values
+  numType m_initialTotalEnergy;
+
+  // Data objects for buffers
+  std::vector<Particle> m_particles;
+  cl::Buffer m_particlesBuffer;
+  std::vector<numType> m_dP;
+  cl::Buffer m_dPBuffer;
+  /*
+   * Count particle-bubble interactions when particle started in
+   * false vacuum.
+   */
+  std::vector<int8_t> m_interactedBubbleFalseState;
+  cl::Buffer m_interactedBubbleFalseStateBuffer;
+  std::vector<int8_t> m_passedBubbleFalseState;
+  cl::Buffer m_passedBubbleFalseStateBuffer;
+  /*
+   * Interaction with bubble when particle started in true vacuum.
+   * This also means that particle gets always through the bubble.
+   */
+  std::vector<int8_t> m_interactedBubbleTrueState;
+  cl::Buffer m_interactedBubbleTrueStateBuffer;
+
+ public:
+  /*
+   * NB!!! When initializing the vectors and buffers it is important
+   * that vector sizes stay the same as buffers need reference
+   * to vector data. When vector size is changed during the
+   * runtime, vector data address also changes and buffer has wrong
+   * memory address
+   */
+  ParticleCollection() {}
+  ParticleCollection(numType t_massTrue, numType t_massFalse,
+                     numType t_temperatureTrue, numType t_temperatureFalse,
+                     unsigned int t_particleCountTrue,
+                     unsigned int t_particleCountFalse, numType t_coupling,
+                     bool t_bubbleIsTrueVacuum, cl::Context cl_context);
+
+  ParticleCollection& operator=(const ParticleCollection& t) { return *this; }
+
+  std::vector<Particle>& getParticles() { return m_particles; }
+
+  std::vector<numType>& get_dP() { return m_dP; }
+
+  cl::Buffer& getParticlesBuffer() { return m_particlesBuffer; }
+
+  void writeParticlesBuffer(cl::CommandQueue& cl_queue) {
+    cl_queue.enqueueWriteBuffer(m_particlesBuffer, CL_TRUE, 0,
+                                m_particles.size() * sizeof(Particle),
+                                m_particles.data());
+  }
+
+  void readParticlesBuffer(cl::CommandQueue& cl_queue) {
+    cl_queue.enqueueReadBuffer(m_particlesBuffer, CL_TRUE, 0,
+                               m_particles.size() * sizeof(Particle),
+                               m_particles.data());
+  }
+
+  cl::Buffer& get_dPBuffer() { return m_dPBuffer; }
+
+  void write_dPBuffer(cl::CommandQueue& cl_queue) {
+    cl_queue.enqueueWriteBuffer(m_dPBuffer, CL_TRUE, 0,
+                                m_dP.size() * sizeof(numType), m_dP.data());
+  }
+
+  void read_dPBuffer(cl::CommandQueue& cl_queue) {
+    cl_queue.enqueueReadBuffer(m_dPBuffer, CL_TRUE, 0,
+                               m_dP.size() * sizeof(numType), m_dP.data());
+  }
+
+  cl::Buffer& getInteractedBubbleFalseStateBuffer() {
+    return m_interactedBubbleFalseStateBuffer;
+  }
+
+  void resetInteractedBubbleFalseState() {
+    std::fill(m_interactedBubbleFalseState.begin(),
+              m_interactedBubbleFalseState.end(), 0);
+  }
+
+  void writeInteractedBubbleFalseStateBuffer(cl::CommandQueue& cl_queue) {
+    cl_queue.enqueueWriteBuffer(
+        m_interactedBubbleFalseStateBuffer, CL_TRUE, 0,
+        m_interactedBubbleFalseState.size() * sizeof(int8_t),
+        m_interactedBubbleFalseState.data());
+  }
+
+  void readInteractedBubbleFalseStateBuffer(cl::CommandQueue& cl_queue) {
+    cl_queue.enqueueReadBuffer(
+        m_interactedBubbleFalseStateBuffer, CL_TRUE, 0,
+        m_interactedBubbleFalseState.size() * sizeof(int8_t),
+        m_interactedBubbleFalseState.data());
+  }
+
+  cl::Buffer& getPassedBubbleFalseStateBuffer() {
+    return m_passedBubbleFalseStateBuffer;
+  }
+
+  void resetPassedBubbleFalseState() {
+    std::fill(m_passedBubbleFalseState.begin(), m_passedBubbleFalseState.end(),
+              0);
+  }
+
+  void writePassedBubbleFalseStateBuffer(cl::CommandQueue& cl_queue) {
+    cl_queue.enqueueWriteBuffer(
+        m_passedBubbleFalseStateBuffer, CL_TRUE, 0,
+        m_passedBubbleFalseState.size() * sizeof(int8_t),
+        m_passedBubbleFalseState.data());
+  }
+
+  void readPassedBubbleFalseStateBuffer(cl::CommandQueue& cl_queue) {
+    cl_queue.enqueueReadBuffer(m_passedBubbleFalseStateBuffer, CL_TRUE, 0,
+                               m_passedBubbleFalseState.size() * sizeof(int8_t),
+                               m_passedBubbleFalseState.data());
+  }
+
+  cl::Buffer& getInteractedBubbleTrueStateBuffer() {
+    return m_interactedBubbleTrueStateBuffer;
+  }
+
+  void resetInteractedBubbleTrueState() {
+    std::fill(m_interactedBubbleTrueState.begin(),
+              m_interactedBubbleTrueState.end(), 0);
+  }
+
+  void writeInteractedBubbleTrueStateBuffer(cl::CommandQueue& cl_queue) {
+    cl_queue.enqueueWriteBuffer(
+        m_interactedBubbleTrueStateBuffer, CL_TRUE, 0,
+        m_interactedBubbleTrueState.size() * sizeof(int8_t),
+        m_interactedBubbleTrueState.data());
+  }
+
+  void readInteractedBubbleTrueStateBuffer(cl::CommandQueue& cl_queue) {
+    cl_queue.enqueueReadBuffer(
+        m_interactedBubbleTrueStateBuffer, CL_TRUE, 0,
+        m_interactedBubbleTrueState.size() * sizeof(int8_t),
+        m_interactedBubbleTrueState.data());
+  }
+
+  cl::Buffer& getMassInBuffer() { return m_massInBuffer; }
+
+  cl::Buffer& getMassOutBuffer() { return m_massOutBuffer; }
+
+  cl::Buffer& getMassDelta2Buffer() { return m_massDelta2Buffer; }
+
+  numType getMassFalse() { return m_massFalse; }
+
+  numType getMassTrue() { return m_massTrue; }
+
+  size_t getParticleCountTotal() { return m_particleCountTotal; }
+
+  size_t getParticleCountTrue() { return m_particleCountTrue; }
+
+  size_t getParticleCountFalse() { return m_particleCountFalse; }
+
+  // Particle functions
+  numType getParticleEnergy(u_int i) { return m_particles[i].E; }
+
+  numType getParticleMass(u_int i) { return m_particles[i].m; }
+
+  numType calculateParticleRadius(u_int i);
+
+  numType calculateParticleMomentum(u_int i);
+
+  numType calculateParticleEnergy(u_int i);
+
+  // Calculate distributions
+  numType calculateNumberDensity(numType t_mass, numType t_temperature,
+                                 numType t_dp, numType t_pMax);
+
+  numType calculateEnergyDensity(numType t_mass, numType t_temperature,
+                                 numType t_dp, numType t_pMax);
+
+  void add_to_total_initial_energy(numType energy) {
+    m_initialTotalEnergy += energy;
+  }
+  numType getInitialTotalEnergy() { return m_initialTotalEnergy; }
+
+  // Get values from the simulation
+  numType countParticleNumberDensity(numType t_radius1);
+
+  numType countParticleNumberDensity(numType t_radius1, numType t_radius2);
+
+  numType countParticleEnergyDensity(numType t_radius1);
+
+  numType countParticleEnergyDensity(numType t_radius1, numType t_radius2);
+
+  numType countParticlesEnergy();
+
+  numType countParticlesEnergy(numType t_radius1);
+
+  numType countParticlesEnergy(numType t_radius1, numType t_radius2);
 };

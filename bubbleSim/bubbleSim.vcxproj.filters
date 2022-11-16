@@ -36,7 +36,7 @@
     <ClInclude Include="base.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="openclwrapper.h">
+    <ClInclude Include="opencl_kernels.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="datastreamer.h">
@@ -54,6 +54,9 @@
     <ClInclude Include="random_number.hpp">
       <Filter>Source Files\Generators</Filter>
     </ClInclude>
+    <ClInclude Include="config_reader.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="simulation.cpp">
@@ -62,7 +65,7 @@
     <ClCompile Include="source.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="openclwrapper.cpp">
+    <ClCompile Include="opencl_kernels.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="datastreamer.cpp">

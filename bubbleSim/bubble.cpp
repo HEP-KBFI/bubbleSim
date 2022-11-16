@@ -1,7 +1,8 @@
 #include "bubble.h"
 
 PhaseBubble::PhaseBubble(numType t_initialRadius, numType t_initialSpeed,
-                         numType t_dV, numType t_sigma) {
+                         numType t_dV, numType t_sigma,
+                         cl::Context cl_context) {
   /*
   cl_double radius;
    cl_double radius2;  // Squared
@@ -12,6 +13,7 @@ PhaseBubble::PhaseBubble(numType t_initialRadius, numType t_initialSpeed,
    cl_double gamma;
    cl_double gammaXspeed;  // gamma * speed
   */
+  int openCLerrNum;
 
   // m_gamma = 1/sqrt(1-v^2) = 1/exp(log1p(-v^2)*0.5)
   numType radius2 = std::pow(t_initialRadius, 2);
@@ -20,6 +22,9 @@ PhaseBubble::PhaseBubble(numType t_initialRadius, numType t_initialSpeed,
   numType gammaXspeed = t_initialSpeed * gamma;
   m_bubble = Bubble{t_initialRadius, radius2, radius2,
                     t_initialSpeed,  gamma,   gammaXspeed};
+  m_bubbleBuffer =
+      cl::Buffer(cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                 sizeof(Bubble), &m_bubble, &openCLerrNum);
 
   m_dV = t_dV;
   m_sigma = t_sigma;

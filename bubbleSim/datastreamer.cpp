@@ -1,7 +1,7 @@
 #include "datastreamer.h"
 
-DataStreamer::DataStreamer(Simulation& t_sim, PhaseBubble& t_bubble,
-                           OpenCLWrapper& t_openCLWrapper)
+DataStreamer::DataStreamer(ParticleCollection& t_sim, PhaseBubble& t_bubble,
+                           OpenCLKernelLoader& t_openCLWrapper)
     : m_sim(t_sim), m_bubble(t_bubble), m_openCLWrapper(t_openCLWrapper) {
   m_readBufferParticle = true;
   m_readBuffer_dP = true;
@@ -23,7 +23,7 @@ void DataStreamer::reset() {
 
   m_readBufferBubble = true;
 }
-
+/*
 void DataStreamer::streamBaseData(std::fstream& t_stream,
                                   bool t_isBubbleTrueVacuum) {
   int countParticleFalse = 0, countParticleInteractedFalse = 0,
@@ -182,10 +182,11 @@ void DataStreamer::streamProfiles(std::fstream& t_nStream,
   numType p;
   numType dp = t_pMax / t_pCountBins;
   int j;
-
-  /*
-    Data processing, gathering
   */
+/*
+  Data processing, gathering
+*/
+/*
   for (int i = 0; i < m_sim.getParticleCountTotal(); i++) {
     r = m_sim.calculateParticleRadius(i);
     p = m_sim.calculateParticleMomentum(i);
@@ -198,10 +199,11 @@ void DataStreamer::streamProfiles(std::fstream& t_nStream,
     rhoBins[std::min((int)(r / dr), t_densityCountBins - 1)] +=
         m_sim.getParticleEnergy(i);
   }
-  /*
-    Streaming data to files
   */
-
+/*
+  Streaming data to files
+*/
+/*
   for (j = 0; j < t_densityCountBins; j++) {
     t_nStream << nBins[j];
     t_rhoStream << rhoBins[j] /
@@ -228,3 +230,4 @@ void DataStreamer::streamProfiles(std::fstream& t_nStream,
     }
   }
 }
+ */

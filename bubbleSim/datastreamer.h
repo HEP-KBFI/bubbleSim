@@ -5,7 +5,7 @@
 
 #include "base.h"
 #include "bubble.h"
-#include "openclwrapper.h"
+#include "opencl_kernels.h"
 #include "simulation.h"
 
 class DataStreamer {
@@ -17,13 +17,13 @@ class DataStreamer {
   bool m_readBufferPassedFalse;
   bool m_readBufferInteractedTrue;
 
-  Simulation& m_sim;
+  ParticleCollection& m_sim;
   PhaseBubble& m_bubble;
-  OpenCLWrapper& m_openCLWrapper;
+  OpenCLKernelLoader& m_openCLWrapper;
 
  public:
-  DataStreamer(Simulation& t_sim, PhaseBubble& t_bubble,
-               OpenCLWrapper& t_openCLWrapper);
+  DataStreamer(ParticleCollection& t_sim, PhaseBubble& t_bubble,
+               OpenCLKernelLoader& t_openCLWrapper);
 
   void reset();
 

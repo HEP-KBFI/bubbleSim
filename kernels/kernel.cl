@@ -102,14 +102,14 @@ double calculateEnergy(Particle particle, double mass){
 __kernel void step_double(	
 	__global Particle *t_particles,
 	__global double *t_dP,
-	__constant double *t_dt,
-	__constant double *t_m_in,
-	__constant double *t_m_out,
-	__constant double *t_delta_m2,
-	__constant Bubble *t_bubble,
 	__global char *t_interactedFalse,
 	__global char *t_passedFalse,
 	__global char *t_interactedTrue
+	__constant Bubble *t_bubble,
+	__constant double *t_dt,
+	__constant double *t_m_in,
+	__constant double *t_m_out,
+	__constant double *t_delta_m2,	
 	){
 	
 	unsigned int gid = get_global_id(0);

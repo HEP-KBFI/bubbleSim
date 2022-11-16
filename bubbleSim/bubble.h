@@ -19,6 +19,7 @@ class PhaseBubble {
   radius, radius2, speed, gamma, gammaXspeed, radiusAfterStep2
   */
   Bubble m_bubble;
+  cl::Buffer m_bubbleBuffer;
   numType m_dV;
   numType m_sigma;
   // Calculated parameters from input
@@ -36,13 +37,19 @@ class PhaseBubble {
   numType getdV() { return m_dV; }
   numType getSigma() { return m_sigma; }
 
-  Bubble& getRef_Bubble() { return m_bubble; }
-  numType& getRef_dV() { return m_dV; }
-  numType& getRef_Sigma() { return m_sigma; }
+  cl::Buffer& getBubbleBuffer() { return m_bubbleBuffer; }
+  void writeBubbleBuffer(cl::CommandQueue& cl_queue) {
+    cl_queue.enqueueWriteBuffer(m_bubbleBuffer, CL_TRUE, 0, sizeof(Bubble),
+                                &m_bubble);
+  }
+  void readBubbleBuffer(cl::CommandQueue& cl_queue) {
+    cl_queue.enqueueReadBuffer(m_bubbleBuffer, CL_TRUE, 0, sizeof(Bubble),
+                               &m_bubble);
+  }
 
   PhaseBubble() {}
   PhaseBubble(numType t_initialRadius, numType t_initialSpeed, numType t_dV,
-              numType t_sigma);
+              numType t_sigma, cl::Context cl_context);
 
   void evolveWall(numType dt, numType dP);
   numType calculateArea();

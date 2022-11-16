@@ -11,5 +11,5 @@
 #include "config_reader.hpp"
 #include "datastreamer.h"
 #include "objects.h"
-#include "openclwrapper.h"
+#include "opencl_kernels.h"
 #include "simulation.h"
