@@ -27,13 +27,15 @@ class OpenCLKernelLoader {
   // OpenCL stuff
   std::vector<cl::Device> m_devices;
   cl::Platform m_platform;
-  cl::Context m_context;
+
   cl::Device m_deviceUsed;
   cl::Program m_program;
+
+ public:
+  cl::Context m_context;
   cl::Kernel m_kernel;
   cl::CommandQueue m_queue;
 
- public:
   OpenCLKernelLoader() {}
   OpenCLKernelLoader(std::string fileName, std::string kernelName);
 

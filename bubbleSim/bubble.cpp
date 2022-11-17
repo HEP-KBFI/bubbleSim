@@ -2,7 +2,7 @@
 
 PhaseBubble::PhaseBubble(numType t_initialRadius, numType t_initialSpeed,
                          numType t_dV, numType t_sigma,
-                         cl::Context cl_context) {
+                         cl::Context& cl_context) {
   /*
   cl_double radius;
    cl_double radius2;  // Squared
@@ -25,7 +25,9 @@ PhaseBubble::PhaseBubble(numType t_initialRadius, numType t_initialSpeed,
   m_bubbleBuffer =
       cl::Buffer(cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
                  sizeof(Bubble), &m_bubble, &openCLerrNum);
-
+  std::cout << "Bubble: " << std::endl;
+  std::cout << "Context: " << &cl_context << std::endl;
+  std::cout << "Bubble buffer: " << &m_bubbleBuffer << std::endl;
   m_dV = t_dV;
   m_sigma = t_sigma;
   // m_area = 4 * M_PI * std::pow(t_initialRadius, 2);

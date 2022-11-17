@@ -295,7 +295,7 @@ ParticleCollection::ParticleCollection(
     numType t_massTrue, numType t_massFalse, numType t_temperatureTrue,
     numType t_temperatureFalse, unsigned int t_particleCountTrue,
     unsigned int t_particleCountFalse, numType t_coupling,
-    bool t_bubbleIsTrueVacuum, cl::Context cl_context) {
+    bool t_bubbleIsTrueVacuum, cl::Context& cl_context) {
   // Set up random number generator
   int openCLerrNum;
   // Masses
@@ -339,34 +339,48 @@ ParticleCollection::ParticleCollection(
   m_coupling = t_coupling;
 
   m_particles.reserve(m_particleCountTotal);
-  m_particlesBuffer = cl::Buffer(
-      cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-      m_particles.size() * sizeof(Particle), m_particles.data(), &openCLerrNum);
-
-  m_dP = std::vector<double>(m_particleCountTotal, 0.);
-  m_dPBuffer =
+  m_particlesBuffer =
       cl::Buffer(cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                 m_dP.size() * sizeof(numType), m_dP.data(), &openCLerrNum);
+                 m_particleCountTotal * sizeof(Particle), m_particles.data(),
+                 &openCLerrNum);
+  std::cout << "Particles data address: " << m_particles.data() << std::endl;
+  m_dP = std::vector<double>(m_particleCountTotal, 0.);
+  m_dPBuffer = cl::Buffer(cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                          m_particleCountTotal * sizeof(numType), m_dP.data(),
+                          &openCLerrNum);
 
   // Data reserve
   m_interactedBubbleFalseState = std::vector<int8_t>(m_particleCountTotal, 0);
   m_interactedBubbleFalseStateBuffer =
       cl::Buffer(cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                 m_interactedBubbleFalseState.size() * sizeof(int8_t),
+                 m_particleCountTotal * sizeof(int8_t),
                  m_interactedBubbleFalseState.data(), &openCLerrNum);
 
   m_passedBubbleFalseState = std::vector<int8_t>(m_particleCountTotal, 0);
   m_passedBubbleFalseStateBuffer =
       cl::Buffer(cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                 m_passedBubbleFalseState.size() * sizeof(int8_t),
+                 m_particleCountTotal * sizeof(int8_t),
                  m_passedBubbleFalseState.data(), &openCLerrNum);
   m_interactedBubbleTrueState = std::vector<int8_t>(m_particleCountTotal, 0);
   m_interactedBubbleTrueStateBuffer =
       cl::Buffer(cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                 m_interactedBubbleTrueState.size() * sizeof(int8_t),
+                 m_particleCountTotal * sizeof(int8_t),
                  m_interactedBubbleTrueState.data(), &openCLerrNum);
   // Initial simulation values
   m_initialTotalEnergy = 0.;
+
+  // std::cout << "Particle: " << std::endl;
+  // std::cout << "Context: " << &cl_context << std::endl;
+  // std::cout << "Particle buffer: " << &m_particlesBuffer << std::endl;
+  // std::cout << "dP buffer: " << &m_dPBuffer << std::endl;
+  // std::cout << "Interacted false buffer: "
+  //           << &m_interactedBubbleFalseStateBuffer << std::endl;
+  // std::cout << "Passed false buffer: " << &m_passedBubbleFalseStateBuffer
+  //           << std::endl;
+  // std::cout << "Interacted true buffer: " <<
+  // &m_interactedBubbleTrueStateBuffer
+  //           << std::endl
+  //           << std::endl;
 }
 
 /*

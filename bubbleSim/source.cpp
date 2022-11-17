@@ -277,6 +277,11 @@ int main(int argc, char* argv[]) {
                    (3 * config.m_massTrue / config.m_eta)
             << std::endl;
 
+  std::cout << "OpenCL: " << std::endl;
+  std::cout << "Context: " << &kernels.m_context << std::endl;
+  std::cout << "Kernel: " << &kernels.m_kernel << std::endl;
+  std::cout << "Queue: " << &kernels.m_queue << std::endl << std::endl;
+
   // 9) Streams
   std::fstream pStreamIn, pStreamOut, nStream, rhoStream, dataStream;
   std::string dataFolderName = createFileNameFromCurrentDate();
@@ -340,12 +345,20 @@ int main(int argc, char* argv[]) {
             << std::endl;
 #endif
 
+  particles1.writeParticlesBuffer(kernels.m_queue);
+  particles1.write_dPBuffer(kernels.m_queue);
+  particles1.writeInteractedBubbleFalseStateBuffer(kernels.m_queue);
+  particles1.writeInteractedBubbleTrueStateBuffer(kernels.m_queue);
+  particles1.writePassedBubbleFalseStateBuffer(kernels.m_queue);
+  bubble.writeBubbleBuffer(kernels.m_queue);
+
   std::cout << "===== STARTING SIMULATION =====" << std::endl;
   std::cout << "t: " << simulation.getTime() << ", R: " << bubble.getRadius()
             << ", V: " << bubble.getSpeed() << std::endl;
 
   for (int i = 1; i <= config.m_maxSteps; i++) {
     if (config.m_interactionsOn) {
+      // kernels.test();
       simulation.step(particles1, bubble, kernels.getKernel(),
                       kernels.getCommandQueue());
     } else {
@@ -355,7 +368,7 @@ int main(int argc, char* argv[]) {
     if (i % config.m_streamFreq == 0) {
       std::cout << "t: " << simulation.getTime()
                 << ", R: " << bubble.getRadius() << ", V: " << bubble.getSpeed()
-                << std::endl;
+                << ", dP: " << simulation.get_dP() << std::endl;
       /*if (config.m_toStream) {
         if (config.m_streamData) {
           dataStreamer.streamBaseData(dataStream, config.m_isBubbleTrueVacuum);

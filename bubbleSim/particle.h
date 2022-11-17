@@ -138,13 +138,17 @@ class ParticleCollection {
                      numType t_temperatureTrue, numType t_temperatureFalse,
                      unsigned int t_particleCountTrue,
                      unsigned int t_particleCountFalse, numType t_coupling,
-                     bool t_bubbleIsTrueVacuum, cl::Context cl_context);
+                     bool t_bubbleIsTrueVacuum, cl::Context& cl_context);
 
   ParticleCollection& operator=(const ParticleCollection& t) { return *this; }
 
   std::vector<Particle>& getParticles() { return m_particles; }
 
   std::vector<numType>& get_dP() { return m_dP; }
+
+  std::vector<int8_t>& getInteractedFalse() {
+    return m_interactedBubbleFalseState;
+  }
 
   cl::Buffer& getParticlesBuffer() { return m_particlesBuffer; }
 

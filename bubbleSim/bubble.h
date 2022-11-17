@@ -49,7 +49,7 @@ class PhaseBubble {
 
   PhaseBubble() {}
   PhaseBubble(numType t_initialRadius, numType t_initialSpeed, numType t_dV,
-              numType t_sigma, cl::Context cl_context);
+              numType t_sigma, cl::Context& cl_context);
 
   void evolveWall(numType dt, numType dP);
   numType calculateArea();
