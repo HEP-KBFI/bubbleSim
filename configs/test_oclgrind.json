@@ -1,7 +1,7 @@
 {
 	"simulation": {
 		"seed": 1,
-		"max_steps": 100,
+		"max_steps": 10,
 		"dt": 0.1,
 		"dV_positive": true
 	},
@@ -22,16 +22,16 @@
 		"mass_true": 1,
 		"T_false": 0.0,
 		"T_true": 0.0,
-		"N_false": 5000,
+		"N_false": 100,
 		"N_true": 0
 	},
 	"stream": {
 		"stream": false,
 		"stream_freq": 100,
 		"data_save_path": "data",
-		"stream_data": true,
+		"stream_data": false,
 		"stream_profile": false,
-		"profile_density_bins_count": 1000,
-		"profile_momentum_bins_count": 1000
+		"profile_density_bins_count": 100,
+		"profile_momentum_bins_count": 100
 	}
 }

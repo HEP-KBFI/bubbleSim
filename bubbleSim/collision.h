@@ -47,13 +47,13 @@ class CollisionCellCollection {
   cl::Buffer& getCellLengthBuffer() { return m_cellLengthBuffer; };
 
   void writeCellLengthBuffer(cl::CommandQueue& cl_queue) {
-    cl_queue.enqueueWriteBuffer(m_cellLengthBuffer, CL_TRUE, 0,
-                                sizeof(unsigned int), &m_cellLength);
+    cl_queue.enqueueWriteBuffer(m_cellLengthBuffer, CL_TRUE, 0, sizeof(numType),
+                                &m_cellLength);
   };
 
   void readCellLengthBuffer(cl::CommandQueue& cl_queue) {
-    cl_queue.enqueueReadBuffer(m_cellLengthBuffer, CL_TRUE, 0,
-                               sizeof(unsigned int), &m_cellLength);
+    cl_queue.enqueueReadBuffer(m_cellLengthBuffer, CL_TRUE, 0, sizeof(numType),
+                               &m_cellLength);
   };
 
   cl::Buffer& getCellCountInOneAxisBuffer() {
