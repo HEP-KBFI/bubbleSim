@@ -353,7 +353,7 @@ __kernel void particle_step(
 
 __kernel void assign_cell_index_to_particle(
 	__global Particle *t_particles,
-	__global const int *maxCellIndex,
+	__global const unsigned int *maxCellIndex,
 	__global const double *cellLength,
 	__global const double *cuboidShift
 	){

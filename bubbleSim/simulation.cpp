@@ -158,8 +158,7 @@ void Simulation::step(ParticleCollection& particles,
   // Generate shift vector
   cells.generateShiftVector(generator_collision);
   cells.writeShiftVectorBuffer(cl_queue);
-  std::cout << cells.getShiftVector()[0] << ", " << cells.getShiftVector()[1]
-            << ", " << cells.getShiftVector()[2] << std::endl;
+
   // Assign particles to collision cells
   cl_queue.enqueueNDRangeKernel(t_cellAssignmentKernel, cl::NullRange,
                                 cl::NDRange(particles.getParticleCountTotal()));
