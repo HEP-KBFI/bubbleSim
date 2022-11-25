@@ -22,7 +22,7 @@
 		"mass_true": 1,
 		"T_false": 0.0,
 		"T_true": 0.0,
-		"N_false": 50000,
+		"N_false": 5000,
 		"N_true": 0
 	},
 	"stream": {
@@ -31,7 +31,7 @@
 		"data_save_path": "data",
 		"stream_data": true,
 		"stream_profile": false,
-		"profile_density_bins_count": 1000,
-		"profile_momentum_bins_count": 1000
+		"profile_density_bins_count": 100,
+		"profile_momentum_bins_count": 100
 	}
 }

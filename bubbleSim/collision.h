@@ -74,12 +74,12 @@ class CollisionCellCollection {
 
   void writeShiftVectorBuffer(cl::CommandQueue& cl_queue) {
     cl_queue.enqueueWriteBuffer(m_shiftVectorBuffer, CL_TRUE, 0,
-                                sizeof(unsigned int), m_shiftVector.data());
+                                3 * sizeof(numType), m_shiftVector.data());
   };
 
   void readShiftVectorBuffer(cl::CommandQueue& cl_queue) {
     cl_queue.enqueueReadBuffer(m_shiftVectorBuffer, CL_TRUE, 0,
-                               sizeof(unsigned int), m_shiftVector.data());
+                               3 * sizeof(numType), m_shiftVector.data());
   };
 
   cl::Buffer& getCellCountBuffer() { return m_cellCountBuffer; }

@@ -47,7 +47,7 @@ CollisionCellCollection::CollisionCellCollection(
 
   m_shiftVector = {0., 0., 0.};
   m_shiftVectorBuffer =
-      cl::Buffer(cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+      cl::Buffer(cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
                  3 * sizeof(numType), m_shiftVector.data(), &openCLerrNum);
 }
 

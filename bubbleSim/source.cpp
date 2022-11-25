@@ -165,7 +165,7 @@ int main(int argc, char* argv[]) {
   PhaseBubble bubble(config.m_initialBubbleRadius, config.m_initialBubbleSpeed,
                      dV, sigma, kernels.getContext());
 
-  CollisionCellCollection cells(5., 31, false, kernels.getContext());
+  CollisionCellCollection cells(2.5, 61, false, kernels.getContext());
 
   /*simulation.set_bubble_interaction_buffers(particles1, bubble,
                                            kernels.getKernel());*/
