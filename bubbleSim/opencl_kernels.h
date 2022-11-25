@@ -10,7 +10,7 @@
 #include "base.h"
 #include "objects.h"
 
-class OpenCLKernelLoader {
+class OpenCLLoader {
   /*
    * Using same kernel for different buffers?
    * https://community.khronos.org/t/calling-the-same-kernel-object-multiple-times/1340
@@ -30,21 +30,32 @@ class OpenCLKernelLoader {
 
   cl::Device m_deviceUsed;
   cl::Program m_program;
-
- public:
   cl::Context m_context;
-  cl::Kernel m_kernel;
+  cl::Kernel m_particleBubbleStepKernel;
+
+  cl::Kernel m_labelKernel;
+
+  // Cell assignment kernel
+  // Lable if in bubble or not kernel
+  // Collision kernel
+
   cl::CommandQueue m_queue;
 
-  OpenCLKernelLoader() {}
-  OpenCLKernelLoader(std::string fileName, std::string kernelName);
+ public:
+  OpenCLLoader() {}
+  OpenCLLoader(std::string kernelsPath);
+
+  cl::Kernel m_cellAssignmentKernel;
+  cl::Kernel m_rotationKernel;
+  cl::Kernel m_particleStepKernel;
+  cl::Kernel m_particleBounceKernel;
 
   cl::CommandQueue& getCommandQueue() { return m_queue; }
   cl::Context& getContext() { return m_context; }
-  cl::Kernel& getKernel() { return m_kernel; }
+  cl::Kernel& getKernel() { return m_particleBubbleStepKernel; }
   void createContext(std::vector<cl::Device>& devices);
   void createProgram(cl::Context& context, cl::Device& device,
                      std::string& kernelFile);
-  void createKernel(cl::Program& program, const char* name);
+  void createKernel(cl::Program& program, cl::Kernel& kernel, const char* name);
   void createQueue(cl::Context& context, cl::Device& device);
 };

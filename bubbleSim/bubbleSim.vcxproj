@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClInclude Include="base.h" />
     <ClInclude Include="bubble.h" />
+    <ClInclude Include="collision.h" />
     <ClInclude Include="config_reader.hpp" />
     <ClInclude Include="objects.h" />
     <ClInclude Include="particle.h" />
@@ -32,6 +33,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="bubble.cpp" />
+    <ClCompile Include="collision.cpp" />
     <ClCompile Include="datastreamer.cpp" />
     <ClCompile Include="opencl_kernels.cpp" />
     <ClCompile Include="simulation.cpp" />

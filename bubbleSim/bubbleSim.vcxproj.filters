@@ -25,6 +25,12 @@
     <Filter Include="Source Files\Generators">
       <UniqueIdentifier>{70c9ae99-7764-4421-ad94-5ac76b6b096b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Streamers">
+      <UniqueIdentifier>{a5c559dd-9d80-4aef-a16b-8988be73efcd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Streamers">
+      <UniqueIdentifier>{729ee2fd-1b8b-46ac-87ea-9dccda36f30d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="simulation.h">
@@ -37,9 +43,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="opencl_kernels.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="datastreamer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="bubble.h">
@@ -57,6 +60,12 @@
     <ClInclude Include="config_reader.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="collision.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="datastreamer.h">
+      <Filter>Header Files\Streamers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="simulation.cpp">
@@ -68,14 +77,17 @@
     <ClCompile Include="opencl_kernels.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="datastreamer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="bubble.cpp">
       <Filter>Source Files\Objects</Filter>
     </ClCompile>
     <ClCompile Include="particle.cpp">
       <Filter>Source Files\Objects</Filter>
+    </ClCompile>
+    <ClCompile Include="collision.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="datastreamer.cpp">
+      <Filter>Source Files\Streamers</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

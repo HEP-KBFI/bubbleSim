@@ -46,7 +46,6 @@ class ConfigReader {
 
   ConfigReader(std::string configPath) {
     std::ifstream configStream(configPath);
-    std::cout << "Config path: " << configPath << std::endl;
     nlohmann::json config = nlohmann::json::parse(configStream);
 
     m_seed = config["simulation"]["seed"];
@@ -98,6 +97,34 @@ class ConfigReader {
     m_streamFreq = config["stream"]["stream_freq"];
     m_densityBinsCount = config["stream"]["profile_density_bins_count"];
     m_momentumBinsCount = config["stream"]["profile_momentum_bins_count"];
+  }
+
+  void print_info() {
+    std::string sublabel_prefix = "==== ";
+    std::string sublabel_sufix = " ====";
+    std::cout << "=============== Config ===============" << std::endl;
+    std::cout << sublabel_prefix + "Simulation" + sublabel_sufix << std::endl;
+    std::cout << "seed: " << m_seed << ", max_steps: " << m_maxSteps
+              << ", dt: " << m_dt << ", dV_isPositive: " << m_dVisPositive
+              << std::endl;
+    std::cout << sublabel_prefix + "Parameters" << sublabel_sufix << std::endl;
+    std::cout << std::setprecision(5) << std::fixed;
+    std::cout << "alpha: " << m_alpha << ", eta: " << m_eta
+              << ", upsilon: " << m_upsilon << ", coupling: " << m_coupling
+              << std::endl;
+    std::cout << std::setprecision(2);
+    std::cout << sublabel_prefix + "Bubble" << sublabel_sufix << std::endl;
+    std::cout << "R_b: " << m_initialBubbleRadius
+              << ", V_b: " << m_initialBubbleSpeed
+              << ", isTrueVacuum: " << m_isBubbleTrueVacuum
+              << ", Interaction: " << m_interactionsOn << std::endl;
+    std::cout << sublabel_prefix + "Particles" << sublabel_sufix << std::endl;
+    std::cout << "Mass false: " << m_massFalse << ", Mass true: " << m_massTrue
+              << std::endl;
+    std::cout << "Temperature false: " << m_temperatureFalse
+              << ", Temperature true: " << m_temperatureTrue << std::endl;
+    std::cout << "Count false: " << m_countParticlesFalse
+              << ", Count true: " << m_countParticlesTrue << std::endl;
   }
 
  private:

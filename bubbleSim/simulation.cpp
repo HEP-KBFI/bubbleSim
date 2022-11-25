@@ -7,33 +7,11 @@ Simulation::Simulation(int t_seed, numType t_dt, cl::Context& cl_context) {
   m_dP = 0.;
   m_dtBuffer = cl::Buffer(cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
                           sizeof(numType), &t_dt, &openCLerrNum);
-  std::cout << "Simulation: " << std::endl;
-  std::cout << "Context: " << &cl_context << std::endl;
-  std::cout << "dt buffer: " << &m_dtBuffer << std::endl;
 }
 
 void Simulation::set_bubble_interaction_buffers(
     ParticleCollection& t_particles, PhaseBubble& t_bubble,
     cl::Kernel& t_bubbleInteractionKernel) {
-  std::cout << "Setting buffers to kernel: " << std::endl;
-  std::cout << "Kernel: " << &t_bubbleInteractionKernel << std::endl;
-  std::cout << "Particle buffer: " << &t_particles.getParticlesBuffer()
-            << std::endl;
-  std::cout << "dP buffer: " << &t_particles.get_dPBuffer() << std::endl;
-  std::cout << "Interacted false buffer: "
-            << &t_particles.getInteractedBubbleFalseStateBuffer() << std::endl;
-  std::cout << "Passed false buffer: "
-            << &t_particles.getPassedBubbleFalseStateBuffer() << std::endl;
-  std::cout << "Interacted true buffer: "
-            << &t_particles.getInteractedBubbleTrueStateBuffer() << std::endl;
-  std::cout << "Bubble buffer: " << &t_bubble.getBubbleBuffer() << std::endl;
-  std::cout << "dt buffer: " << &m_dtBuffer << std::endl;
-  std::cout << "mass in buffer: " << &t_particles.getMassInBuffer()
-            << std::endl;
-  std::cout << "mass out buffer: " << &t_particles.getMassOutBuffer()
-            << std::endl;
-  std::cout << "Dm2 buffer: " << &t_particles.getMassDelta2Buffer() << std::endl
-            << std::endl;
   int errNum;
   errNum =
       t_bubbleInteractionKernel.setArg(0, t_particles.getParticlesBuffer());
@@ -92,23 +70,58 @@ void Simulation::set_bubble_interaction_buffers(
   }
 }
 
+void Simulation::set_particle_interaction_buffers(
+    ParticleCollection& t_particles, CollisionCellCollection& cells,
+    cl::Kernel& t_cellAssignmentKernel, cl::Kernel& t_momentumRotationKernel) {
+  t_cellAssignmentKernel.setArg(0, t_particles.getParticlesBuffer());
+  t_cellAssignmentKernel.setArg(1, cells.getCellCountInOneAxisBuffer());
+  t_cellAssignmentKernel.setArg(2, cells.getCellLengthBuffer());
+  t_cellAssignmentKernel.setArg(3, cells.getShiftVectorBuffer());
+
+  t_momentumRotationKernel.setArg(0, t_particles.getParticlesBuffer());
+  t_momentumRotationKernel.setArg(1, cells.getCellBuffer());
+  t_momentumRotationKernel.setArg(2, cells.getCellCountBuffer());
+}
+
+void Simulation::set_particle_step_buffers(ParticleCollection& t_particles,
+                                           CollisionCellCollection& cells,
+                                           cl::Kernel& t_particleStepKernel) {
+  t_particleStepKernel.setArg(0, t_particles.getParticlesBuffer());
+  t_particleStepKernel.setArg(1, cells.getStructureRadiusBuffer());
+  t_particleStepKernel.setArg(2, m_dtBuffer);
+};
+
+void Simulation::set_particle_bounce_buffers(ParticleCollection& t_particles,
+                                             CollisionCellCollection& cells,
+                                             cl::Kernel& t_particleStepKernel) {
+  t_particleStepKernel.setArg(0, t_particles.getParticlesBuffer());
+  t_particleStepKernel.setArg(1, cells.getStructureRadiusBuffer());
+};
+
 void Simulation::step(ParticleCollection& particles, PhaseBubble& bubble,
                       cl::Kernel& t_bubbleInteractionKernel,
                       cl::CommandQueue& cl_queue) {
+  /*
+   * 1) Move particles and do collision with phase bubble (GPU)
+   * (1.1 Bounce particles back from some distance?)
+   * 2) Calculate dP and evolve bubble
+   * 3) Assign particles to collision cells (GPU)
+   * 4) Calculate COM frame for particles in each cell. Generate rotation axis
+   * and rotation angle for the collision cells 5) Perform "collisions" ->
+   * Rotate particle momentum (GPU)
+   */
   m_time += m_dt;
+
+  // 1)
   // Write new bubble parameters to buffer on device
   bubble.calculateRadiusAfterStep2(m_dt);
   bubble.writeBubbleBuffer(cl_queue);
   // Run kernel
   cl_queue.enqueueNDRangeKernel(t_bubbleInteractionKernel, cl::NullRange,
                                 cl::NDRange(particles.getParticleCountTotal()));
-  // Read dP vector and sum total change
-  // dP is change for particles -> -dP change for bubble
+  // 2)
   particles.readParticlesBuffer(cl_queue);
-
-  // std::cout << particles.getParticles()[0].x << std::endl;
   particles.read_dPBuffer(cl_queue);
-
   m_dP = 0.;
   for (numType dPi : particles.get_dP()) {
     m_dP += dPi;
@@ -117,11 +130,51 @@ void Simulation::step(ParticleCollection& particles, PhaseBubble& bubble,
 
   // Evolve bubble
   bubble.evolveWall(m_dt, m_dP);
-  // Is it needed to write bubble now too?
-  bubble.writeBubbleBuffer(cl_queue);
+
+  // 3) Assign particles to collision cells
+
+  // 4) Calculate COM, Generate rotation
+
+  // 5) Collisions
 }
 
 void Simulation::step(PhaseBubble& bubble, numType t_dP) {
   m_time += m_dt;
   bubble.evolveWall(m_dt, t_dP);
+}
+
+void Simulation::step(ParticleCollection& particles,
+                      CollisionCellCollection& cells,
+                      RandomNumberGenerator& generator_collision,
+                      cl::Kernel& t_particleStepKernel,
+                      cl::Kernel& t_cellAssignmentKernel,
+                      cl::Kernel& t_rotationKernel,
+                      cl::Kernel& t_particleBounceKernel,
+                      cl::CommandQueue& cl_queue) {
+  m_time += m_dt;
+  // Move particles
+  cl_queue.enqueueNDRangeKernel(t_particleStepKernel, cl::NullRange,
+                                cl::NDRange(particles.getParticleCountTotal()));
+  // Generate shift vector
+  cells.generateShiftVector(generator_collision);
+  cells.writeShiftVectorBuffer(cl_queue);
+  // Assign particles to collision cells
+  cl_queue.enqueueNDRangeKernel(t_cellAssignmentKernel, cl::NullRange,
+                                cl::NDRange(particles.getParticleCountTotal()));
+  // Update particle data on CPU
+  particles.readParticlesBuffer(cl_queue);
+
+  // Calculate COM and genrate rotation matrix for each cell
+
+  cells.recalculate_cells(particles.getParticles(), generator_collision);
+
+  // Update data on GPU
+  particles.writeParticlesBuffer(cl_queue);
+  cells.writeCollisionCellBuffer(cl_queue);
+  // Update momentum
+  cl_queue.enqueueNDRangeKernel(t_rotationKernel, cl::NullRange,
+                                cl::NDRange(particles.getParticleCountTotal()));
+
+  cl_queue.enqueueNDRangeKernel(t_particleBounceKernel, cl::NullRange,
+                                cl::NDRange(particles.getParticleCountTotal()));
 }

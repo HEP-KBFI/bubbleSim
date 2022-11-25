@@ -8,6 +8,7 @@
 #include <numeric>
 
 #include "base.h"
+#include "collision.h"
 #include "config_reader.hpp"
 #include "datastreamer.h"
 #include "objects.h"

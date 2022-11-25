@@ -1,16 +1,28 @@
 #include "opencl_kernels.h"
 
-OpenCLKernelLoader::OpenCLKernelLoader(std::string kernelPath,
-                                       std::string kernelName) {
+OpenCLLoader::OpenCLLoader(std::string kernelPath) {
   int errNum;
+
+  std::string particleBubbleStepKernelName = "particle_bubble_step";
+  std::string cellAssignKernelName = "assign_cell_index_to_particle";
+  std::string transformKernelName = "transform_momentum";
+  std::string particleStepKernelName = "particle_step";
+  std::string particleBounceKernelName = "particle_bounce";
 
   createContext(m_devices);
   createProgram(m_context, m_deviceUsed, kernelPath);
-  createKernel(m_program, kernelName.c_str());  // cl::Kernel
+  createKernel(m_program, m_particleBubbleStepKernel,
+               particleBubbleStepKernelName.c_str());  // cl::Kernel
+  createKernel(m_program, m_rotationKernel, transformKernelName.c_str());
+  createKernel(m_program, m_cellAssignmentKernel, cellAssignKernelName.c_str());
+  createKernel(m_program, m_particleStepKernel, particleStepKernelName.c_str());
+  createKernel(m_program, m_particleBounceKernel,
+               particleBounceKernelName.c_str());
+
   createQueue(m_context, m_deviceUsed);
 }
 
-void OpenCLKernelLoader::createContext(std::vector<cl::Device>& devices) {
+void OpenCLLoader::createContext(std::vector<cl::Device>& devices) {
   int errNum;
   std::vector<cl::Platform> platforms;
 
@@ -75,8 +87,8 @@ void OpenCLKernelLoader::createContext(std::vector<cl::Device>& devices) {
   }
 }
 
-void OpenCLKernelLoader::createProgram(cl::Context& context, cl::Device& device,
-                                       std::string& kernelFile) {
+void OpenCLLoader::createProgram(cl::Context& context, cl::Device& device,
+                                 std::string& kernelFile) {
   int errNum;
 
   std::ifstream kernel_file(kernelFile);
@@ -102,16 +114,17 @@ void OpenCLKernelLoader::createProgram(cl::Context& context, cl::Device& device,
   }
 }
 
-void OpenCLKernelLoader::createKernel(cl::Program& program, const char* name) {
+void OpenCLLoader::createKernel(cl::Program& program, cl::Kernel& kernel,
+                                const char* name) {
   int errNum;
-  m_kernel = cl::Kernel(program, name, &errNum);
+  kernel = cl::Kernel(program, name, &errNum);
   if (errNum != CL_SUCCESS) {
     std::cerr << "Failed to create a kernel: " << name << std::endl;
     exit(1);
   }
 }
 
-void OpenCLKernelLoader::createQueue(cl::Context& context, cl::Device& device) {
+void OpenCLLoader::createQueue(cl::Context& context, cl::Device& device) {
   int errNum;
   cl::CommandQueue queue;
   cl_command_queue_properties properties = 0;

@@ -1,5 +1,6 @@
 #pragma once
 #include "base.h"
+#include "config_reader.hpp"
 
 typedef struct Bubble {
   cl_numType radius;
@@ -13,20 +14,6 @@ typedef struct Bubble {
 } Bubble;
 
 class PhaseBubble {
-  // Input parameters
-  /*
-   Phase transition bubble. Has information about:
-  radius, radius2, speed, gamma, gammaXspeed, radiusAfterStep2
-  */
-  Bubble m_bubble;
-  cl::Buffer m_bubbleBuffer;
-  numType m_dV;
-  numType m_sigma;
-  // Calculated parameters from input
-
-  // 1) radius, speed, gamma, gamma*speed, radius^2, (radius*v*dt)^2 are used by
-  // GPU
-
  public:
   numType getRadius() { return m_bubble.radius; }
   numType getSpeed() { return m_bubble.speed; }
@@ -36,6 +23,16 @@ class PhaseBubble {
   numType getRadiusAfterDt2() { return m_bubble.radiusAfterStep2; }
   numType getdV() { return m_dV; }
   numType getSigma() { return m_sigma; }
+
+  PhaseBubble() {}
+  PhaseBubble(numType t_initialRadius, numType t_initialSpeed, numType t_dV,
+              numType t_sigma, cl::Context& cl_context);
+
+  void evolveWall(numType dt, numType dP);
+  numType calculateArea();
+  numType calculateVolume();
+  numType calculateRadiusAfterStep2(numType dt);
+  numType calculateEnergy();
 
   cl::Buffer& getBubbleBuffer() { return m_bubbleBuffer; }
   void writeBubbleBuffer(cl::CommandQueue& cl_queue) {
@@ -47,13 +44,15 @@ class PhaseBubble {
                                &m_bubble);
   }
 
-  PhaseBubble() {}
-  PhaseBubble(numType t_initialRadius, numType t_initialSpeed, numType t_dV,
-              numType t_sigma, cl::Context& cl_context);
+  void writeAllBuffers(cl::CommandQueue& cl_queue) {
+    writeBubbleBuffer(cl_queue);
+  }
 
-  void evolveWall(numType dt, numType dP);
-  numType calculateArea();
-  numType calculateVolume();
-  numType calculateRadiusAfterStep2(numType dt);
-  numType calculateEnergy();
+  void print_info(ConfigReader& t_config);
+
+ private:
+  Bubble m_bubble;
+  cl::Buffer m_bubbleBuffer;
+  numType m_dV;
+  numType m_sigma;
 };

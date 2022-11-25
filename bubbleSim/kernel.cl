@@ -11,6 +11,9 @@ typedef struct Particle {
 
   double E;
   double m;
+  char b_collide;
+  char b_inBubble;
+  int idxCollisionCell;
 } Particle;
 
 typedef struct Bubble {
@@ -298,7 +301,7 @@ __kernel void step_double(
 			t_interactedTrue[gid] += 1;
 		}
 	}
-	
+		
 	t_particles[gid].x = particle.x;
 	t_particles[gid].y = particle.y;
 	t_particles[gid].z = particle.z;

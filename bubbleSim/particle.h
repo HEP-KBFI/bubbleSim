@@ -1,5 +1,7 @@
 #pragma once
 #include "base.h"
+#include "bubble.h"
+#include "config_reader.hpp"
 #include "random_number.hpp"
 
 typedef struct Particle {
@@ -14,6 +16,9 @@ typedef struct Particle {
   cl_numType E;
   cl_numType m;
 
+  cl_char b_collide = (cl_char)1;
+  cl_char b_inBubble = (cl_char)0;
+  cl_int idxCollisionCell = (cl_int)0;
 } Particle;
 
 class ParticleGenerator {
@@ -27,29 +32,29 @@ class ParticleGenerator {
 
   std::array<std::vector<numType>, 2> m_cumulativeProbabilityFunction;
 
-  numType generateNParticlesInBox(numType& t_sideHalf, u_int t_N,
+  numType generateNParticlesInBox(numType t_sideHalf, u_int t_N,
                                   RandomNumberGenerator& t_generator,
                                   std::vector<Particle>& t_particles);
 
-  numType generateNParticlesInBox(numType& t_radiusIn, numType& t_sideHalf,
+  numType generateNParticlesInBox(numType t_radiusIn, numType t_sideHalf,
                                   u_int t_N, RandomNumberGenerator& t_generator,
                                   std::vector<Particle>& t_particles);
 
-  numType generateNParticlesInBox(numType& t_xSideHalf, numType& t_ySideHalf,
-                                  numType& t_zSideHalf, u_int t_N,
+  numType generateNParticlesInBox(numType t_xSideHalf, numType t_ySideHalf,
+                                  numType t_zSideHalf, u_int t_N,
                                   RandomNumberGenerator& t_generator,
                                   std::vector<Particle>& t_particles);
 
-  numType generateNParticlesInBox(numType& t_radiusIn, numType& t_xSideHalf,
-                                  numType& t_ySideHalf, numType& t_zSideHalf,
+  numType generateNParticlesInBox(numType t_radiusIn, numType t_xSideHalf,
+                                  numType t_ySideHalf, numType t_zSideHalf,
                                   u_int t_N, RandomNumberGenerator& t_generator,
                                   std::vector<Particle>& t_particles);
 
-  numType generateNParticlesInSphere(numType& t_radiusMax, u_int t_N,
+  numType generateNParticlesInSphere(numType t_radiusMax, u_int t_N,
                                      RandomNumberGenerator& t_generator,
                                      std::vector<Particle>& t_particles);
 
-  numType generateNParticlesInSphere(numType& t_radiusMin, numType t_radiusMax,
+  numType generateNParticlesInSphere(numType t_radiusMin, numType t_radiusMax,
                                      u_int t_N,
                                      RandomNumberGenerator& t_generator,
                                      std::vector<Particle>& t_particles);
@@ -92,15 +97,18 @@ class ParticleCollection {
   */
 
   // Masses of particles in true and false vacuum
-  numType m_massTrue, m_massFalse, m_massDelta2;
+  numType m_massIn, m_massOut, m_massDelta2;
+  numType m_massTrue, m_massFalse;
   cl::Buffer m_massInBuffer;
   cl::Buffer m_massOutBuffer;
   cl::Buffer m_massDelta2Buffer;
   numType m_coupling;
   // Temperatures in true and false vacuum
-  numType m_temperatureTrue, m_temperatureFalse;
+  numType m_temperatureTrue, m_temperatureFalse, m_temperatureIn,
+      m_temperatureOut;
   // Particle counts total / true vacuum / false vacuum
-  size_t m_particleCountTotal, m_particleCountTrue, m_particleCountFalse;
+  size_t m_particleCountTotal, m_particleCountIn, m_particleCountOut,
+      m_particleCountTrue, m_particleCountFalse;
 
   // Initial simulation values
   numType m_initialTotalEnergy;
@@ -148,6 +156,12 @@ class ParticleCollection {
 
   std::vector<int8_t>& getInteractedFalse() {
     return m_interactedBubbleFalseState;
+  }
+
+  std::vector<int8_t>& getPassedFalse() { return m_passedBubbleFalseState; }
+
+  std::vector<int8_t>& getInteractedTrue() {
+    return m_interactedBubbleTrueState;
   }
 
   cl::Buffer& getParticlesBuffer() { return m_particlesBuffer; }
@@ -199,6 +213,11 @@ class ParticleCollection {
         m_interactedBubbleFalseState.data());
   }
 
+  void resetAndWriteInteractedBubbleFalseState(cl::CommandQueue& cl_queue) {
+    resetInteractedBubbleFalseState();
+    writeInteractedBubbleFalseStateBuffer(cl_queue);
+  }
+
   cl::Buffer& getPassedBubbleFalseStateBuffer() {
     return m_passedBubbleFalseStateBuffer;
   }
@@ -219,6 +238,11 @@ class ParticleCollection {
     cl_queue.enqueueReadBuffer(m_passedBubbleFalseStateBuffer, CL_TRUE, 0,
                                m_passedBubbleFalseState.size() * sizeof(int8_t),
                                m_passedBubbleFalseState.data());
+  }
+
+  void resetAndWritePassedBubbleFalseState(cl::CommandQueue& cl_queue) {
+    resetPassedBubbleFalseState();
+    writePassedBubbleFalseStateBuffer(cl_queue);
   }
 
   cl::Buffer& getInteractedBubbleTrueStateBuffer() {
@@ -244,17 +268,67 @@ class ParticleCollection {
         m_interactedBubbleTrueState.data());
   }
 
-  cl::Buffer& getMassInBuffer() { return m_massInBuffer; }
+  void resetAndWriteInteractedBubbleTrueState(cl::CommandQueue& cl_queue) {
+    resetInteractedBubbleTrueState();
+    writeInteractedBubbleTrueStateBuffer(cl_queue);
+  }
+
+  cl::Buffer& getMassInBuffer() { return m_massInBuffer; };
+
+  void writeMassInBuffer(cl::CommandQueue& cl_queue) {
+    cl_queue.enqueueWriteBuffer(m_massInBuffer, CL_TRUE, 0, sizeof(numType),
+                                &m_massIn);
+  }
+
+  void readMassInBuffer(cl::CommandQueue& cl_queue) {
+    cl_queue.enqueueReadBuffer(m_massInBuffer, CL_TRUE, 0, sizeof(numType),
+                               &m_massIn);
+  }
 
   cl::Buffer& getMassOutBuffer() { return m_massOutBuffer; }
 
-  cl::Buffer& getMassDelta2Buffer() { return m_massDelta2Buffer; }
+  void writeMassOutBuffer(cl::CommandQueue& cl_queue) {
+    cl_queue.enqueueWriteBuffer(m_massOutBuffer, CL_TRUE, 0, sizeof(numType),
+                                &m_massOut);
+  }
 
-  numType getMassFalse() { return m_massFalse; }
+  void readMassOutBuffer(cl::CommandQueue& cl_queue) {
+    cl_queue.enqueueReadBuffer(m_massOutBuffer, CL_TRUE, 0, sizeof(numType),
+                               &m_massOut);
+  }
 
-  numType getMassTrue() { return m_massTrue; }
+  cl::Buffer& getMassDelta2Buffer() { return m_massDelta2Buffer; };
+
+  void writeMassDelta2Buffer(cl::CommandQueue& cl_queue) {
+    cl_queue.enqueueWriteBuffer(m_massDelta2Buffer, CL_TRUE, 0, sizeof(numType),
+                                &m_massDelta2);
+  }
+
+  void readMassDelta2Buffer(cl::CommandQueue& cl_queue) {
+    cl_queue.enqueueReadBuffer(m_massDelta2Buffer, CL_TRUE, 0, sizeof(numType),
+                               &m_massDelta2);
+  }
+
+  void writeAllBuffers(cl::CommandQueue cl_queue) {
+    writeParticlesBuffer(cl_queue);
+    write_dPBuffer(cl_queue);
+    writeInteractedBubbleFalseStateBuffer(cl_queue);
+    writePassedBubbleFalseStateBuffer(cl_queue);
+    writeInteractedBubbleTrueStateBuffer(cl_queue);
+    writeMassInBuffer(cl_queue);
+    writeMassOutBuffer(cl_queue);
+    writeMassDelta2Buffer(cl_queue);
+  }
+
+  numType getMassIn() { return m_massIn; }
+
+  numType getMassOut() { return m_massOut; }
 
   size_t getParticleCountTotal() { return m_particleCountTotal; }
+
+  size_t getParticleCountIn() { return m_particleCountIn; }
+
+  size_t getParticleCountOut() { return m_particleCountOut; }
 
   size_t getParticleCountTrue() { return m_particleCountTrue; }
 
@@ -262,6 +336,13 @@ class ParticleCollection {
 
   // Particle functions
   numType getParticleEnergy(u_int i) { return m_particles[i].E; }
+
+  numType getParticleMomentum(u_int i) {
+    return std::sqrt(
+        std::fma(m_particles[i].p_x, m_particles[i].p_x,
+                 std::fma(m_particles[i].p_y, m_particles[i].p_y,
+                          m_particles[i].p_z * m_particles[i].p_z)));
+  }
 
   numType getParticleMass(u_int i) { return m_particles[i].m; }
 
@@ -297,4 +378,6 @@ class ParticleCollection {
   numType countParticlesEnergy(numType t_radius1);
 
   numType countParticlesEnergy(numType t_radius1, numType t_radius2);
+
+  void print_info(ConfigReader t_config, PhaseBubble& t_bubble);
 };

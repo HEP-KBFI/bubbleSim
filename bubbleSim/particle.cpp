@@ -135,7 +135,7 @@ void ParticleGenerator::generatePointInSphere(
 }
 
 numType ParticleGenerator::generateNParticlesInBox(
-    numType& t_sideHalf, u_int t_N, RandomNumberGenerator& t_generator,
+    numType t_sideHalf, u_int t_N, RandomNumberGenerator& t_generator,
     std::vector<Particle>& t_particles) {
   numType totalEnergy = 0.;
 
@@ -159,7 +159,7 @@ numType ParticleGenerator::generateNParticlesInBox(
 }
 
 numType ParticleGenerator::generateNParticlesInBox(
-    numType& t_xSideHalf, numType& t_ySideHalf, numType& t_zSideHalf, u_int t_N,
+    numType t_xSideHalf, numType t_ySideHalf, numType t_zSideHalf, u_int t_N,
     RandomNumberGenerator& t_generator, std::vector<Particle>& t_particles) {
   numType totalEnergy = 0.;
 
@@ -184,7 +184,7 @@ numType ParticleGenerator::generateNParticlesInBox(
 }
 
 numType ParticleGenerator::generateNParticlesInBox(
-    numType& t_radiusIn, numType& t_sideHalf, u_int t_N,
+    numType t_radiusIn, numType t_sideHalf, u_int t_N,
     RandomNumberGenerator& t_generator, std::vector<Particle>& t_particles) {
   numType totalEnergy = 0.;
 
@@ -210,8 +210,8 @@ numType ParticleGenerator::generateNParticlesInBox(
 }
 
 numType ParticleGenerator::generateNParticlesInBox(
-    numType& t_radiusIn, numType& t_xSideHalf, numType& t_ySideHalf,
-    numType& t_zSideHalf, u_int t_N, RandomNumberGenerator& t_generator,
+    numType t_radiusIn, numType t_xSideHalf, numType t_ySideHalf,
+    numType t_zSideHalf, u_int t_N, RandomNumberGenerator& t_generator,
     std::vector<Particle>& t_particles) {
   numType totalEnergy = 0.;
 
@@ -238,7 +238,7 @@ numType ParticleGenerator::generateNParticlesInBox(
 }
 
 numType ParticleGenerator::generateNParticlesInSphere(
-    numType& t_radiusMax, u_int t_N, RandomNumberGenerator& t_generator,
+    numType t_radiusMax, u_int t_N, RandomNumberGenerator& t_generator,
     std::vector<Particle>& t_particles) {
   numType totalEnergy = 0.;
   numType x, y, z;
@@ -265,7 +265,7 @@ numType ParticleGenerator::generateNParticlesInSphere(
 }
 
 numType ParticleGenerator::generateNParticlesInSphere(
-    numType& t_radiusMin, numType t_radiusMax, u_int t_N,
+    numType t_radiusMin, numType t_radiusMax, u_int t_N,
     RandomNumberGenerator& t_generator, std::vector<Particle>& t_particles) {
   numType totalEnergy = 0.;
   numType x, y, z;
@@ -299,37 +299,44 @@ ParticleCollection::ParticleCollection(
   // Set up random number generator
   int openCLerrNum;
   // Masses
-  m_massTrue = t_massTrue;
-  m_massFalse = t_massFalse;
-  m_massDelta2 = std::pow(t_massTrue - t_massFalse, 2);
   if (t_bubbleIsTrueVacuum) {
-    m_massInBuffer =
-        cl::Buffer(cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                   sizeof(numType), &m_massTrue, &openCLerrNum);
-    m_massOutBuffer =
-        cl::Buffer(cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                   sizeof(numType), &m_massFalse, &openCLerrNum);
+    m_massIn = t_massTrue;
+    m_massOut = t_massFalse;
+    m_temperatureIn = t_temperatureTrue;
+    m_temperatureOut = t_temperatureFalse;
+    m_particleCountIn = t_particleCountTrue;
+    m_particleCountOut = t_particleCountFalse;
   } else {
-    m_massInBuffer =
-        cl::Buffer(cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                   sizeof(numType), &m_massFalse, &openCLerrNum);
-    m_massOutBuffer =
-        cl::Buffer(cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                   sizeof(numType), &m_massTrue, &openCLerrNum);
+    m_massIn = t_massFalse;
+    m_massOut = t_massTrue;
+    m_temperatureIn = t_temperatureFalse;
+    m_temperatureOut = t_temperatureTrue;
+    m_particleCountIn = t_particleCountFalse;
+    m_particleCountOut = t_particleCountTrue;
   }
+  m_massDelta2 = std::pow(t_massTrue - t_massFalse, 2);
 
+  m_massInBuffer =
+      cl::Buffer(cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                 sizeof(numType), &m_massIn, &openCLerrNum);
+
+  m_massOutBuffer =
+      cl::Buffer(cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                 sizeof(numType), &m_massOut, &openCLerrNum);
   m_massDelta2Buffer =
       cl::Buffer(cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
                  sizeof(numType), &m_massDelta2, &openCLerrNum);
 
   // Temperatures
+  m_massTrue = t_massTrue;
+  m_massFalse = t_massFalse;
   m_temperatureTrue = t_temperatureTrue;
   m_temperatureFalse = t_temperatureFalse;
-
-  // Particle counts
   m_particleCountTrue = t_particleCountTrue;
   m_particleCountFalse = t_particleCountFalse;
-  m_particleCountTotal = m_particleCountTrue + t_particleCountFalse;
+
+  // Particle counts
+  m_particleCountTotal = m_particleCountIn + m_particleCountOut;
 
   if (m_particleCountTotal <= 0) {
     std::cout << "Particle count is < 0.\nExiting program..." << std::endl;
@@ -343,7 +350,7 @@ ParticleCollection::ParticleCollection(
       cl::Buffer(cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
                  m_particleCountTotal * sizeof(Particle), m_particles.data(),
                  &openCLerrNum);
-  std::cout << "Particles data address: " << m_particles.data() << std::endl;
+
   m_dP = std::vector<double>(m_particleCountTotal, 0.);
   m_dPBuffer = cl::Buffer(cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
                           m_particleCountTotal * sizeof(numType), m_dP.data(),
@@ -368,19 +375,6 @@ ParticleCollection::ParticleCollection(
                  m_interactedBubbleTrueState.data(), &openCLerrNum);
   // Initial simulation values
   m_initialTotalEnergy = 0.;
-
-  // std::cout << "Particle: " << std::endl;
-  // std::cout << "Context: " << &cl_context << std::endl;
-  // std::cout << "Particle buffer: " << &m_particlesBuffer << std::endl;
-  // std::cout << "dP buffer: " << &m_dPBuffer << std::endl;
-  // std::cout << "Interacted false buffer: "
-  //           << &m_interactedBubbleFalseStateBuffer << std::endl;
-  // std::cout << "Passed false buffer: " << &m_passedBubbleFalseStateBuffer
-  //           << std::endl;
-  // std::cout << "Interacted true buffer: " <<
-  // &m_interactedBubbleTrueStateBuffer
-  //           << std::endl
-  //           << std::endl;
 }
 
 /*
@@ -516,4 +510,49 @@ numType ParticleCollection::countParticlesEnergy(numType t_radius1,
     }
   }
   return energy;
+}
+
+void ParticleCollection::print_info(ConfigReader t_config,
+                                    PhaseBubble& t_bubble) {
+  numType mu =
+      std::log(t_bubble.calculateVolume() * std::pow(m_temperatureIn, 3) /
+               (m_particleCountIn * std::pow(M_PI, 2)));
+  numType nFromParameters = m_particleCountIn / t_bubble.calculateVolume();
+
+  numType rhoFromParameters = m_particleCountIn * 3 * m_massTrue /
+                              (t_config.m_eta * t_bubble.calculateVolume());
+  numType energyFromParameters = 3 * m_massTrue / t_config.m_eta;
+
+  numType nFromTheory =
+      std::pow(m_temperatureIn, 3) / std::pow(M_PI, 2) * std::exp(-mu);
+  numType rhoFromTheory =
+      3 * std::pow(m_temperatureIn, 4) / std::pow(M_PI, 2) * std::exp(-mu);
+  numType energyFromTheory = 3 * m_temperatureIn;
+
+  numType particleTotalEnergy = countParticlesEnergy();
+  numType nSim = m_particleCountIn / t_bubble.calculateVolume();
+
+  numType rhoSim = particleTotalEnergy / t_bubble.calculateVolume();
+  numType energySim = particleTotalEnergy / m_particleCountIn;
+
+  std::string sublabel_prefix = "==== ";
+  std::string sublabel_sufix = " ====";
+  std::cout << std::setprecision(5);
+  std::cout << "=============== Particles ===============" << std::endl;
+  std::cout << sublabel_prefix + "Number density" + sublabel_sufix << std::endl;
+  std::cout << "Sim: " << nSim << ", Param: " << nFromParameters
+            << ", Theory: " << nFromTheory
+            << ", Ratio (sim/param): " << nSim / nFromParameters
+            << ", Ratio  (sim/theory): " << nSim / nFromTheory << std::endl;
+  std::cout << sublabel_prefix + "Energy density" + sublabel_sufix << std::endl;
+  std::cout << "Sim: " << rhoSim << ", Param: " << rhoFromParameters
+            << ", Theory: " << rhoFromTheory
+            << ", Ratio (sim/param): " << rhoSim / rhoFromParameters
+            << ", Ratio  (sim/theory): " << rhoSim / rhoFromTheory << std::endl;
+  std::cout << sublabel_prefix + "<E>" + sublabel_sufix << std::endl;
+  std::cout << "Sim: " << energySim << ", Param: " << energyFromParameters
+            << ", Theory: " << energyFromTheory
+            << ", Ratio (sim/param): " << energySim / energyFromParameters
+            << ", Ratio  (sim/theory): " << energySim / energyFromTheory
+            << std::endl;
 }
