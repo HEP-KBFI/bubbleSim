@@ -24,7 +24,6 @@ class PhaseBubble {
   numType getdV() { return m_dV; }
   numType getSigma() { return m_sigma; }
 
-  PhaseBubble() {}
   PhaseBubble(numType t_initialRadius, numType t_initialSpeed, numType t_dV,
               numType t_sigma, cl::Context& cl_context);
 

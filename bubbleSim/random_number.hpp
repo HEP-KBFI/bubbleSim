@@ -19,7 +19,7 @@ class RandomNumberGenerator {
   numType generate_number() { return m_distribution(m_generator); }
 
  private:
-  int m_seed;
+  int m_seed = 1;
   std::random_device m_randDev;
   std::mt19937_64 m_generator;
   std::uniform_real_distribution<numType> m_distribution;

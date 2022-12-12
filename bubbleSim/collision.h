@@ -25,8 +25,6 @@ typedef struct CollisionCell {
 
 class CollisionCellCollection {
  public:
-  CollisionCellCollection(){};
-
   CollisionCellCollection(numType t_meanFreePath, unsigned int t_cellCount,
                           bool t_doubleCellCount, cl::Context& cl_context);
 

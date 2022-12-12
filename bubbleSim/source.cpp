@@ -148,7 +148,7 @@ int main(int argc, char* argv[]) {
         rn_generator, particles.getParticles());
   }
   numType total_energy = 0;
-  for (int i = 0; i < config.particleCountFalse; i++) {
+  for (unsigned int i = 0; i < config.particleCountFalse; i++) {
     total_energy += particles.getParticleEnergy(i);
   }
 

@@ -32,10 +32,10 @@
 		"cell_length": 0.5
 	},
 	"stream": {
-		"stream": false,
+		"stream": true,
 		"stream_freq": 100,
 		"data_save_path": "data",
-		"stream_data": false,
+		"stream_data": true,
 		"stream_density_profile": false,
 		"stream_momentum_profile": false,
 		"profile_density_bins_count": 100,

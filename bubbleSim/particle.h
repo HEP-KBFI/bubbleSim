@@ -141,7 +141,6 @@ class ParticleCollection {
    * runtime, vector data address also changes and buffer has wrong
    * memory address
    */
-  ParticleCollection() {}
   ParticleCollection(numType t_massTrue, numType t_massFalse,
                      numType t_temperatureTrue, numType t_temperatureFalse,
                      unsigned int t_particleCountTrue,

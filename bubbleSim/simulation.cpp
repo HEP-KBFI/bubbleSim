@@ -1,7 +1,7 @@
 #include "simulation.h"
 
 Simulation::Simulation(int t_seed, numType t_dt, cl::Context& cl_context) {
-  int openCLerrNum;
+  int openCLerrNum = 0;
   m_seed = t_seed;
   m_dt = t_dt;
   m_dP = 0.;
@@ -12,7 +12,7 @@ Simulation::Simulation(int t_seed, numType t_dt, cl::Context& cl_context) {
 
 Simulation::Simulation(int t_seed, numType t_dt, numType t_boundaryRadius,
                        cl::Context& cl_context) {
-  int openCLerrNum;
+  int openCLerrNum = 0;
   m_seed = t_seed;
   m_dt = t_dt;
   m_dP = 0.;

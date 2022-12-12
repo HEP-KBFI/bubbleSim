@@ -11,7 +11,6 @@
 
 class DataStreamer {
  public:
-  DataStreamer(){};
   DataStreamer(std::string filePath);
 
   void initMomentumProfile(size_t t_binsCount, numType t_maxMomentumValue);
