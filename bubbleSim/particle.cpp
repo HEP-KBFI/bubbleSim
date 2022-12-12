@@ -359,18 +359,18 @@ ParticleCollection::ParticleCollection(
   // Data reserve
   m_interactedBubbleFalseState = std::vector<int8_t>(m_particleCountTotal, 0);
   m_interactedBubbleFalseStateBuffer =
-      cl::Buffer(cl_context, CL_MEM_WRITE_ONLY | CL_MEM_COPY_HOST_PTR,
+      cl::Buffer(cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
                  m_particleCountTotal * sizeof(int8_t),
                  m_interactedBubbleFalseState.data(), &openCLerrNum);
 
   m_passedBubbleFalseState = std::vector<int8_t>(m_particleCountTotal, 0);
   m_passedBubbleFalseStateBuffer =
-      cl::Buffer(cl_context, CL_MEM_WRITE_ONLY | CL_MEM_COPY_HOST_PTR,
+      cl::Buffer(cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
                  m_particleCountTotal * sizeof(int8_t),
                  m_passedBubbleFalseState.data(), &openCLerrNum);
   m_interactedBubbleTrueState = std::vector<int8_t>(m_particleCountTotal, 0);
   m_interactedBubbleTrueStateBuffer =
-      cl::Buffer(cl_context, CL_MEM_WRITE_ONLY | CL_MEM_COPY_HOST_PTR,
+      cl::Buffer(cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
                  m_particleCountTotal * sizeof(int8_t),
                  m_interactedBubbleTrueState.data(), &openCLerrNum);
   // Initial simulation values

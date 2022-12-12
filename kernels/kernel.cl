@@ -348,7 +348,7 @@ __kernel void particle_bubble_step_cyclic(
 	__constant double *t_m_in,
 	__constant double *t_m_out,
 	__constant double *t_delta_m2,
-	__constant double *t_cyclicRadius
+	__constant double *t_cycleRadius
 	){
 	
 	unsigned int gid = get_global_id(0);
@@ -550,7 +550,7 @@ __kernel void particle_bubble_step_cyclic(
 	* If particle.x < -R_cyclic				-> Then particle.x = particle.x + 2 * R_cyclic
 	*/
 	
-	double cyclicRadius = t_cyclicRadius[0];
+	double cyclicRadius = t_cycleRadius[0];
 	particle.x = (cyclicRadius > fabs(particle.x)) * particle.x +
 				 (particle.x > cyclicRadius) * (particle.x - 2*cyclicRadius) + 
 				 (particle.x < -cyclicRadius) * (particle.x + 2*cyclicRadius);
