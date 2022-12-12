@@ -380,4 +380,11 @@ class ParticleCollection {
   numType countParticlesEnergy(numType t_radius1, numType t_radius2);
 
   void print_info(ConfigReader t_config, PhaseBubble& t_bubble);
+
+  void print_particle_info(unsigned int i) {
+    Particle particle = m_particles[i];
+    std::cout << "(" << particle.x << ", " << particle.y << ", " << particle.z
+              << ") (" << particle.E << ", " << particle.p_x << ", "
+              << particle.p_y << ", " << particle.p_z << ")" << std::endl;
+  }
 };

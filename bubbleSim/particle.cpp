@@ -101,6 +101,7 @@ void ParticleGenerator::generateParticleMomentum(
   t_pResult =
       interp(t_generator.generate_number(), m_cumulativeProbabilityFunction[0],
              m_cumulativeProbabilityFunction[1]);
+
   generateRandomDirection(p_x, p_y, p_z, t_pResult, t_generator);
 }
 
@@ -514,30 +515,32 @@ numType ParticleCollection::countParticlesEnergy(numType t_radius1,
 void ParticleCollection::print_info(ConfigReader t_config,
                                     PhaseBubble& t_bubble) {
   numType mu =
-      std::log(t_bubble.calculateVolume() * std::pow(m_temperatureIn, 3) /
-               (m_particleCountIn * std::pow(M_PI, 2)));
+      std::log((m_particleCountIn * std::pow(M_PI, 2)) /
+               (t_bubble.calculateVolume() * std::pow(m_temperatureFalse, 3)));
   numType nFromParameters = m_particleCountIn / t_bubble.calculateVolume();
 
-  numType rhoFromParameters = m_particleCountIn * 3 * m_massTrue /
-                              (t_config.m_eta * t_bubble.calculateVolume());
-  numType energyFromParameters = 3 * m_massTrue / t_config.m_eta;
+  numType rhoFromParameters =
+      m_particleCountIn * 3 * m_massTrue /
+      (t_config.parameterEta * t_bubble.calculateVolume());
+  numType energyFromParameters = 3 * m_massTrue / t_config.parameterEta;
 
   numType nFromTheory =
-      std::pow(m_temperatureIn, 3) / std::pow(M_PI, 2) * std::exp(-mu);
+      std::pow(m_temperatureFalse, 3) / std::pow(M_PI, 2) * std::exp(mu);
   numType rhoFromTheory =
-      3 * std::pow(m_temperatureIn, 4) / std::pow(M_PI, 2) * std::exp(-mu);
-  numType energyFromTheory = 3 * m_temperatureIn;
+      3 * std::pow(m_temperatureFalse, 4) / std::pow(M_PI, 2) * std::exp(mu);
+  numType energyFromTheory = 3 * m_temperatureFalse;
 
   numType particleTotalEnergy = countParticlesEnergy();
   numType nSim = m_particleCountIn / t_bubble.calculateVolume();
 
   numType rhoSim = particleTotalEnergy / t_bubble.calculateVolume();
-  numType energySim = particleTotalEnergy / m_particleCountIn;
+  numType energySim = particleTotalEnergy / m_particleCountFalse;
 
   std::string sublabel_prefix = "==== ";
   std::string sublabel_sufix = " ====";
   std::cout << std::setprecision(5);
   std::cout << "=============== Particles ===============" << std::endl;
+  std::cout << sublabel_prefix + "mu: " << mu << sublabel_sufix << std::endl;
   std::cout << sublabel_prefix + "Number density" + sublabel_sufix << std::endl;
   std::cout << "Sim: " << nSim << ", Param: " << nFromParameters
             << ", Theory: " << nFromTheory

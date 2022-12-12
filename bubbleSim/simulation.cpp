@@ -7,9 +7,35 @@ Simulation::Simulation(int t_seed, numType t_dt, cl::Context& cl_context) {
   m_dP = 0.;
   m_dtBuffer = cl::Buffer(cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
                           sizeof(numType), &t_dt, &openCLerrNum);
+  m_cyclicBoundaryOn = false;
 }
 
-void Simulation::set_bubble_interaction_buffers(
+Simulation::Simulation(int t_seed, numType t_dt, numType t_boundaryRadius,
+                       cl::Context& cl_context) {
+  int openCLerrNum;
+  m_seed = t_seed;
+  m_dt = t_dt;
+  m_dP = 0.;
+  m_dtBuffer = cl::Buffer(cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
+                          sizeof(numType), &t_dt, &openCLerrNum);
+  m_cyclicBoundaryOn = true;
+  m_cyclicBoundaryRadius = t_boundaryRadius;
+  m_cyclicBoundaryRadiusBuffer =
+      cl::Buffer(cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                 sizeof(numType), &m_cyclicBoundaryRadius, &openCLerrNum);
+}
+
+// No bubble
+void Simulation::set_particle_step_buffers(ParticleCollection& t_particles,
+                                           CollisionCellCollection& cells,
+                                           cl::Kernel& t_particleStepKernel) {
+  t_particleStepKernel.setArg(0, t_particles.getParticlesBuffer());
+  t_particleStepKernel.setArg(1, cells.getStructureRadiusBuffer());
+  t_particleStepKernel.setArg(2, m_dtBuffer);
+};
+
+// With a bubble
+void Simulation::set_particle_step_buffers(
     ParticleCollection& t_particles, PhaseBubble& t_bubble,
     cl::Kernel& t_bubbleInteractionKernel) {
   int errNum;
@@ -68,6 +94,15 @@ void Simulation::set_bubble_interaction_buffers(
     std::cerr << "Couldn't initialize Dm2 buffer." << std::endl;
     std::terminate();
   }
+
+  if (m_cyclicBoundaryOn) {
+    errNum = t_bubbleInteractionKernel.setArg(10, m_cyclicBoundaryRadiusBuffer);
+    if (errNum != CL_SUCCESS) {
+      std::cerr << "Couldn't initialize cyclic boundary radius buffer."
+                << std::endl;
+      std::terminate();
+    }
+  }
 }
 
 void Simulation::set_particle_interaction_buffers(
@@ -82,14 +117,6 @@ void Simulation::set_particle_interaction_buffers(
   t_momentumRotationKernel.setArg(1, cells.getCellBuffer());
   t_momentumRotationKernel.setArg(2, cells.getCellCountBuffer());
 }
-
-void Simulation::set_particle_step_buffers(ParticleCollection& t_particles,
-                                           CollisionCellCollection& cells,
-                                           cl::Kernel& t_particleStepKernel) {
-  t_particleStepKernel.setArg(0, t_particles.getParticlesBuffer());
-  t_particleStepKernel.setArg(1, cells.getStructureRadiusBuffer());
-  t_particleStepKernel.setArg(2, m_dtBuffer);
-};
 
 void Simulation::set_particle_bounce_buffers(ParticleCollection& t_particles,
                                              CollisionCellCollection& cells,
@@ -117,16 +144,29 @@ void Simulation::step(ParticleCollection& particles, PhaseBubble& bubble,
   bubble.calculateRadiusAfterStep2(m_dt);
   bubble.writeBubbleBuffer(cl_queue);
   // Run kernel
+  numType total_energy1 = 0;
+  numType total_energy2 = 0;
+  for (Particle p : particles.getParticles()) {
+    total_energy1 += p.E;
+  }
+
   cl_queue.enqueueNDRangeKernel(t_bubbleInteractionKernel, cl::NullRange,
                                 cl::NDRange(particles.getParticleCountTotal()));
-  // 2)
+  // 2) Calculate how much "energy" particle get and then convert it to energy
+  // bubble gets
   particles.readParticlesBuffer(cl_queue);
   particles.read_dPBuffer(cl_queue);
   m_dP = 0.;
   for (numType dPi : particles.get_dP()) {
     m_dP += dPi;
   }
+  for (Particle p : particles.getParticles()) {
+    total_energy2 += p.E;
+  }
+
   m_dP = -m_dP / bubble.calculateArea();
+  /*std::cout << m_dP * bubble.getSpeed() * bubble.calculateArea() << ", "
+            << (total_energy2 - total_energy1) << std::endl;*/
 
   // Evolve bubble
   bubble.evolveWall(m_dt, m_dP);
@@ -145,7 +185,7 @@ void Simulation::step(PhaseBubble& bubble, numType t_dP) {
 
 void Simulation::step(ParticleCollection& particles,
                       CollisionCellCollection& cells,
-                      RandomNumberGenerator& generator_collision,
+                      RandomNumberGenerator& generator_collision, int i,
                       cl::Kernel& t_particleStepKernel,
                       cl::Kernel& t_cellAssignmentKernel,
                       cl::Kernel& t_rotationKernel,
@@ -156,26 +196,29 @@ void Simulation::step(ParticleCollection& particles,
   cl_queue.enqueueNDRangeKernel(t_particleStepKernel, cl::NullRange,
                                 cl::NDRange(particles.getParticleCountTotal()));
   // Generate shift vector
-  cells.generateShiftVector(generator_collision);
-  cells.writeShiftVectorBuffer(cl_queue);
+  if (i % 1 == 0) {
+    cells.generateShiftVector(generator_collision);
+    cells.writeShiftVectorBuffer(cl_queue);
 
-  // Assign particles to collision cells
-  cl_queue.enqueueNDRangeKernel(t_cellAssignmentKernel, cl::NullRange,
-                                cl::NDRange(particles.getParticleCountTotal()));
-  // Update particle data on CPU
-  particles.readParticlesBuffer(cl_queue);
+    // Assign particles to collision cells
+    cl_queue.enqueueNDRangeKernel(
+        t_cellAssignmentKernel, cl::NullRange,
+        cl::NDRange(particles.getParticleCountTotal()));
+    // Update particle data on CPU
+    particles.readParticlesBuffer(cl_queue);
 
-  // Calculate COM and genrate rotation matrix for each cell
+    // Calculate COM and genrate rotation matrix for each cell
 
-  cells.recalculate_cells(particles.getParticles(), generator_collision);
+    cells.recalculate_cells(particles.getParticles(), generator_collision);
 
-  // Update data on GPU
-  particles.writeParticlesBuffer(cl_queue);
-  cells.writeCollisionCellBuffer(cl_queue);
-  // Update momentum
-  cl_queue.enqueueNDRangeKernel(t_rotationKernel, cl::NullRange,
-                                cl::NDRange(particles.getParticleCountTotal()));
-
+    // Update data on GPU
+    particles.writeParticlesBuffer(cl_queue);
+    cells.writeCollisionCellBuffer(cl_queue);
+    // Update momentum
+    cl_queue.enqueueNDRangeKernel(
+        t_rotationKernel, cl::NullRange,
+        cl::NDRange(particles.getParticleCountTotal()));
+  }
   cl_queue.enqueueNDRangeKernel(t_particleBounceKernel, cl::NullRange,
                                 cl::NDRange(particles.getParticleCountTotal()));
 }

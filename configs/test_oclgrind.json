@@ -1,15 +1,16 @@
 {
 	"simulation": {
 		"seed": 1,
-		"max_steps": 10,
+		"max_steps": 100,
 		"dt": 0.1,
-		"dV_positive": true
+		"cyclic_boundary_on": false
 	},
 	"parameters": {
 		"alpha": 0.6,
 		"eta": 2.0,
 		"upsilon": 0.0332678594173761,
-		"coupling": 0.0
+		"coupling": 0.0,
+		"dV": 2.1980521562747397e-5
 	},
 	"bubble": {
 		"initial_radius": 77.5,
@@ -25,12 +26,18 @@
 		"N_false": 100,
 		"N_true": 0
 	},
+	"collision": {
+		"collision_on": false,
+		"N_cells": 41,
+		"cell_length": 0.5
+	},
 	"stream": {
 		"stream": false,
 		"stream_freq": 100,
 		"data_save_path": "data",
 		"stream_data": false,
-		"stream_profile": false,
+		"stream_density_profile": false,
+		"stream_momentum_profile": false,
 		"profile_density_bins_count": 100,
 		"profile_momentum_bins_count": 100
 	}

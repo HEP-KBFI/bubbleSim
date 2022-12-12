@@ -129,7 +129,6 @@ void DataStreamer::stream(Simulation& simulation,
     }
     particleTotalEnergy += particleInEnergy;
     totalEnergy = particleTotalEnergy + bubble.calculateEnergy();
-
     std::cout << std::fixed << std::showpoint << std::setprecision(6);
     m_fileData << simulation.getTime() << "," << simulation.get_dP() << ",";
     m_fileData << bubble.getRadius() << "," << bubble.getSpeed() << ",";
@@ -337,6 +336,7 @@ void DataStreamer::stream(Simulation& simulation,
    */
   else if ((m_dataInitialized) && (m_densityInitialized) &&
            (m_momentumInitialized)) {
+    numType maxMomentum = -1;
     countBinsDensity.resize(m_densityBinsCount);
     countBinsIn.resize(m_momentumBinsCount);
     countBinsOut.resize(m_momentumBinsCount);
@@ -350,10 +350,12 @@ void DataStreamer::stream(Simulation& simulation,
     for (u_int i = 0; i < particleCollection.getParticleCountTotal(); i++) {
       particleRadius = particleCollection.calculateParticleRadius(i);
       particleMomentum = particleCollection.calculateParticleMomentum(i);
+      if (particleMomentum > maxMomentum) {
+        maxMomentum = particleMomentum;
+      }
       if (particleRadius < m_maxRadiusValue) {
         countBinsDensity[(int)(particleRadius / dr)] += 1;
       }
-
       if (particleCollection.getParticles()[i].m ==
           particleCollection.getMassIn()) {
         particleInCount += 1;
@@ -375,6 +377,8 @@ void DataStreamer::stream(Simulation& simulation,
     }
     particleTotalEnergy += particleInEnergy;
     totalEnergy = particleTotalEnergy + bubble.calculateEnergy();
+
+    // std::cout << "Max momentum: " << maxMomentum << std::endl;
 
     std::cout << std::fixed << std::showpoint << std::setprecision(6);
     m_fileData << simulation.getTime() << "," << simulation.get_dP() << ",";

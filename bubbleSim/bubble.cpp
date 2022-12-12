@@ -27,6 +27,12 @@ PhaseBubble::PhaseBubble(numType t_initialRadius, numType t_initialSpeed,
                  sizeof(Bubble), &m_bubble, &openCLerrNum);
   m_dV = t_dV;
   m_sigma = t_sigma;
+
+  if (m_sigma < 0) {
+    std::cerr << "sigma < 0" << std::endl;
+    std::terminate();
+  }
+
   // m_area = 4 * M_PI * std::pow(t_initialRadius, 2);
   // m_volume = 4 * (pow(t_initialRadius, 3) * M_PI) / 3;
   // m_energy = calculateEnergy();
@@ -52,12 +58,14 @@ void PhaseBubble::evolveWall(numType dt, numType dP) {
   numType newRadius = m_bubble.radius + dt * m_bubble.speed;
 
   numType velocityElement = std::fma(-m_bubble.speed, m_bubble.speed, 1);
-
   m_bubble.speed +=
-      std::sqrt(pow(velocityElement, 3)) * std::fma(m_dV, dt, -dP) / m_sigma -
+      std::sqrt(pow(velocityElement, 3)) * std::fma(m_dV, dt, dP) / m_sigma -
       2 * velocityElement * dt / m_bubble.radius;
+  /*std::cout << std::sqrt(pow(velocityElement, 3)) * std::fma(m_dV, dt, -dP) /
+                   m_sigma
+            << ", " << 2 * velocityElement * dt / m_bubble.radius << std::endl;
+  std::cout << m_dV * dt - dP << std::endl;*/
   m_bubble.radius = newRadius;
-
   m_bubble.gamma =
       1.0 / std::exp((std::log1p((-m_bubble.speed * m_bubble.speed)) * 0.5));
   m_bubble.radius2 = std::pow(m_bubble.radius, 2);
@@ -65,19 +73,21 @@ void PhaseBubble::evolveWall(numType dt, numType dP) {
 }
 
 void PhaseBubble::print_info(ConfigReader& t_config) {
-  numType dVFromParameters = t_config.m_countParticlesFalse *
-                             t_config.m_massTrue * (3 * t_config.m_alpha + 1) /
-                             (t_config.m_eta * calculateVolume());
-  numType sigmaFromParameters =
-      m_bubble.radius * t_config.m_countParticlesFalse * t_config.m_upsilon *
-      t_config.m_massTrue * (3 * t_config.m_alpha + 1) /
-      (t_config.m_eta * calculateVolume());
+  numType dVFromParameters = t_config.particleCountFalse *
+                             t_config.particleMassTrue *
+                             (3 * t_config.parameterAlpha + 1) /
+                             (t_config.parameterEta * calculateVolume());
+  numType sigmaFromParameters = m_bubble.radius * t_config.particleCountFalse *
+                                t_config.parameterUpsilon *
+                                t_config.particleMassTrue *
+                                (3 * t_config.parameterAlpha + 1) /
+                                (t_config.parameterEta * calculateVolume());
   numType energyFromParameters =
-      t_config.m_countParticlesFalse * t_config.m_massTrue *
-      (3 * t_config.m_alpha + 1) *
-      (1 +
-       3 * t_config.m_upsilon / std::sqrt(1 - std::pow(m_bubble.speed, 2))) /
-      t_config.m_eta;
+      t_config.particleCountFalse * t_config.particleMassTrue *
+      (3 * t_config.parameterAlpha + 1) *
+      (1 + 3 * t_config.parameterUpsilon /
+               std::sqrt(1 - std::pow(m_bubble.speed, 2))) /
+      t_config.parameterEta;
 
   std::string sublabel_prefix = "==== ";
   std::string sublabel_sufix = " ====";

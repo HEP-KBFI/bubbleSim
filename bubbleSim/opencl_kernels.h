@@ -31,7 +31,6 @@ class OpenCLLoader {
   cl::Device m_deviceUsed;
   cl::Program m_program;
   cl::Context m_context;
-  cl::Kernel m_particleBubbleStepKernel;
 
   cl::Kernel m_labelKernel;
 
@@ -49,6 +48,8 @@ class OpenCLLoader {
   cl::Kernel m_rotationKernel;
   cl::Kernel m_particleStepKernel;
   cl::Kernel m_particleBounceKernel;
+  cl::Kernel m_particleBubbleStepKernel;
+  cl::Kernel m_particleBubbleBoundaryStepKernel;
 
   cl::CommandQueue& getCommandQueue() { return m_queue; }
   cl::Context& getContext() { return m_context; }

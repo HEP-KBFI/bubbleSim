@@ -8,11 +8,17 @@ export IMG=/home/software/singularity/base
 singularity exec $IMG make clean
 singularity exec $IMG make -j8
 
+# Run with oclgrind
+
+singularity exec /home/software/singularity/base-2022-11-17.simg oclgrind --data-races --uninitialized --log oclgrind.log ./build/bubbleSim.exe configs/test_oclgrind.json kernels/kernel.cl
+
+
+
 #Run on CPU
-singularity exec --env POCL_DEVICES=basic $IMG build/bubbleSim.exe bubbleSim/config.json
+singularity exec --env POCL_DEVICES=basic $IMG build/bubbleSim.exe bubbleSim/config.json kernels/kernel.cl
 
 #Run on GPU (only on a GPU machine)
-singularity exec --nv --env LD_LIBRARY_PATH=/usr/local/cuda/lib64 $IMG build/bubbleSim.exe bubbleSim/config.json
+singularity exec --nv --env LD_LIBRARY_PATH=/usr/local/cuda/lib64 $IMG build/bubbleSim.exe bubbleSim/config.json kernels/kernel.cl
 ```
 
 Submit to GPU queue:

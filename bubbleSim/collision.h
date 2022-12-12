@@ -9,7 +9,13 @@ typedef struct CollisionCell {
   cl_numType x;
   cl_numType y;
   cl_numType z;
+
   cl_numType theta;
+
+  cl_numType p_E;
+  cl_numType p_x;
+  cl_numType p_y;
+  cl_numType p_z;
 
   cl_numType v2;
   cl_numType gamma;

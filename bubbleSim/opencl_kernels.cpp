@@ -1,13 +1,13 @@
 #include "opencl_kernels.h"
 
 OpenCLLoader::OpenCLLoader(std::string kernelPath) {
-  int errNum;
-
   std::string particleBubbleStepKernelName = "particle_bubble_step";
   std::string cellAssignKernelName = "assign_cell_index_to_particle";
   std::string transformKernelName = "transform_momentum";
   std::string particleStepKernelName = "particle_step";
   std::string particleBounceKernelName = "particle_bounce";
+  std::string particleBubbleBoundaryStepKernelName =
+      "particle_bubble_step_cyclic";
 
   createContext(m_devices);
   createProgram(m_context, m_deviceUsed, kernelPath);
@@ -18,6 +18,8 @@ OpenCLLoader::OpenCLLoader(std::string kernelPath) {
   createKernel(m_program, m_particleStepKernel, particleStepKernelName.c_str());
   createKernel(m_program, m_particleBounceKernel,
                particleBounceKernelName.c_str());
+  createKernel(m_program, m_particleBubbleBoundaryStepKernel,
+               particleBubbleBoundaryStepKernelName.c_str());
 
   createQueue(m_context, m_deviceUsed);
 }

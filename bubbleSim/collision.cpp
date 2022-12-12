@@ -11,11 +11,10 @@ CollisionCellCollection::CollisionCellCollection(
     std::terminate();
   }
 
-  size_t cellCount;
   if (t_doubleCellCount) {
-    m_cellCount = 2 * std::pow(t_cellCountInOneAxis, 3) + 1;
+    m_cellCount = 2 * (unsigned int)std::pow(t_cellCountInOneAxis, 3) + 1;
   } else {
-    m_cellCount = std::pow(t_cellCountInOneAxis, 3) + 1;
+    m_cellCount = (unsigned int)std::pow(t_cellCountInOneAxis, 3) + 1;
   }
   m_cellCountBuffer =
       cl::Buffer(cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
@@ -89,6 +88,10 @@ void CollisionCellCollection::recalculate_cells(
       m_collisionCells[i].total_mass =
           std::sqrt(std::pow(frames[i][3], 2) - std::pow(frames[i][0], 2) -
                     std::pow(frames[i][1], 2) - std::pow(frames[i][2], 2));
+      m_collisionCells[i].p_x = frames[i][0] / frames[i][4];
+      m_collisionCells[i].p_y = frames[i][1] / frames[i][4];
+      m_collisionCells[i].p_z = frames[i][2] / frames[i][4];
+      m_collisionCells[i].p_E = frames[i][3] / frames[i][4];
 
       /*
        * beta = sqrt(v_x^2 + v_y^2 + v_z^2);

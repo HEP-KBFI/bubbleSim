@@ -45,19 +45,23 @@ void createSimulationInfoFile(std::fstream& infoStream,
                               ConfigReader& t_config, numType t_dV, numType t_n,
                               numType t_rho) {
   infoStream << "file_name,seed,alpha,eta,upsilon,coupling,radius,speed,m-,m+,"
-                "T-,T+,N-,N+,dt,interactionOn,dV,n,rho,deltaN,runtime"
+                "T-,T+,N-,N+,dt,interactionBubbleOn,cyclicBoundaryOn,"
+                "dV,n,rho,deltaN,runtime"
              << std::endl;
   infoStream << filePath.filename() << "," << t_config.m_seed << ","
-             << t_config.m_alpha << "," << t_config.m_eta << ",";
-  infoStream << t_config.m_upsilon << "," << t_config.m_coupling << ",";
-  infoStream << t_config.m_initialBubbleRadius << ","
-             << t_config.m_initialBubbleSpeed << ",";
-  infoStream << t_config.m_massFalse << "," << t_config.m_massTrue << ",";
-  infoStream << t_config.m_temperatureFalse << "," << t_config.m_temperatureTrue
+             << t_config.parameterAlpha << "," << t_config.parameterEta << ",";
+  infoStream << t_config.parameterUpsilon << "," << t_config.parameterCoupling
              << ",";
-  infoStream << t_config.m_countParticlesFalse << ","
-             << t_config.m_countParticlesTrue << ",";
-  infoStream << t_config.m_dt << "," << t_config.m_interactionsOn << ",";
+  infoStream << t_config.bubbleInitialRadius << ","
+             << t_config.bubbleInitialSpeed << ",";
+  infoStream << t_config.particleMassFalse << "," << t_config.particleMassTrue
+             << ",";
+  infoStream << t_config.particleTemperatureFalse << ","
+             << t_config.particleTemperatureTrue << ",";
+  infoStream << t_config.particleCountFalse << "," << t_config.particleCountTrue
+             << ",";
+  infoStream << t_config.dt << "," << t_config.bubbleInteractionsOn << ","
+             << t_config.cyclicBoundaryOn << ",";
   infoStream << t_dV << "," << t_n << "," << t_rho << ",";
 }
 void appendSimulationInfoFile(std::fstream& infoStream, int t_postionDifference,
@@ -71,8 +75,10 @@ int main(int argc, char* argv[]) {
     exit(0);
   }
 
-  std::string configPath = argv[1];
-  std::string kernelPath = argv[2];  //"kernel.cl";
+  bool b_collisionDevelopment = false;
+
+  std::string configPath = argv[1];  // "config.json"
+  std::string kernelPath = argv[2];  // "kernel.cl";
 
   std::array<std::string, 4> collisionKernelNames = {
       "assign_cell_index_to_particle", "label_particles_position_by_coordinate",
@@ -99,8 +105,7 @@ int main(int argc, char* argv[]) {
  */
 
   // 1) Initialize random number generators
-  RandomNumberGenerator generator_initialization(config.m_seed);
-  RandomNumberGenerator generator_collision(config.m_seed);
+  RandomNumberGenerator rn_generator(config.m_seed);
 
   // 2) Initialize openCL
   OpenCLLoader kernels(kernelPath);
@@ -111,99 +116,132 @@ int main(int argc, char* argv[]) {
   Define M+ -> Get T -> Get rho -> get dV -> get sigma
   M+ is defined in a config
   */
-  numType temperatureFalse = std::sqrt(std::pow(config.m_massTrue, 2) -
-                                       std::pow(config.m_massFalse, 2)) /
-                             config.m_eta;
+  numType temperatureFalse = std::sqrt(std::pow(config.particleMassTrue, 2) -
+                                       std::pow(config.particleMassFalse, 2)) /
+                             config.parameterEta;
   numType temperatureTrue = 0;  // -> No particles generated in true vacuum
 
   // 4) Generate particles
 
-  /*ParticleGenerator particleGenerator1(config.m_massFalse, temperatureFalse,
-                                       30 * temperatureFalse,
-                                       1e-5 * temperatureFalse);*/
-  ParticleGenerator particleGenerator1(config.m_massFalse, 3.);
-  ParticleCollection particles1(
-      config.m_massTrue, config.m_massFalse, temperatureTrue, temperatureFalse,
-      config.m_countParticlesTrue, config.m_countParticlesFalse,
-      config.m_coupling, config.m_isBubbleTrueVacuum, kernels.getContext());
-  /* particles1.add_to_total_initial_energy(
-      particleGenerator1.generateNParticlesInSphere(
-          config.m_initialBubbleRadius,
-          (u_int)particles1.getParticleCountTotal(), generator_initialization,
-          particles1.getParticles()));*/
-  particles1.add_to_total_initial_energy(
-      particleGenerator1.generateNParticlesInBox(
-          config.m_initialBubbleRadius,
-          (u_int)particles1.getParticleCountTotal(), generator_initialization,
-          particles1.getParticles()));
+  ParticleGenerator particleGenerator1;
+  if (b_collisionDevelopment) {
+    particleGenerator1 = ParticleGenerator(config.particleMassFalse, 3.);
+  } else {
+    particleGenerator1 =
+        ParticleGenerator(config.particleMassFalse, temperatureFalse,
+                          30 * temperatureFalse, 1e-5 * temperatureFalse);
+  }
+  ParticleCollection particles(
+      config.particleMassTrue, config.particleMassFalse, temperatureTrue,
+      temperatureFalse, config.particleCountTrue, config.particleCountFalse,
+      config.parameterCoupling, config.bubbleIsTrueVacuum,
+      kernels.getContext());
+
+  numType genreatedParticleEnergy;
+  if (b_collisionDevelopment) {
+    genreatedParticleEnergy = particleGenerator1.generateNParticlesInBox(
+        config.bubbleInitialRadius, (u_int)particles.getParticleCountTotal(),
+        rn_generator, particles.getParticles());
+  } else {
+    genreatedParticleEnergy = particleGenerator1.generateNParticlesInSphere(
+        config.bubbleInitialRadius, (u_int)particles.getParticleCountTotal(),
+        rn_generator, particles.getParticles());
+  }
+  numType total_energy = 0;
+  for (int i = 0; i < config.particleCountFalse; i++) {
+    total_energy += particles.getParticleEnergy(i);
+  }
+
+  particles.add_to_total_initial_energy(genreatedParticleEnergy);
+
   // 5) Initialize simulation object
 
-  Simulation simulation(config.m_seed, config.m_dt, kernels.getContext());
+  numType cycleBoundaryRadius;
+  Simulation simulation;
+  if (!config.cyclicBoundaryOn) {
+    simulation = Simulation(config.m_seed, config.dt, kernels.getContext());
+  } else {
+    cycleBoundaryRadius = 2 * config.bubbleInitialRadius;
+    simulation = Simulation(config.m_seed, config.dt, cycleBoundaryRadius,
+                            kernels.getContext());
+  }
+
+  cl::Kernel* stepKernel;
+  if (!config.bubbleInteractionsOn) {
+    stepKernel = &kernels.m_particleStepKernel;
+  } else if ((config.bubbleInteractionsOn) && (!config.cyclicBoundaryOn)) {
+    stepKernel = &kernels.m_particleBubbleStepKernel;
+  } else if ((config.bubbleInteractionsOn) && (config.cyclicBoundaryOn)) {
+    stepKernel = &kernels.m_particleBubbleBoundaryStepKernel;
+  } else {
+    std::cerr << "Kernel for current configuration is not available"
+              << std::endl;
+    std::terminate();
+  }
 
   // 6) Initialize bubble object
-  numType bubbleVolume =
-      4 * M_PI / 3 * std::pow(config.m_initialBubbleRadius, 3);
 
+  numType bubbleVolume = 4 * M_PI / 3 * std::pow(config.bubbleInitialRadius, 3);
   numType initialEnergyDensityFalse =
-      particles1.countParticlesEnergy() / bubbleVolume;
+      particles.countParticlesEnergy() / bubbleVolume;
   numType initialNumberDensityFalse =
-      particles1.getParticleCountFalse() / bubbleVolume;
-  numType Tn = initialNumberDensityFalse * temperatureFalse;     // > 0
-  numType dV = config.m_alpha * initialEnergyDensityFalse + Tn;  // > 0
-  numType sigma = config.m_upsilon * dV * config.m_initialBubbleRadius;
-
+      particles.getParticleCountFalse() / bubbleVolume;
   /*
-   *
-   * NB! Look bubble integration over. dP might have wrong sign.
-   *
-   */
-  if (!config.m_isBubbleTrueVacuum) {
-    // Expanding (ture vacuum) bubble -> dV>0 -> False vacuum bubble change the
-    // sign.
+  numType Tn = initialNumberDensityFalse * temperatureFalse;            // > 0
+  numType dV = config.parameterAlpha * initialEnergyDensityFalse + Tn;  // > 0
+  */
+
+  numType dV = config.parameter_dV;
+  numType alpha = config.parameterAlpha;
+
+  numType sigma = config.parameterUpsilon * dV * config.bubbleInitialRadius;
+
+  if (!config.bubbleIsTrueVacuum) {
+    // If bubble is true vacuum then dV is correct. Otherwise dV sign must be
+    // channged as change of direction changes
     dV = -dV;
   }
-  PhaseBubble bubble(config.m_initialBubbleRadius, config.m_initialBubbleSpeed,
-                     dV, sigma, kernels.getContext());
+  std::cout << "V_b: " << config.bubbleInitialSpeed << ", dV:" << dV
+            << std::endl;
+  PhaseBubble bubble(config.bubbleInitialRadius, config.bubbleInitialSpeed, dV,
+                     sigma, kernels.getContext());
 
-  CollisionCellCollection cells(2.5, 61, false, kernels.getContext());
+  CollisionCellCollection cells(config.collisionCellLength,
+                                config.collisionCellCount, false,
+                                kernels.getContext());
 
-  /*simulation.set_bubble_interaction_buffers(particles1, bubble,
-                                           kernels.getKernel());*/
-  simulation.set_particle_interaction_buffers(particles1, cells,
+  simulation.set_particle_interaction_buffers(particles, cells,
                                               kernels.m_cellAssignmentKernel,
                                               kernels.m_rotationKernel);
-  /*
-   * Remove later
-   */
-  simulation.set_particle_step_buffers(particles1, cells,
-                                       kernels.m_particleStepKernel);
-  simulation.set_particle_bounce_buffers(particles1, cells,
+  if (b_collisionDevelopment) {
+    simulation.set_particle_step_buffers(particles, cells,
+                                         kernels.m_particleStepKernel);
+  } else if (config.bubbleInteractionsOn) {
+    simulation.set_particle_step_buffers(particles, bubble, *stepKernel);
+  }
+  simulation.set_particle_bounce_buffers(particles, cells,
                                          kernels.m_particleBounceKernel);
 
-  simulation.addTotalEnergy(particles1.getInitialTotalEnergy());
-  // simulation.addTotalEnergy(bubble.calculateEnergy());
+  // Add all energy together
+
+  simulation.addTotalEnergy(particles.getInitialTotalEnergy());
+  simulation.addTotalEnergy(bubble.calculateEnergy());
 
   // 8) Streaming object
 
   /*
-          =============== Display text ===============
-  */
-  numType numberDensityParam =
-      3 * config.m_countParticlesFalse /
-      (4 * M_PI * std::pow(config.m_initialBubbleRadius, 3));
-  numType energyDensityParam = 3 * temperatureFalse * numberDensityParam;
-  numType mu = std::log(bubbleVolume * std::pow(temperatureFalse, 3) /
-                        (config.m_countParticlesFalse * std::pow(M_PI, 2)));
+   * =============== Display text ===============
+   */
   std::cout << std::endl;
   config.print_info();
   std::cout << std::endl;
-  particles1.print_info(config, bubble);
+  particles.print_info(config, bubble);
   std::cout << std::endl;
   bubble.print_info(config);
   std::cout << std::endl;
   // 9) Streams
 
-  particles1.writeAllBuffers(kernels.getCommandQueue());
+  particles.writeAllBuffers(kernels.getCommandQueue());
   simulation.writeAllBuffers(kernels.getCommandQueue());
   bubble.writeAllBuffers(kernels.getCommandQueue());
   cells.writeAllBuffers(kernels.getCommandQueue());
@@ -214,195 +252,117 @@ int main(int argc, char* argv[]) {
       createSimulationFilePath(config.m_dataSavePath, dataFolderName);
   DataStreamer streamer(filePath.string());
 
-  streamer.initData();
-  streamer.initDensityProfile(config.m_densityBinsCount, 150);
-  streamer.initMomentumProfile(config.m_momentumBinsCount,
-                               30 * temperatureFalse);
-  streamer.stream(simulation, particles1, bubble, kernels.getCommandQueue());
-
-  /*
-   * TODO!
-   * 1) Kernel for bouncing back from some wall +
-   * 2) Test bouncing back kernel
-   * 3) Take out the bubble from simulation
-   * 4) Generate particles with all same momenta
-   * 5) Simulate the system and see if it relaxes to boltzmann distribution
-   */
-
-  /*
-  // Calculate collision cell index for each particle
-  cells.generateShiftVector(generator_collision);
-  cells.writeShiftVectorBuffer(kernels.getCommandQueue());
-  kernels.getCommandQueue().enqueueNDRangeKernel(
-      kernels.m_cellAssignmentKernel, cl::NullRange,
-      cl::NDRange(particles1.getParticleCountTotal()));
-  // Update data on CPU
-  particles1.readParticlesBuffer(kernels.getCommandQueue());
-  // Calculate zero momentum frames and generate axises of rotation
-  cells.recalculate_cells(particles1.getParticles(), generator_collision);
-  // Update data on GPU
-  for (Particle p : particles1.getParticles()) {
-    std::cout << p.p_x << ", " << p.p_y << ", " << p.p_z << std::endl;
+  if (config.streamDataOn) {
+    streamer.initData();
   }
-  std::cout << std::endl;
-
-  particles1.writeParticlesBuffer(kernels.getCommandQueue());
-  cells.writeCollisionCellBuffer(kernels.getCommandQueue());
-  // Rotate momentums
-  kernels.getCommandQueue().enqueueNDRangeKernel(
-      kernels.m_rotationKernel, cl::NullRange,
-      cl::NDRange(particles1.getParticleCountTotal()));
-  // Update data on CPU
-  particles1.readParticlesBuffer(kernels.getCommandQueue());
-
-  for (Particle p : particles1.getParticles()) {
-    std::cout << p.p_x << ", " << p.p_y << ", " << p.p_z << ", "
-              << p.idxCollisionCell << std::endl;
+  if (config.streamDensityOn) {
+    streamer.initDensityProfile(config.streamDensityBinsCount,
+                                config.bubbleInitialRadius * 2 * std::sqrt(3));
   }
-  */
-  // exit(0);
+  if (config.streamMomentumOn) {
+    streamer.initMomentumProfile(config.streamMomentumBinsCount, 30);
+  }
+  streamer.stream(simulation, particles, bubble, kernels.getCommandQueue());
 
   std::fstream infoStream(filePath / "info.txt",
                           std::ios::out | std::ios::trunc);
+  std::cout << std::setprecision(8) << std::endl;
   createSimulationInfoFile(infoStream, filePath, config, dV,
                            initialNumberDensityFalse,
                            initialEnergyDensityFalse);
 
-  /* std::cout << std::setprecision(10) << std::fixed;
-  std::cout << "===== STARTING SIMULATION =====" << std::endl;
-  std::cout << "t: " << simulation.getTime() << ", R: " << bubble.getRadius()
-            << ", V: " << bubble.getSpeed() << std::endl;*/
-
-  /*for (Particle p : particles1.getParticles()) {
-    std::cout << p.x << ", " << p.y << ", " << p.z << ", " << p.E << ", "
-              << p.p_x << ", " << p.p_y << ", " << p.p_z << std::endl;
-  }
-  for (Particle p : particles1.getParticles()) {
-    std::cout << p.idxCollisionCell << ",";
-  }
-  std::cout << std::endl;
-  std::cout << std::endl;
-
-  simulation.step(particles1, cells, generator_collision,
-                  kernels.m_particleStepKernel, kernels.m_cellAssignmentKernel,
-                  kernels.m_rotationKernel, kernels.getCommandQueue());
-  particles1.readParticlesBuffer(kernels.getCommandQueue());
-
-  for (Particle p : particles1.getParticles()) {
-    std::cout << p.x << ", " << p.y << ", " << p.z << ", " << p.E << ", "
-              << p.p_x << ", " << p.p_y << ", " << p.p_z << std::endl;
-  }
-  for (Particle p : particles1.getParticles()) {
-    std::cout << p.idxCollisionCell << ",";
-  }
-  std::cout << std::endl;
-  std::cout << std::endl;
-
-  simulation.step(particles1, cells, generator_collision,
-                  kernels.m_particleStepKernel, kernels.m_cellAssignmentKernel,
-                  kernels.m_rotationKernel, kernels.getCommandQueue());
-
-  particles1.readParticlesBuffer(kernels.getCommandQueue());
-
-  for (Particle p : particles1.getParticles()) {
-    std::cout << p.x << ", " << p.y << ", " << p.z << ", " << p.E << ", "
-              << p.p_x << ", " << p.p_y << ", " << p.p_z << std::endl;
-  }
-  for (Particle p : particles1.getParticles()) {
-    std::cout << p.idxCollisionCell << ",";
-  }
-  std::cout << std::endl;
-  std::cout << std::endl;
-
-  exit(0);*/
-  /*
-  std::fstream debug(filePath / "data.txt", std::ios::out | std::ios::trunc);
-
-  std::fstream debug2(filePath / "data2.txt", std::ios::out | std::ios::trunc);
-  debug << std::setprecision(6) << std::fixed << std::showpoint;
-  debug << simulation.getTime() << std::endl;
-  particles1.readParticlesBuffer(kernels.getCommandQueue());
-  for (Particle p : particles1.getParticles()) {
-    debug << p.x << "," << p.y << "," << p.z << "," << p.E << "," << p.p_x
-          << "," << p.p_y << "," << p.p_z << "," << p.idxCollisionCell
-          << std::endl;
-  }
-  debug << std::endl;
-
-  debug2 << std::setprecision(6) << std::fixed << std::showpoint;
-  debug2 << simulation.getTime() << std::endl;
-  for (size_t i = 0; i < cells.getCollisionCells().size(); i++) {
-    auto c = cells.getCollisionCells()[i];
-    if (c.particle_count > 1) {
-      debug2 << i << ": " << c.gamma << ", " << c.v2 << ", " << c.particle_count
-             << ", " << c.total_mass << "," << c.x << "," << c.y << "," << c.z
-             << "," << c.theta << std::endl;
+  // Energy, p_x, p_y, p_z, p^2
+  std::array<double, 5> previous = {0., 0., 0., 0., 0.};
+  std::array<double, 5> current = {0., 0., 0., 0., 0.};
+  if (b_collisionDevelopment) {
+    for (Particle p : particles.getParticles()) {
+      current[0] += p.E;
+      current[1] += p.p_x;  // std::abs(p.p_x);
+      current[2] += p.p_y;  // std::abs(p.p_y);
+      current[3] += p.p_z;  // std::abs(p.p_z);
+      current[4] += std::sqrt(
+          std::fma(p.p_x, p.p_x, std::fma(p.p_y, p.p_y, p.p_z * p.p_z)));
     }
+    previous[0] = current[0];
+    previous[1] = current[1];
+    previous[2] = current[2];
+    previous[3] = current[3];
+    previous[4] = current[4];
+
+    std::cout << std::setprecision(10) << "Current energy: " << current[0]
+              << ", delta: " << current[0] - previous[0] << std::endl;
+    std::cout << "Current p1: " << current[1]
+              << ", delta: " << current[1] - previous[1] << std::endl;
+    std::cout << "Current p2: " << current[2]
+              << ", delta: " << current[2] - previous[2] << std::endl;
+    std::cout << "Current p3: " << current[3]
+              << ", delta: " << current[3] - previous[3] << std::endl;
+    std::cout << "Current p: " << current[4]
+              << ", delta: " << current[4] - previous[4] << std::endl
+              << std::endl;
   }
-  debug2 << std::endl;
-  */
+  std::cout << "Time: " << simulation.getTime() << ", R: " << bubble.getRadius()
+            << ", V: " << bubble.getSpeed() << ", dP: " << simulation.get_dP()
+            << std::endl;
+
   for (int i = 1; i <= config.m_maxSteps; i++) {
-    /* if (config.m_interactionsOn) {
-      // kernels.test();
-      simulation.step(particles1, bubble, kernels.getKernel(),
-                      kernels.getCommandQueue());
-    } else {
+    /*
       simulation.step(bubble, 0);
     }*/
-
-    simulation.step(particles1, cells, generator_collision,
-                    kernels.m_particleStepKernel,
-                    kernels.m_cellAssignmentKernel, kernels.m_rotationKernel,
-                    kernels.m_particleBounceKernel, kernels.getCommandQueue());
-    /*
-    debug << std::setprecision(6) << std::fixed << std::showpoint;
-    debug << simulation.getTime() << std::endl;
-    particles1.readParticlesBuffer(kernels.getCommandQueue());
-    for (Particle p : particles1.getParticles()) {
-      debug << p.x << "," << p.y << "," << p.z << "," << p.E << "," << p.p_x
-            << "," << p.p_y << "," << p.p_z << "," << p.idxCollisionCell
-            << std::endl;
-    }
-    debug << std::endl;
-
-    debug2 << std::setprecision(6) << std::fixed << std::showpoint;
-    debug2 << simulation.getTime() << std::endl;
-    for (size_t i = 0; i < cells.getCollisionCells().size(); i++) {
-      auto c = cells.getCollisionCells()[i];
-      if (c.particle_count > 1) {
-        debug2 << i << ": " << c.gamma << ", " << c.v2 << ", "
-               << c.particle_count << ", " << c.total_mass << "," << c.x << ","
-               << c.y << "," << c.z << "," << c.theta << std::endl;
-      }
-    }
-    debug2 << std::endl;
-
-    std::cout << cells.getCollisionCells()[27].particle_count << ", "
-              << std::cos(cells.getCollisionCells()[27].theta) << std::endl;
-
-    for (CollisionCell c : cells.getCollisionCells()) {
-      if (std::isnan(c.gamma)) {
-        std::terminate();
-      }
-    }
-    */
-    if (i % config.m_streamFreq == 0) {
-      std::cout << std::setprecision(10) << std::fixed << std::showpoint;
-      std::cout << "Step: " << simulation.getTime() / simulation.get_dt()
-                << std::endl;
-      /*
-      std::cout << "t: " << simulation.getTime()
-                << ", R: " << bubble.getRadius() << ", V: " << bubble.getSpeed()
-                << ", dP: " << simulation.get_dP() << std::endl;*/
-      // auto writeStartTime = high_resolution_clock::now();
-      streamer.stream(simulation, particles1, bubble,
+    if (b_collisionDevelopment) {
+      simulation.step(particles, cells, rn_generator, i, *stepKernel,
+                      kernels.m_cellAssignmentKernel, kernels.m_rotationKernel,
+                      kernels.m_particleBounceKernel,
                       kernels.getCommandQueue());
-      // auto writeEndTime = high_resolution_clock::now();
-      /*std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(
-                       writeEndTime - writeStartTime)
-                       .count()
-                << " ms." << std::endl;
-      ;*/
+
+      particles.readParticlesBuffer(kernels.getCommandQueue());
+      current[0] = 0.;
+      current[1] = 0.;
+      current[2] = 0.;
+      current[3] = 0.;
+      current[4] = 0.;
+      for (Particle p : particles.getParticles()) {
+        current[0] += p.E;
+        current[1] += p.p_x;  // std::abs(p.p_x);
+        current[2] += p.p_y;  // std::abs(p.p_y);
+        current[3] += p.p_z;  // std::abs(p.p_z);
+        current[4] += std::sqrt(
+            std::fma(p.p_x, p.p_x, std::fma(p.p_y, p.p_y, p.p_z * p.p_z)));
+      }
+      std::cout << std::setprecision(10) << "Current energy: " << current[0]
+                << ", delta: " << current[0] - previous[0] << std::endl;
+      std::cout << "Current p1: " << current[1]
+                << ", delta: " << current[1] - previous[1] << std::endl;
+      std::cout << "Current p2: " << current[2]
+                << ", delta: " << current[2] - previous[2] << std::endl;
+      std::cout << "Current p3: " << current[3]
+                << ", delta: " << current[3] - previous[3] << std::endl;
+      std::cout << "Current p: " << current[4]
+                << ", delta: " << current[4] - previous[4] << std::endl
+                << std::endl;
+      previous[0] = current[0];
+      previous[1] = current[1];
+      previous[2] = current[2];
+      previous[3] = current[3];
+      previous[4] = current[4];
+    } else {
+      if (config.bubbleInteractionsOn) {
+        simulation.step(particles, bubble, *stepKernel,
+                        kernels.getCommandQueue());
+      } else {
+        simulation.step(bubble, 0);
+      }
+    }
+
+    if (i % config.streamFreq == 0) {
+      std::cout << std::setprecision(10) << std::fixed << std::showpoint;
+      std::cout << "Time: " << simulation.getTime()
+                << ", R: " << bubble.getRadius() << ", V: " << bubble.getSpeed()
+                << ", dP: " << simulation.get_dP() << std::endl;
+      if (config.streamOn) {
+        streamer.stream(simulation, particles, bubble,
+                        kernels.getCommandQueue());
+      }
     }
 
     if (std::isnan(bubble.getRadius()) || bubble.getRadius() <= 0) {
@@ -417,7 +377,7 @@ int main(int argc, char* argv[]) {
     }
   }
   // Stream last state
-  streamer.stream(simulation, particles1, bubble, kernels.getCommandQueue());
+  streamer.stream(simulation, particles, bubble, kernels.getCommandQueue());
   // Measure runtime
   auto programEndTime = high_resolution_clock::now();
   auto ms_int = std::chrono::duration_cast<std::chrono::milliseconds>(
