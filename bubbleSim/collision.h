@@ -110,7 +110,7 @@ class CollisionCellCollection {
                                sizeof(numType), &m_structureRadius);
   };
 
-  void writeAllBuffers(cl::CommandQueue& cl_queue) {
+  void writeAllBuffersToKernel(cl::CommandQueue& cl_queue) {
     writeCollisionCellBuffer(cl_queue);
     writeCellCountBuffer(cl_queue);
     writeCellCountInOneAxisBuffer(cl_queue);

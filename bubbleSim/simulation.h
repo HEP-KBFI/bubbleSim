@@ -76,7 +76,9 @@ class Simulation {
     cl_queue.enqueueWriteBuffer(m_dtBuffer, CL_TRUE, 0, sizeof(numType), &m_dt);
   }
 
-  void writeAllBuffers(cl::CommandQueue& cl_queue) { write_dtBuffer(cl_queue); }
+  void writeAllBuffersToKernel(cl::CommandQueue& cl_queue) {
+    write_dtBuffer(cl_queue);
+  }
 
  private:
   // Sim time paramters:

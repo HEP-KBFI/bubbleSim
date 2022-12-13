@@ -43,7 +43,7 @@ class PhaseBubble {
                                &m_bubble);
   }
 
-  void writeAllBuffers(cl::CommandQueue& cl_queue) {
+  void writeAllBuffersToKernel(cl::CommandQueue& cl_queue) {
     writeBubbleBuffer(cl_queue);
   }
 

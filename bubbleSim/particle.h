@@ -308,7 +308,7 @@ class ParticleCollection {
                                &m_massDelta2);
   }
 
-  void writeAllBuffers(cl::CommandQueue cl_queue) {
+  void writeAllBuffersToKernel(cl::CommandQueue cl_queue) {
     writeParticlesBuffer(cl_queue);
     write_dPBuffer(cl_queue);
     writeInteractedBubbleFalseStateBuffer(cl_queue);

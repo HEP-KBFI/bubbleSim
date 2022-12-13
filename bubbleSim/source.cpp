@@ -77,15 +77,11 @@ int main(int argc, char* argv[]) {
 
   bool b_collisionDevelopment = false;
 
-  std::string configPath = argv[1];  // "config.json"
-  std::string kernelPath = argv[2];  // "kernel.cl";
+  std::string s_configPath = argv[1];  // "config.json"
+  std::string s_kernelPath = argv[2];  // "kernel.cl";
 
-  std::array<std::string, 4> collisionKernelNames = {
-      "assign_cell_index_to_particle", "label_particles_position_by_coordinate",
-      "label_particles_position_by_mass", "transform_momentum"};
-
-  std::cout << "Config path: " << configPath << std::endl;
-  std::cout << "Kernel path: " << kernelPath << std::endl;
+  std::cout << "Config path: " << s_configPath << std::endl;
+  std::cout << "Kernel path: " << s_kernelPath << std::endl;
 
   using std::chrono::duration;
   using std::chrono::duration_cast;
@@ -93,7 +89,7 @@ int main(int argc, char* argv[]) {
   using std::chrono::milliseconds;
   auto programStartTime = high_resolution_clock::now();
 
-  ConfigReader config(configPath);
+  ConfigReader config(s_configPath);
   /*
           ===============  ===============
   */
@@ -108,7 +104,7 @@ int main(int argc, char* argv[]) {
   RandomNumberGenerator rn_generator(config.m_seed);
 
   // 2) Initialize openCL
-  OpenCLLoader kernels(kernelPath);
+  OpenCLLoader kernels(s_kernelPath);
   // 3) Define required physical parameters
   /*
   alpha = dV/rho, eta = sqrt(M+^2 - m-^2)/T, Upsilon = sigma/(dV * R_0)
@@ -131,6 +127,7 @@ int main(int argc, char* argv[]) {
         ParticleGenerator(config.particleMassFalse, temperatureFalse,
                           30 * temperatureFalse, 1e-5 * temperatureFalse);
   }
+
   ParticleCollection particles(
       config.particleMassTrue, config.particleMassFalse, temperatureTrue,
       temperatureFalse, config.particleCountTrue, config.particleCountFalse,
@@ -156,8 +153,8 @@ int main(int argc, char* argv[]) {
 
   // 5) Initialize simulation object
 
-  numType cycleBoundaryRadius;
   Simulation simulation;
+  numType cycleBoundaryRadius;
   if (!config.cyclicBoundaryOn) {
     simulation = Simulation(config.m_seed, config.dt, kernels.getContext());
   } else {
@@ -201,8 +198,6 @@ int main(int argc, char* argv[]) {
     // channged as change of direction changes
     dV = -dV;
   }
-  std::cout << "V_b: " << config.bubbleInitialSpeed << ", dV:" << dV
-            << std::endl;
   PhaseBubble bubble(config.bubbleInitialRadius, config.bubbleInitialSpeed, dV,
                      sigma, kernels.getContext());
 
@@ -241,10 +236,10 @@ int main(int argc, char* argv[]) {
   std::cout << std::endl;
   // 9) Streams
 
-  particles.writeAllBuffers(kernels.getCommandQueue());
-  simulation.writeAllBuffers(kernels.getCommandQueue());
-  bubble.writeAllBuffers(kernels.getCommandQueue());
-  cells.writeAllBuffers(kernels.getCommandQueue());
+  particles.writeAllBuffersToKernel(kernels.getCommandQueue());
+  simulation.writeAllBuffersToKernel(kernels.getCommandQueue());
+  bubble.writeAllBuffersToKernel(kernels.getCommandQueue());
+  cells.writeAllBuffersToKernel(kernels.getCommandQueue());
 
   std::string dataFolderName = createFileNameFromCurrentDate();
 
@@ -258,6 +253,7 @@ int main(int argc, char* argv[]) {
   if (config.streamDensityOn) {
     streamer.initDensityProfile(config.streamDensityBinsCount,
                                 config.bubbleInitialRadius * 2 * std::sqrt(3));
+    // If cyclic condition is set to 2*R_b then max distance is sqrt(3) 2 * R_b
   }
   if (config.streamMomentumOn) {
     streamer.initMomentumProfile(config.streamMomentumBinsCount, 30);
