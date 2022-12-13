@@ -8,9 +8,13 @@ on:
 
   workflow_dispatch:
 
+env:
+  KERNEL_CL: kernels/kernel.cl
+  TEST_CONFIG: configs/test.json
+
 jobs:
   build-and-run:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
       - name: install deps
@@ -26,8 +30,8 @@ jobs:
       - name: run
         run: |
           mkdir data
-          POCL_DEVICES=pthread ./build/bubbleSim.exe configs/test.json &> log_pthread.txt
-          POCL_DEVICES=basic ./build/bubbleSim.exe configs/test.json &> log_basic.txt
+          POCL_DEVICES=pthread ./build/bubbleSim.exe $TEST_CONFIG $KERNEL_CL &> log_pthread.txt
+          POCL_DEVICES=basic ./build/bubbleSim.exe $TEST_CONFIG $KERNEL_CL &> log_basic.txt
 
           diff log_basic.txt log_pthread.txt > diff1.txt || true
           export NUMDIFF=$(wc -l < diff1.txt)
@@ -43,7 +47,7 @@ jobs:
         run: |
           make clean
           OPTFLAGS=-O3 make -j4
-          POCL_DEVICES=pthread ./build/bubbleSim.exe configs/test.json &> log_pthread_O3.txt
+          POCL_DEVICES=pthread ./build/bubbleSim.exe $TEST_CONFIG $KERNEL_CL &> log_pthread_O3.txt
 
           diff log_pthread.txt log_pthread_O3.txt > diff2.txt || true
           export NUMDIFF=$(wc -l < diff2.txt)
@@ -59,7 +63,7 @@ jobs:
         run: |
           make clean
           CXX=clang make -j4
-          POCL_DEVICES=pthread ./build/bubbleSim.exe configs/test.json &> log_pthread_clang.txt
+          POCL_DEVICES=pthread ./build/bubbleSim.exe $TEST_CONFIG $KERNEL_CL &> log_pthread_clang.txt
 
           diff log_pthread.txt log_pthread_clang.txt > diff3.txt || true
           export NUMDIFF=$(wc -l < diff3.txt)
@@ -75,7 +79,7 @@ jobs:
         run: |
           make clean
           make -j4
-          oclgrind --data-races --uninitialized --log oclgrind.log ./build/bubbleSim.exe configs/test_oclgrind.json &> log_oclgrind.txt
+          oclgrind --data-races --uninitialized --log oclgrind.log ./build/bubbleSim.exe configs/test_oclgrind.json $KERNEL_CL &> log_oclgrind.txt
           tail -n10 oclgrind.log
           
           #fail if oclgrind.log is not empty
@@ -88,5 +92,5 @@ jobs:
         run: |
           make clean
           OPTFLAGS="-O0 -fsanitize=address -g" make
-          ASAN_OPTIONS="verbose=1,abort_on_error=1" ./build/bubbleSim.exe configs/test.json &> log_asan.txt
+          ASAN_OPTIONS="verbose=1,abort_on_error=1" ./build/bubbleSim.exe $TEST_CONFIG $KERNEL_CL &> log_asan.txt
 

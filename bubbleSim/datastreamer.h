@@ -1,43 +1,39 @@
 #pragma once
 #define _USE_MATH_DEFINES
 
+#include <filesystem>
 #include <fstream>
 
 #include "base.h"
 #include "bubble.h"
-#include "openclwrapper.h"
+#include "opencl_kernels.h"
 #include "simulation.h"
 
 class DataStreamer {
-  bool m_readBufferParticle;
-  bool m_readBufferBubble;
-  bool m_readBuffer_dP;
-
-  bool m_readBufferInteractedFalse;
-  bool m_readBufferPassedFalse;
-  bool m_readBufferInteractedTrue;
-
-  Simulation& m_sim;
-  PhaseBubble& m_bubble;
-  OpenCLWrapper& m_openCLWrapper;
-
  public:
-  DataStreamer(Simulation& t_sim, PhaseBubble& t_bubble,
-               OpenCLWrapper& t_openCLWrapper);
+  DataStreamer(std::string filePath);
 
-  void reset();
+  void initMomentumProfile(size_t t_binsCount, numType t_maxMomentumValue);
+  void initDensityProfile(size_t t_binsCount, numType t_maxRadiusValue);
+  void initData();
+  void stream(Simulation& simulation, ParticleCollection& particleCollection,
+              PhaseBubble& bubble, cl::CommandQueue& cl_queue);
 
-  void streamBaseData(std::fstream& t_stream, bool t_isBubbleTrueVacuum);
+ private:
+  std::filesystem::path m_filePath;
 
-  int countMassRadiusDifference(bool t_isBubbleTrueVacuum);
+  std::fstream m_fileMomentumIn;
+  std::fstream m_fileMomentumOut;
+  std::fstream m_fileDensity;
+  std::fstream m_fileData;
 
-  void streamParticleInfo();
+  bool m_momentumInitialized = false;
+  bool m_densityInitialized = false;
+  bool m_dataInitialized = false;
 
-  void streamParticleInfo(std::fstream& t_stream);
+  size_t m_momentumBinsCount;
+  size_t m_densityBinsCount;
 
-  void streamProfiles(std::fstream& t_nStream, std::fstream& t_rhoStream,
-                      std::fstream& t_pInStream, std::fstream& t_pOutStream,
-                      int t_densityCountBins, int t_pCountBins,
-                      numType t_radiusMax, numType t_pMax,
-                      numType t_energyDensityNormalizer);
+  numType m_maxMomentumValue;
+  numType m_maxRadiusValue;
 };

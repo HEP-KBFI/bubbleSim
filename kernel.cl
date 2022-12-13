@@ -1,1 +1,0 @@
-bubbleSim/kernel.cl
