@@ -253,6 +253,9 @@ int main(int argc, char* argv[]) {
   if (config.streamDensityOn) {
     streamer.initDensityProfile(config.streamDensityBinsCount,
                                 config.bubbleInitialRadius * 2 * std::sqrt(3));
+    streamer.initEnergyDensityProfile(
+        config.streamDensityBinsCount,
+        config.bubbleInitialRadius * 2 * std::sqrt(3));
     // If cyclic condition is set to 2*R_b then max distance is sqrt(3) 2 * R_b
   }
   if (config.streamMomentumOn) {

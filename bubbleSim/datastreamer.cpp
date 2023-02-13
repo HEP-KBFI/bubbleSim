@@ -41,6 +41,23 @@ void DataStreamer::initDensityProfile(size_t t_binsCount,
   m_fileDensity << m_maxRadiusValue << std::endl;
 }
 
+void DataStreamer::initEnergyDensityProfile(size_t t_binsCount,
+                                            numType t_maxRadiusValue) {
+  m_densityInitialized = true;
+  m_densityBinsCount = t_binsCount;
+  m_maxRadiusValue = t_maxRadiusValue;
+  m_fileEnergyDensity.open(m_filePath / "energyDensity.csv", std::ios::out);
+
+  m_fileEnergyDensity << m_densityBinsCount << "," << m_maxRadiusValue
+                      << std::endl;
+  numType dr = m_maxRadiusValue / m_densityBinsCount;
+  for (size_t i = 1; i < m_densityBinsCount; i++) {
+    std::cout << std::fixed << std::showpoint << std::setprecision(3);
+    m_fileEnergyDensity << dr * i << ",";
+  }
+  m_fileEnergyDensity << m_maxRadiusValue << std::endl;
+}
+
 void DataStreamer::initData() {
   m_dataInitialized = true;
   m_fileData.open(m_filePath / "data.csv", std::ios::out);
@@ -89,6 +106,7 @@ void DataStreamer::stream(Simulation& simulation,
   std::vector<u_int> countBinsOut;
   numType dp = m_maxMomentumValue / m_momentumBinsCount;
   std::vector<u_int> countBinsDensity;
+  std::vector<numType> countBinsEnergyDensity;
   numType dr = m_maxRadiusValue / m_densityBinsCount;
 
   size_t particleInCount;
@@ -150,17 +168,23 @@ void DataStreamer::stream(Simulation& simulation,
   else if ((!m_dataInitialized) && (m_densityInitialized) &&
            (!m_momentumInitialized)) {
     countBinsDensity.resize(m_densityBinsCount);
+    countBinsEnergyDensity.resize(m_densityBinsCount);
     for (u_int i = 0; i < particleCollection.getParticleCountTotal(); i++) {
       particleRadius = particleCollection.calculateParticleRadius(i);
       if (particleRadius < m_maxRadiusValue) {
         countBinsDensity[(int)(particleRadius / dr)] += 1;
+        countBinsEnergyDensity[(int)(particleRadius / dr)] +=
+            particleCollection.getParticleEnergy(i);
       }
     }
     std::cout << std::noshowpoint;
     for (size_t i = 0; i < m_densityBinsCount - 1; i++) {
       m_fileDensity << countBinsDensity[i] << ",";
+      m_fileEnergyDensity << countBinsEnergyDensity[i] << ",";
     }
     m_fileDensity << countBinsDensity[m_densityBinsCount - 1] << std::endl;
+    m_fileEnergyDensity << countBinsEnergyDensity[m_densityBinsCount - 1]
+                        << std::endl;
   }
   /*
    * If only momentum profiles are streamed
@@ -200,10 +224,13 @@ void DataStreamer::stream(Simulation& simulation,
     particleInEnergy = 0.;
     particleTotalEnergy = 0.;
     countBinsDensity.resize(m_densityBinsCount);
+    countBinsEnergyDensity.resize(m_densityBinsCount);
     for (u_int i = 0; i < particleCollection.getParticleCountTotal(); i++) {
       particleRadius = particleCollection.calculateParticleRadius(i);
       if (particleRadius < m_maxRadiusValue) {
         countBinsDensity[(int)(particleRadius / dr)] += 1;
+        countBinsEnergyDensity[(int)(particleRadius / dr)] +=
+            particleCollection.getParticleEnergy(i);
       }
       if (particleCollection.getParticles()[i].m ==
           particleCollection.getMassIn()) {
@@ -235,8 +262,11 @@ void DataStreamer::stream(Simulation& simulation,
     std::cout << std::noshowpoint;
     for (size_t i = 0; i < m_densityBinsCount - 1; i++) {
       m_fileDensity << countBinsDensity[i] << ",";
+      m_fileEnergyDensity << countBinsEnergyDensity[i] << ",";
     }
     m_fileDensity << countBinsDensity[m_densityBinsCount - 1] << std::endl;
+    m_fileEnergyDensity << countBinsEnergyDensity[m_densityBinsCount - 1]
+                        << std::endl;
   }
   /*
    * If data and momentum profiles are streamed
@@ -301,6 +331,7 @@ void DataStreamer::stream(Simulation& simulation,
   else if ((!m_dataInitialized) && (m_densityInitialized) &&
            (m_momentumInitialized)) {
     countBinsDensity.resize(m_densityBinsCount);
+    countBinsEnergyDensity.resize(m_densityBinsCount);
     countBinsIn.resize(m_momentumBinsCount);
     countBinsOut.resize(m_momentumBinsCount);
     for (u_int i = 0; i < particleCollection.getParticleCountTotal(); i++) {
@@ -308,6 +339,8 @@ void DataStreamer::stream(Simulation& simulation,
       particleMomentum = particleCollection.calculateParticleMomentum(i);
       if (particleRadius < m_maxRadiusValue) {
         countBinsDensity[(int)(particleRadius / dr)] += 1;
+        countBinsEnergyDensity[(int)(particleRadius / dr)] +=
+            particleCollection.getParticleEnergy(i);
       }
 
       if (particleMomentum < m_maxMomentumValue) {
@@ -322,8 +355,11 @@ void DataStreamer::stream(Simulation& simulation,
     std::cout << std::noshowpoint;
     for (size_t i = 0; i < m_densityBinsCount - 1; i++) {
       m_fileDensity << countBinsDensity[i] << ",";
+      m_fileEnergyDensity << countBinsEnergyDensity[i] << ",";
     }
     m_fileDensity << countBinsDensity[m_densityBinsCount - 1] << std::endl;
+    m_fileEnergyDensity << countBinsEnergyDensity[m_densityBinsCount - 1]
+                        << std::endl;
     for (size_t i = 0; i < m_momentumBinsCount - 1; i++) {
       m_fileMomentumIn << countBinsIn[i] << ",";
       m_fileMomentumOut << countBinsOut[i] << ",";
@@ -338,6 +374,7 @@ void DataStreamer::stream(Simulation& simulation,
            (m_momentumInitialized)) {
     numType maxMomentum = -1;
     countBinsDensity.resize(m_densityBinsCount);
+    countBinsEnergyDensity.resize(m_densityBinsCount);
     countBinsIn.resize(m_momentumBinsCount);
     countBinsOut.resize(m_momentumBinsCount);
 
@@ -355,6 +392,8 @@ void DataStreamer::stream(Simulation& simulation,
       }
       if (particleRadius < m_maxRadiusValue) {
         countBinsDensity[(int)(particleRadius / dr)] += 1;
+        countBinsEnergyDensity[(int)(particleRadius / dr)] +=
+            particleCollection.getParticleEnergy(i);
       }
       if (particleCollection.getParticles()[i].m ==
           particleCollection.getMassIn()) {
@@ -396,8 +435,11 @@ void DataStreamer::stream(Simulation& simulation,
     std::cout << std::noshowpoint;
     for (size_t i = 0; i < m_densityBinsCount - 1; i++) {
       m_fileDensity << countBinsDensity[i] << ",";
+      m_fileEnergyDensity << countBinsEnergyDensity[i] << ",";
     }
     m_fileDensity << countBinsDensity[m_densityBinsCount - 1] << std::endl;
+    m_fileEnergyDensity << countBinsEnergyDensity[m_densityBinsCount - 1]
+                        << std::endl;
 
     for (size_t i = 0; i < m_momentumBinsCount - 1; i++) {
       m_fileMomentumIn << countBinsIn[i] << ",";
