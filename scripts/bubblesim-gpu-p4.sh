@@ -22,28 +22,28 @@ singularity exec --nv \
 	--env CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES \
         -B $WORKDIR -B $BUBBLESIM_DIR \
 	$IMG \
-	./bubbleSim.exe $BUBBLESIM_DIR/bubbleSim/$1 &> log_1.txt &
+	nice ./bubbleSim.exe $BUBBLESIM_DIR/bubbleSim/$1 &> log_1.txt &
 
 singularity exec --nv \
 	--env LD_LIBRARY_PATH=/usr/local/cuda/lib64 \
 	--env CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES \
         -B $WORKDIR -B $BUBBLESIM_DIR \
 	$IMG \
-	./bubbleSim.exe $BUBBLESIM_DIR/bubbleSim/$2 &> log_2.txt &
+	nice ./bubbleSim.exe $BUBBLESIM_DIR/bubbleSim/$2 &> log_2.txt &
 
 singularity exec --nv \
 	--env LD_LIBRARY_PATH=/usr/local/cuda/lib64 \
 	--env CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES \
         -B $WORKDIR -B $BUBBLESIM_DIR \
 	$IMG \
-	./bubbleSim.exe $BUBBLESIM_DIR/bubbleSim/$3 &> log_3.txt &
+	nice ./bubbleSim.exe $BUBBLESIM_DIR/bubbleSim/$3 &> log_3.txt &
 
-singularity exec --nv \
+nice +10 singularity exec --nv \
 	--env LD_LIBRARY_PATH=/usr/local/cuda/lib64 \
 	--env CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES \
         -B $WORKDIR -B $BUBBLESIM_DIR \
 	$IMG \
-	./bubbleSim.exe $BUBBLESIM_DIR/bubbleSim/$4 &> log_4.txt &
+	nice ./bubbleSim.exe $BUBBLESIM_DIR/bubbleSim/$4 &> log_4.txt &
 
 #wait for parallel jobs to finish
 wait
