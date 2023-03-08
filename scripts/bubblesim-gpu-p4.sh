@@ -38,7 +38,7 @@ singularity exec --nv \
 	$IMG \
 	nice ./bubbleSim.exe $BUBBLESIM_DIR/bubbleSim/$3 &> log_3.txt &
 
-nice +10 singularity exec --nv \
+singularity exec --nv \
 	--env LD_LIBRARY_PATH=/usr/local/cuda/lib64 \
 	--env CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES \
         -B $WORKDIR -B $BUBBLESIM_DIR \
