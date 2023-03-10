@@ -7,6 +7,10 @@ SRC_DIR := ./bubbleSim
 SRCS := $(shell find $(SRC_DIR) -name '*.cpp')
 OBJS := $(SRCS:%=$(BUILD_DIR)/%.o)
 
+ifndef OPTFLAGS
+  OPTFLAGS := -O3
+endif
+
 #link against common OCL headers
 CXXFLAGS=-std=c++2a -I./dependencies/json/ $(OPTFLAGS)
 LDFLAGS=-lOpenCL -lm -lstdc++ $(OPTFLAGS)
