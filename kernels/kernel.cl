@@ -98,19 +98,19 @@ double calculateTimeToWall(
 
 void calculateNormal(
 	double *t_n1, double *t_n2, double *t_n3, 
-	Particle particle, Bubble bubble, double t_X2, double t_mass_in, double t_mass_out
+	Particle particle, Bubble bubble, double t_mass_in, double t_mass_out
 	){	
 	// If M_in > M_out then normal is towards center of bubble
 	if (t_mass_in > t_mass_out){
-		*t_n1 = -particle.x * bubble.gamma/sqrt(t_X2);
-		*t_n2 = -particle.y * bubble.gamma/sqrt(t_X2);
-		*t_n3 = -particle.z * bubble.gamma/sqrt(t_X2);
+		*t_n1 = -particle.x * bubble.gamma/bubble.radius;
+		*t_n2 = -particle.y * bubble.gamma/bubble.radius;
+		*t_n3 = -particle.z * bubble.gamma/bubble.radius;
 		}
 	// If M_in < M_out then normal is towards outside the bubble
 	else {
-		*t_n1 = particle.x * bubble.gamma/sqrt(t_X2);
-		*t_n2 = particle.y * bubble.gamma/sqrt(t_X2);
-		*t_n3 = particle.z * bubble.gamma/sqrt(t_X2);
+		*t_n1 = particle.x * bubble.gamma/bubble.radius;
+		*t_n2 = particle.y * bubble.gamma/bubble.radius;
+		*t_n3 = particle.z * bubble.gamma/bubble.radius;
 		}
 	}
 
@@ -199,7 +199,7 @@ __kernel void particle_bubble_step(
 			
 			// If M_in > M_out then normal is towards inside
 			// If M_in < M_out then normal is towards outside
-			calculateNormal(&n_1, &n_2, &n_3, particle, bubble, X2, M_in, M_out);
+			calculateNormal(&n_1, &n_2, &n_3, particle, bubble, M_in, M_out);
 					
 			np = bubble.speed * bubble.gamma * particle.E - n_1*particle.pX - n_2*particle.pY - n_3*particle.pZ;
 			
@@ -288,7 +288,7 @@ __kernel void particle_bubble_step(
 			// n_1 = X_1 * Gamma/sqrt(X2);
 			// n_2 = X_2 * Gamma/sqrt(X2);
 			// n_3 = X_3 * Gamma/sqrt(X2);
-			calculateNormal(&n_1, &n_2, &n_3, particle, bubble, X2, M_in, M_out);
+			calculateNormal(&n_1, &n_2, &n_3, particle, bubble, M_in, M_out);
 			
 			np = bubble.speed * bubble.gamma*particle.E - n_1*particle.pX - n_2*particle.pY - n_3*particle.pZ;
 			
@@ -414,7 +414,7 @@ __kernel void particle_bubble_step_cyclic(
 			
 			// If M_in > M_out then normal is towards inside
 			// If M_in < M_out then normal is towards outside
-			calculateNormal(&n_1, &n_2, &n_3, particle, bubble, X2, M_in, M_out);
+			calculateNormal(&n_1, &n_2, &n_3, particle, bubble, M_in, M_out);
 					
 			np = bubble.speed * bubble.gamma * particle.E - n_1*particle.pX - n_2*particle.pY - n_3*particle.pZ;
 			
@@ -507,7 +507,7 @@ __kernel void particle_bubble_step_cyclic(
 			// n_1 = X_1 * Gamma/sqrt(X2);
 			// n_2 = X_2 * Gamma/sqrt(X2);
 			// n_3 = X_3 * Gamma/sqrt(X2);
-			calculateNormal(&n_1, &n_2, &n_3, particle, bubble, X2, M_in, M_out);
+			calculateNormal(&n_1, &n_2, &n_3, particle, bubble, M_in, M_out);
 			
 			np = bubble.speed * bubble.gamma*particle.E - n_1*particle.pX - n_2*particle.pY - n_3*particle.pZ;
 			if (np > 0){
