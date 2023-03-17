@@ -62,7 +62,7 @@ double calculateTimeToWall(
 		Particle particle, Bubble bubble, double t_dt
 	) {
 	double time1, time2;
-	
+
 	//double a = fma(t_p1, t_p1/pow(t_E, 2), fma(t_p2, t_p2/pow(t_E, 2), fma(t_p3, t_p3/pow(t_E, 2), - t_vb * t_vb)));
 	double a = fma(particle.pX, particle.pX,
 					fma(particle.pY, particle.pY,
@@ -122,6 +122,110 @@ double calculateEnergy(Particle particle, double mass){
 	return sqrt(fma(particle.pX, particle.pX, 
 					fma(particle.pY, particle.pY, 
 						fma(particle.pZ, particle.pZ, pow(mass, 2)))));
+}
+
+__kernel void particle_bubble_step_refelections_only(	
+	__global Particle *t_particles,	
+	__global double *t_dP,
+	__global char *t_interactedFalse,
+	__global char *t_passedFalse,
+	__global char *t_interactedTrue,
+	__constant Bubble *t_bubble,
+	__constant double *t_dt,
+	__constant double *t_m_in,
+	__constant double *t_m_out,
+	__constant double *t_delta_m2
+	){
+	
+	unsigned int gid = get_global_id(0);
+	// dE - dP is not actual energy difference. dE = ΔE/R_b -> to avoid singularities/noise near R_b ~ 0
+
+	// Bubble parameters	
+	struct Bubble bubble = t_bubble[0];
+	// Particle
+	struct Particle particle = t_particles[gid];
+	
+	double M_in = t_m_in[0];
+	double M_out = t_m_out[0];
+	double Delta_M2 = t_delta_m2[0];
+	
+	// Particle parameters
+	double dt = t_dt[0];
+
+	double V_1 = particle.pX/particle.E;
+	double V_2 = particle.pY/particle.E;
+	double V_3 = particle.pZ/particle.E;
+	
+	// fma(a, b, c) = a * b + c
+	double X2 = calculateRadius(particle);
+	
+	double X_dt_1 = fma(V_1, dt, particle.x);
+	double X_dt_2 = fma(V_2, dt, particle.y);
+	double X_dt_3 = fma(V_3, dt, particle.z);
+	double X_dt2 = fma(X_dt_1, X_dt_1, fma( X_dt_2, X_dt_2, X_dt_3 * X_dt_3));
+	
+	double n_1, n_2, n_3;
+	double timeToWall, np;
+			
+	// Particle dynamics assuming that all particles stay in
+	if ( ((X2 < bubble.radius2) && (M_in < M_out)) ){
+		// move particles that stay in
+		if ( (X_dt2 < bubble.radiusAfterStep2) && (M_in < M_out) ) {
+			particle.x = X_dt_1;
+			particle.y = X_dt_2;
+			particle.z = X_dt_3;
+			t_dP[gid] = 0.;
+			// t_interactedFalse[gid] += 0;
+			// t_passedFalse[gid] += 0;
+			// t_interactedTrue[gid] += 0;
+		}
+		// reflect particles that would to get out
+		else {
+			timeToWall = calculateTimeToWall(particle, bubble, dt);
+			moveLinear(&particle, V_1, V_2, V_3, timeToWall);
+
+			// Update X2
+			X2 = calculateRadius(particle);
+			
+			// relativistic reflection algorithm
+			calculateNormal(&n_1, &n_2, &n_3, particle, bubble, M_in, M_out);				
+			np = bubble.speed * bubble.gamma * particle.E - n_1*particle.pX - n_2*particle.pY - n_3*particle.pZ;
+			
+			particle.pX = fma(np*2., n_1, particle.pX);
+			particle.pY = fma(np*2., n_2, particle.pY);
+			particle.pZ = fma(np*2., n_3, particle.pZ);
+			
+			t_dP[gid] = bubble.gamma * np * 2. ;
+					
+			particle.E = calculateEnergy(particle, particle.m);
+				
+			t_interactedFalse[gid] += 1;
+			
+			// Update velocity vector
+			V_1 = particle.pX / particle.E;
+			V_2 = particle.pY / particle.E;
+			V_3 = particle.pZ / particle.E;
+
+			// ========== Movement after the bubble interaction ==========
+			moveLinear(&particle, V_1, V_2, V_3, dt - timeToWall);
+		}
+	}
+	else {
+		particle.x = 100000;
+		particle.y = 100000;
+		particle.z = 100000;
+	}
+		
+	t_particles[gid].x = particle.x;
+	t_particles[gid].y = particle.y;
+	t_particles[gid].z = particle.z;
+	
+	t_particles[gid].pX = particle.pX;
+	t_particles[gid].pY = particle.pY;
+	t_particles[gid].pZ = particle.pZ;
+	t_particles[gid].E = particle.E;
+	t_particles[gid].m = particle.m;
+	
 }
 
 __kernel void particle_bubble_step(	
