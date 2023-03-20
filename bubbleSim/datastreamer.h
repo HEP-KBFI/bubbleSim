@@ -15,6 +15,7 @@ class DataStreamer {
 
   void initMomentumProfile(size_t t_binsCount, numType t_maxMomentumValue);
   void initDensityProfile(size_t t_binsCount, numType t_maxRadiusValue);
+  void initEnergyDensityProfile(size_t t_binsCount, numType t_maxRadiusValue);
   void initData();
   void stream(Simulation& simulation, ParticleCollection& particleCollection,
               PhaseBubble& bubble, cl::CommandQueue& cl_queue);
@@ -25,6 +26,7 @@ class DataStreamer {
   std::fstream m_fileMomentumIn;
   std::fstream m_fileMomentumOut;
   std::fstream m_fileDensity;
+  std::fstream m_fileEnergyDensity;
   std::fstream m_fileData;
 
   bool m_momentumInitialized = false;
