@@ -112,9 +112,12 @@ int main(int argc, char* argv[]) {
   Define M+ -> Get T -> Get rho -> get dV -> get sigma
   M+ is defined in a config
   */
-  numType temperatureFalse = std::sqrt(std::pow(config.particleMassTrue, 2) -
+
+  numType temperatureFalse = config.particleTemperatureFalse;
+  /*numType temperatureFalse = std::sqrt(std::pow(config.particleMassTrue, 2) -
                                        std::pow(config.particleMassFalse, 2)) /
                              config.parameterEta;
+  */
   numType temperatureTrue = 0;  // -> No particles generated in true vacuum
 
   // 4) Generate particles
@@ -158,18 +161,33 @@ int main(int argc, char* argv[]) {
   if (!config.cyclicBoundaryOn) {
     simulation = Simulation(config.m_seed, config.dt, kernels.getContext());
   } else {
+    std::cout << "siin" << std::endl;
     cycleBoundaryRadius = 2 * config.bubbleInitialRadius;
     simulation = Simulation(config.m_seed, config.dt, cycleBoundaryRadius,
                             kernels.getContext());
   }
 
+  /*
+   * Select what kernel to select:
+   * 1) if interactions off
+   * 2) if interactions on and eta==0 -> Make that all particles reflect from
+   * the bubble 3) if interactions on and boundary conditions off 4) if
+   * interactions on and boundary conditions on
+   */
   cl::Kernel* stepKernel;
   if (!config.bubbleInteractionsOn) {
-    stepKernel = &kernels.m_particleStepKernel;
+    stepKernel = &kernels.m_particlesStepKernel;
+  } else if ((config.bubbleInteractionsOn) && (config.parameterEta == 0.)) {
+    if (config.cyclicBoundaryOn) {
+      std::cout << "If eta = oo then cyclic boundary must be turned off."
+                << std::endl;
+      std::terminate();
+    }
+    stepKernel = &kernels.m_particlesWithBubbleReflectKernel;
   } else if ((config.bubbleInteractionsOn) && (!config.cyclicBoundaryOn)) {
-    stepKernel = &kernels.m_particleBubbleStepKernel;
+    stepKernel = &kernels.m_particlesWithBubbleStepKernel;
   } else if ((config.bubbleInteractionsOn) && (config.cyclicBoundaryOn)) {
-    stepKernel = &kernels.m_particleBubbleBoundaryStepKernel;
+    stepKernel = &kernels.m_particlesWithBubbleCyclicKernel;
   } else {
     std::cerr << "Kernel for current configuration is not available"
               << std::endl;
@@ -210,12 +228,13 @@ int main(int argc, char* argv[]) {
                                               kernels.m_rotationKernel);
   if (b_collisionDevelopment) {
     simulation.set_particle_step_buffers(particles, cells,
-                                         kernels.m_particleStepKernel);
+                                         kernels.m_particlesStepKernel);
+    simulation.set_particle_bounce_buffers(particles, cells,
+                                           kernels.m_particleBounceKernel);
+
   } else if (config.bubbleInteractionsOn) {
     simulation.set_particle_step_buffers(particles, bubble, *stepKernel);
   }
-  simulation.set_particle_bounce_buffers(particles, cells,
-                                         kernels.m_particleBounceKernel);
 
   // Add all energy together
 

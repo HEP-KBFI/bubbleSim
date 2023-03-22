@@ -42,14 +42,16 @@ class OpenCLLoader {
 
   cl::Kernel m_cellAssignmentKernel;
   cl::Kernel m_rotationKernel;
-  cl::Kernel m_particleStepKernel;
+  cl::Kernel m_particlesStepKernel;
+  cl::Kernel m_particlesWithBubbleStepKernel;
+  cl::Kernel m_particlesWithBubbleCyclicKernel;
+  cl::Kernel m_particlesWithBubbleReflectKernel;
+
   cl::Kernel m_particleBounceKernel;
-  cl::Kernel m_particleBubbleStepKernel;
-  cl::Kernel m_particleBubbleBoundaryStepKernel;
 
   cl::CommandQueue& getCommandQueue() { return m_queue; }
   cl::Context& getContext() { return m_context; }
-  cl::Kernel& getKernel() { return m_particleBubbleStepKernel; }
+  cl::Kernel& getKernel() { return m_particlesWithBubbleStepKernel; }
   void createContext(std::vector<cl::Device>& devices);
   void createProgram(cl::Context& context, cl::Device& device,
                      std::string& kernelFile);

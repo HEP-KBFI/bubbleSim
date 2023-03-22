@@ -1,25 +1,33 @@
 #include "opencl_kernels.h"
 
 OpenCLLoader::OpenCLLoader(std::string kernelPath) {
-  std::string particleBubbleStepKernelName = "particle_bubble_step";
+  std::string particlesWithBubbleStepKernelName = "particles_with_bubble_step";
+  std::string particlesWithBubbleCyclicKernelName =
+      "particles_with_bubble_step_cyclic";
+  std::string particlesCyclicStepKernelName = "particles_step_cyclic";
+  std::string particlesWithBubbleReflectKernelName =
+      "particles_with_false_bubble_step_reflect";
+
+  // Kernels in development
+  // ----------------------------------------------------------------
   std::string cellAssignKernelName = "assign_cell_index_to_particle";
   std::string transformKernelName = "transform_momentum";
-  std::string particleStepKernelName = "particle_step";
   std::string particleBounceKernelName = "particle_bounce";
-  std::string particleBubbleBoundaryStepKernelName =
-      "particle_bubble_step_cyclic";
-
+  // ----------------------------------------------------------------
   createContext(m_devices);
   createProgram(m_context, m_deviceUsed, kernelPath);
-  createKernel(m_program, m_particleBubbleStepKernel,
-               particleBubbleStepKernelName.c_str());  // cl::Kernel
+  createKernel(m_program, m_particlesWithBubbleStepKernel,
+               particlesWithBubbleStepKernelName.c_str());  // cl::Kernel
+  createKernel(m_program, m_particlesWithBubbleReflectKernel,
+               particlesWithBubbleReflectKernelName.c_str());
   createKernel(m_program, m_rotationKernel, transformKernelName.c_str());
   createKernel(m_program, m_cellAssignmentKernel, cellAssignKernelName.c_str());
-  createKernel(m_program, m_particleStepKernel, particleStepKernelName.c_str());
+  createKernel(m_program, m_particlesStepKernel,
+               particlesCyclicStepKernelName.c_str());
   createKernel(m_program, m_particleBounceKernel,
                particleBounceKernelName.c_str());
-  createKernel(m_program, m_particleBubbleBoundaryStepKernel,
-               particleBubbleBoundaryStepKernelName.c_str());
+  createKernel(m_program, m_particlesWithBubbleCyclicKernel,
+               particlesWithBubbleCyclicKernelName.c_str());
 
   createQueue(m_context, m_deviceUsed);
 }
