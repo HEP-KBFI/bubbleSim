@@ -21,7 +21,7 @@
 	"particles": {
 		"mass_false": 0,
 		"mass_true": 1,
-		"T_false": 0.0,
+		"T_false": 0.5,
 		"T_true": 0.0,
 		"N_false": 100,
 		"N_true": 0
