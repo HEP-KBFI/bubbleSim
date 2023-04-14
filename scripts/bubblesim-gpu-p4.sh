@@ -5,7 +5,7 @@
 #SBATCH -o logs/slurm-%x-%j-%N.out
 
 WORKDIR=/scratch/$USER/${SLURM_JOB_ID}
-IMG=/home/software/singularity/base
+IMG=/home/software/singularity/base.simg
 BUBBLESIM_DIR=~/bubbleSim
 
 #create a local dir on the worker node
