@@ -109,201 +109,71 @@ void DataStreamer::stream(Simulation& simulation,
   std::vector<numType> countBinsEnergyDensity;
   numType dr = m_maxRadiusValue / m_densityBinsCount;
 
-  size_t particleInCount;
-  size_t particleInteractedFalseCount;
-  size_t particlePassedFalseCount;
-  size_t particleInteractedTrueCount;
-  numType particleInEnergy;
-  numType particleTotalEnergy;
+  size_t particleInCount = 0;
+  size_t particleInteractedFalseCount = 0;
+  size_t particlePassedFalseCount = 0;
+  size_t particleInteractedTrueCount = 0;
+  numType particleInEnergy = 0;
+  numType particleTotalEnergy = 0;
   numType totalEnergy;
 
   numType particleRadius;
   numType particleMomentum;
 
-  /*
-   * If only data is streamed
-   */
-  if ((m_dataInitialized) && (!m_densityInitialized) &&
-      (!m_momentumInitialized)) {
-    particleInCount = 0;
-    particleInteractedFalseCount = 0;
-    particlePassedFalseCount = 0;
-    particleInteractedTrueCount = 0;
-    particleInEnergy = 0.;
-    particleTotalEnergy = 0.;
+  particleInCount = 0;
+  particleInteractedFalseCount = 0;
+  particlePassedFalseCount = 0;
+  particleInteractedTrueCount = 0;
+  particleInEnergy = 0.;
+  particleTotalEnergy = 0.;
 
-    for (u_int i = 0; i < particleCollection.getParticleCountTotal(); i++) {
-      if (particleCollection.getParticles()[i].m ==
-          particleCollection.getMassIn()) {
-        particleInCount += 1;
-        particleInEnergy += particleCollection.getParticleEnergy(i);
-      } else {
-        particleTotalEnergy += particleCollection.getParticleEnergy(i);
+  /*(m_dataInitialized) && (m_densityInitialized) &&
+            (m_momentumInitialized)) */
+
+  countBinsDensity.resize(m_densityBinsCount);
+  countBinsEnergyDensity.resize(m_densityBinsCount);
+  countBinsIn.resize(m_momentumBinsCount);
+  countBinsOut.resize(m_momentumBinsCount);
+
+  for (u_int i = 0; i < particleCollection.getParticleCountTotal(); i++) {
+    particleRadius = particleCollection.calculateParticleRadius(i);
+    particleMomentum = particleCollection.calculateParticleMomentum(i);
+
+    // Stream number and energy density
+    if (particleRadius < m_maxRadiusValue) {
+      if (m_densityInitialized) {
       }
+      countBinsDensity[(int)(particleRadius / dr)] += 1;
+      countBinsEnergyDensity[(int)(particleRadius / dr)] +=
+          particleCollection.getParticleEnergy(i);
+    }
+
+    if (particleRadius <= bubble.getRadius()) {
+      particleInCount += 1;
+      particleInEnergy += particleCollection.getParticles()[i].E;
+      if ((particleMomentum < m_maxMomentumValue) && (m_momentumInitialized)) {
+        countBinsIn[(int)(particleMomentum / dp)] += 1;
+      }
+    } else {
+      particleTotalEnergy += particleCollection.getParticles()[i].E;
+      if ((particleMomentum < m_maxMomentumValue) && (m_momentumInitialized)) {
+        countBinsOut[(int)(particleMomentum / dp)] += 1;
+      }
+    }
+    // Stream step data
+    if (m_dataInitialized) {
       particleInteractedFalseCount +=
           particleCollection.getInteractedFalse()[i];
       particlePassedFalseCount += particleCollection.getPassedFalse()[i];
       particleInteractedTrueCount += particleCollection.getInteractedTrue()[i];
+      particleTotalEnergy += particleInEnergy;
     }
-    particleTotalEnergy += particleInEnergy;
-    totalEnergy = particleTotalEnergy + bubble.calculateEnergy();
-    std::cout << std::fixed << std::showpoint << std::setprecision(6);
-    m_fileData << simulation.getTime() << "," << simulation.get_dP() << ",";
-    m_fileData << bubble.getRadius() << "," << bubble.getSpeed() << ",";
-    m_fileData << bubble.calculateEnergy() << "," << particleTotalEnergy << ",";
-    m_fileData << particleInEnergy << ","
-               << totalEnergy / simulation.getTotalEnergy() << ",";
-    m_fileData << particleInCount << "," << particleInteractedFalseCount << ",";
-    m_fileData << particlePassedFalseCount << "," << particleInteractedTrueCount
-               << std::endl;
-    auto it = std::max_element(std::begin(particleCollection.getPassedFalse()),
-                               std::end(particleCollection.getPassedFalse()));
-    particleCollection.resetAndWriteInteractedBubbleFalseState(cl_queue);
-    particleCollection.resetAndWritePassedBubbleFalseState(cl_queue);
-    particleCollection.resetAndWriteInteractedBubbleTrueState(cl_queue);
   }
-  /*
-   * If only number density is streamed
-   */
-  else if ((!m_dataInitialized) && (m_densityInitialized) &&
-           (!m_momentumInitialized)) {
-    countBinsDensity.resize(m_densityBinsCount);
-    countBinsEnergyDensity.resize(m_densityBinsCount);
-    for (u_int i = 0; i < particleCollection.getParticleCountTotal(); i++) {
-      particleRadius = particleCollection.calculateParticleRadius(i);
-      if (particleRadius < m_maxRadiusValue) {
-        countBinsDensity[(int)(particleRadius / dr)] += 1;
-        countBinsEnergyDensity[(int)(particleRadius / dr)] +=
-            particleCollection.getParticleEnergy(i);
-      }
-    }
-    std::cout << std::noshowpoint;
-    for (size_t i = 0; i < m_densityBinsCount - 1; i++) {
-      m_fileDensity << countBinsDensity[i] << ",";
-      m_fileEnergyDensity << countBinsEnergyDensity[i] << ",";
-    }
-    m_fileDensity << countBinsDensity[m_densityBinsCount - 1] << std::endl;
-    m_fileEnergyDensity << countBinsEnergyDensity[m_densityBinsCount - 1]
-                        << std::endl;
-  }
-  /*
-   * If only momentum profiles are streamed
-   */
-  else if ((!m_dataInitialized) && (!m_densityInitialized) &&
-           (m_momentumInitialized)) {
-    countBinsIn.resize(m_momentumBinsCount);
-    countBinsOut.resize(m_momentumBinsCount);
-    for (u_int i = 0; i < particleCollection.getParticleCountTotal(); i++) {
-      particleMomentum = particleCollection.calculateParticleMomentum(i);
-      if (particleMomentum < m_maxMomentumValue) {
-        if (particleCollection.getParticleMass(i) ==
-            particleCollection.getMassIn()) {
-          countBinsIn[(int)(particleMomentum / dp)] += 1;
-        } else {
-          countBinsOut[(int)(particleMomentum / dp)] += 1;
-        }
-      }
-    }
-    std::cout << std::noshowpoint;
-    for (size_t i = 0; i < m_momentumBinsCount - 1; i++) {
-      m_fileMomentumIn << countBinsIn[i] << ",";
-      m_fileMomentumOut << countBinsOut[i] << ",";
-    }
-    m_fileMomentumIn << countBinsIn[m_momentumBinsCount - 1] << std::endl;
-    m_fileMomentumOut << countBinsOut[m_momentumBinsCount - 1] << std::endl;
-  }
-  /*
-   * If data and number density are streamed
-   */
-  else if ((m_dataInitialized) && (m_densityInitialized) &&
-           (!m_momentumInitialized)) {
-    particleInCount = 0;
-    particleInteractedFalseCount = 0;
-    particlePassedFalseCount = 0;
-    particleInteractedTrueCount = 0;
-    particleInEnergy = 0.;
-    particleTotalEnergy = 0.;
-    countBinsDensity.resize(m_densityBinsCount);
-    countBinsEnergyDensity.resize(m_densityBinsCount);
-    for (u_int i = 0; i < particleCollection.getParticleCountTotal(); i++) {
-      particleRadius = particleCollection.calculateParticleRadius(i);
-      if (particleRadius < m_maxRadiusValue) {
-        countBinsDensity[(int)(particleRadius / dr)] += 1;
-        countBinsEnergyDensity[(int)(particleRadius / dr)] +=
-            particleCollection.getParticleEnergy(i);
-      }
-      if (particleCollection.getParticles()[i].m ==
-          particleCollection.getMassIn()) {
-        particleInCount += 1;
-        particleInEnergy += particleCollection.getParticles()[i].E;
-      } else {
-        particleTotalEnergy += particleCollection.getParticles()[i].E;
-      }
-      particleInteractedFalseCount +=
-          particleCollection.getInteractedFalse()[i];
-      particlePassedFalseCount += particleCollection.getPassedFalse()[i];
-      particleInteractedTrueCount += particleCollection.getInteractedTrue()[i];
-    }
-    particleTotalEnergy += particleInEnergy;
-    totalEnergy = particleTotalEnergy + bubble.calculateEnergy();
 
-    std::cout << std::fixed << std::showpoint << std::setprecision(6);
-    m_fileData << simulation.getTime() << "," << simulation.get_dP() << ",";
-    m_fileData << bubble.getRadius() << "," << bubble.getSpeed() << ",";
-    m_fileData << bubble.calculateEnergy() << "," << particleTotalEnergy << ",";
-    m_fileData << particleInEnergy << ","
-               << totalEnergy / simulation.getTotalEnergy() << ",";
-    m_fileData << particleInCount << "," << particleInteractedFalseCount << ",";
-    m_fileData << particlePassedFalseCount << "," << particleInteractedTrueCount
-               << std::endl;
-    particleCollection.resetAndWriteInteractedBubbleFalseState(cl_queue);
-    particleCollection.resetAndWritePassedBubbleFalseState(cl_queue);
-    particleCollection.resetAndWriteInteractedBubbleTrueState(cl_queue);
-    std::cout << std::noshowpoint;
-    for (size_t i = 0; i < m_densityBinsCount - 1; i++) {
-      m_fileDensity << countBinsDensity[i] << ",";
-      m_fileEnergyDensity << countBinsEnergyDensity[i] << ",";
-    }
-    m_fileDensity << countBinsDensity[m_densityBinsCount - 1] << std::endl;
-    m_fileEnergyDensity << countBinsEnergyDensity[m_densityBinsCount - 1]
-                        << std::endl;
-  }
-  /*
-   * If data and momentum profiles are streamed
-   */
-  else if ((m_dataInitialized) && (!m_densityInitialized) &&
-           (m_momentumInitialized)) {
-    countBinsIn.resize(m_momentumBinsCount);
-    countBinsOut.resize(m_momentumBinsCount);
-    particleInCount = 0;
-    particleInteractedFalseCount = 0;
-    particlePassedFalseCount = 0;
-    particleInteractedTrueCount = 0;
-    particleInEnergy = 0.;
-    particleTotalEnergy = 0.;
-    for (u_int i = 0; i < particleCollection.getParticleCountTotal(); i++) {
-      particleMomentum = particleCollection.calculateParticleMomentum(i);
-      if (particleCollection.getParticles()[i].m ==
-          particleCollection.getMassIn()) {
-        particleInCount += 1;
-        particleInEnergy += particleCollection.getParticles()[i].E;
-        if (particleMomentum < m_maxMomentumValue) {
-          countBinsIn[(int)(particleMomentum / dp)] += 1;
-        }
-      } else {
-        particleTotalEnergy += particleCollection.getParticles()[i].E;
-        if (particleMomentum < m_maxMomentumValue) {
-          countBinsOut[(int)(particleMomentum / dp)] += 1;
-        }
-      }
-      particleInteractedFalseCount +=
-          particleCollection.getInteractedFalse()[i];
-      particlePassedFalseCount += particleCollection.getPassedFalse()[i];
-      particleInteractedTrueCount += particleCollection.getInteractedTrue()[i];
-    }
-    particleTotalEnergy += particleInEnergy;
-    totalEnergy = particleTotalEnergy + bubble.calculateEnergy();
+  totalEnergy = particleTotalEnergy + bubble.calculateEnergy();
 
+  // std::cout << "Max momentum: " << maxMomentum << std::endl;
+  if (m_dataInitialized) {
     std::cout << std::fixed << std::showpoint << std::setprecision(6);
     m_fileData << simulation.getTime() << "," << simulation.get_dP() << ",";
     m_fileData << bubble.getRadius() << "," << bubble.getSpeed() << ",";
@@ -318,41 +188,8 @@ void DataStreamer::stream(Simulation& simulation,
     particleCollection.resetAndWriteInteractedBubbleTrueState(cl_queue);
 
     std::cout << std::noshowpoint;
-    for (size_t i = 0; i < m_momentumBinsCount - 1; i++) {
-      m_fileMomentumIn << countBinsIn[i] << ",";
-      m_fileMomentumOut << countBinsOut[i] << ",";
-    }
-    m_fileMomentumIn << countBinsIn[m_momentumBinsCount - 1] << std::endl;
-    m_fileMomentumOut << countBinsOut[m_momentumBinsCount - 1] << std::endl;
   }
-  /*
-   * If number density and momentum profiles are streamed
-   */
-  else if ((!m_dataInitialized) && (m_densityInitialized) &&
-           (m_momentumInitialized)) {
-    countBinsDensity.resize(m_densityBinsCount);
-    countBinsEnergyDensity.resize(m_densityBinsCount);
-    countBinsIn.resize(m_momentumBinsCount);
-    countBinsOut.resize(m_momentumBinsCount);
-    for (u_int i = 0; i < particleCollection.getParticleCountTotal(); i++) {
-      particleRadius = particleCollection.calculateParticleRadius(i);
-      particleMomentum = particleCollection.calculateParticleMomentum(i);
-      if (particleRadius < m_maxRadiusValue) {
-        countBinsDensity[(int)(particleRadius / dr)] += 1;
-        countBinsEnergyDensity[(int)(particleRadius / dr)] +=
-            particleCollection.getParticleEnergy(i);
-      }
-
-      if (particleMomentum < m_maxMomentumValue) {
-        if (particleCollection.getParticleMass(i) ==
-            particleCollection.getMassIn()) {
-          countBinsIn[(int)(particleMomentum / dp)] += 1;
-        } else {
-          countBinsOut[(int)(particleMomentum / dp)] += 1;
-        }
-      }
-    }
-    std::cout << std::noshowpoint;
+  if (m_densityInitialized) {
     for (size_t i = 0; i < m_densityBinsCount - 1; i++) {
       m_fileDensity << countBinsDensity[i] << ",";
       m_fileEnergyDensity << countBinsEnergyDensity[i] << ",";
@@ -360,95 +197,13 @@ void DataStreamer::stream(Simulation& simulation,
     m_fileDensity << countBinsDensity[m_densityBinsCount - 1] << std::endl;
     m_fileEnergyDensity << countBinsEnergyDensity[m_densityBinsCount - 1]
                         << std::endl;
-    for (size_t i = 0; i < m_momentumBinsCount - 1; i++) {
-      m_fileMomentumIn << countBinsIn[i] << ",";
-      m_fileMomentumOut << countBinsOut[i] << ",";
-    }
-    m_fileMomentumIn << countBinsIn[m_momentumBinsCount - 1] << std::endl;
-    m_fileMomentumOut << countBinsOut[m_momentumBinsCount - 1] << std::endl;
   }
-  /*
-   * If data, number density and momentum profiles are streamed
-   */
-  else if ((m_dataInitialized) && (m_densityInitialized) &&
-           (m_momentumInitialized)) {
-    numType maxMomentum = -1;
-    countBinsDensity.resize(m_densityBinsCount);
-    countBinsEnergyDensity.resize(m_densityBinsCount);
-    countBinsIn.resize(m_momentumBinsCount);
-    countBinsOut.resize(m_momentumBinsCount);
-
-    particleInCount = 0;
-    particleInteractedFalseCount = 0;
-    particlePassedFalseCount = 0;
-    particleInteractedTrueCount = 0;
-    particleInEnergy = 0.;
-    particleTotalEnergy = 0.;
-    for (u_int i = 0; i < particleCollection.getParticleCountTotal(); i++) {
-      particleRadius = particleCollection.calculateParticleRadius(i);
-      particleMomentum = particleCollection.calculateParticleMomentum(i);
-      if (particleMomentum > maxMomentum) {
-        maxMomentum = particleMomentum;
-      }
-      if (particleRadius < m_maxRadiusValue) {
-        countBinsDensity[(int)(particleRadius / dr)] += 1;
-        countBinsEnergyDensity[(int)(particleRadius / dr)] +=
-            particleCollection.getParticleEnergy(i);
-      }
-      if (particleCollection.getParticles()[i].m ==
-          particleCollection.getMassIn()) {
-        particleInCount += 1;
-        particleInEnergy += particleCollection.getParticles()[i].E;
-        if (particleMomentum < m_maxMomentumValue) {
-          countBinsIn[(int)(particleMomentum / dp)] += 1;
-        }
-
-      } else {
-        particleTotalEnergy += particleCollection.getParticles()[i].E;
-        if (particleMomentum < m_maxMomentumValue) {
-          countBinsOut[(int)(particleMomentum / dp)] += 1;
-        }
-      }
-      particleInteractedFalseCount +=
-          particleCollection.getInteractedFalse()[i];
-      particlePassedFalseCount += particleCollection.getPassedFalse()[i];
-      particleInteractedTrueCount += particleCollection.getInteractedTrue()[i];
-    }
-    particleTotalEnergy += particleInEnergy;
-    totalEnergy = particleTotalEnergy + bubble.calculateEnergy();
-
-    // std::cout << "Max momentum: " << maxMomentum << std::endl;
-
-    std::cout << std::fixed << std::showpoint << std::setprecision(6);
-    m_fileData << simulation.getTime() << "," << simulation.get_dP() << ",";
-    m_fileData << bubble.getRadius() << "," << bubble.getSpeed() << ",";
-    m_fileData << bubble.calculateEnergy() << "," << particleTotalEnergy << ",";
-    m_fileData << particleInEnergy << ","
-               << totalEnergy / simulation.getTotalEnergy() << ",";
-    m_fileData << particleInCount << "," << particleInteractedFalseCount << ",";
-    m_fileData << particlePassedFalseCount << "," << particleInteractedTrueCount
-               << std::endl;
-    particleCollection.resetAndWriteInteractedBubbleFalseState(cl_queue);
-    particleCollection.resetAndWritePassedBubbleFalseState(cl_queue);
-    particleCollection.resetAndWriteInteractedBubbleTrueState(cl_queue);
-
-    std::cout << std::noshowpoint;
-    for (size_t i = 0; i < m_densityBinsCount - 1; i++) {
-      m_fileDensity << countBinsDensity[i] << ",";
-      m_fileEnergyDensity << countBinsEnergyDensity[i] << ",";
-    }
-    m_fileDensity << countBinsDensity[m_densityBinsCount - 1] << std::endl;
-    m_fileEnergyDensity << countBinsEnergyDensity[m_densityBinsCount - 1]
-                        << std::endl;
-
+  if (m_momentumInitialized) {
     for (size_t i = 0; i < m_momentumBinsCount - 1; i++) {
       m_fileMomentumIn << countBinsIn[i] << ",";
       m_fileMomentumOut << countBinsOut[i] << ",";
     }
     m_fileMomentumIn << countBinsIn[m_momentumBinsCount - 1] << std::endl;
     m_fileMomentumOut << countBinsOut[m_momentumBinsCount - 1] << std::endl;
-  } else {
-    std::cerr << "None of the streams were initilized." << std::endl;
-    std::terminate();
   }
 }
