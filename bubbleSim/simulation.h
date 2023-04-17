@@ -27,7 +27,9 @@ class Simulation {
 
   numType getTotalEnergy() { return m_totalEnergy; }
 
-  void addTotalEnergy(numType energy) { m_totalEnergy += energy; }
+  numType getInitialTotalEnergy() { return m_initialTotalEnergy; }
+
+  void addInitialTotalEnergy(numType energy) { m_initialTotalEnergy += energy; }
 
   void set_dt(numType t_dt) {
     if (t_dt <= 0.) {
@@ -95,6 +97,7 @@ class Simulation {
 
   // Simulation values
   numType m_totalEnergy = 0.;
+  numType m_initialTotalEnergy = 0.;
 
   // Current simulation state values
   numType m_dP = 0.;

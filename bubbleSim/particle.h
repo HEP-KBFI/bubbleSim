@@ -351,6 +351,10 @@ class ParticleCollection {
 
   numType calculateParticleEnergy(u_int i);
 
+  numType calculateParticleRadialVelocity(u_int i);
+
+  numType calculateParticleTangentialVelocity(u_int i);
+
   // Calculate distributions
   numType calculateNumberDensity(numType t_mass, numType t_temperature,
                                  numType t_dp, numType t_pMax);

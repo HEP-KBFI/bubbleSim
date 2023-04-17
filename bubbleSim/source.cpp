@@ -219,8 +219,8 @@ int main(int argc, char* argv[]) {
 
   // Add all energy together
 
-  simulation.addTotalEnergy(particles.getInitialTotalEnergy());
-  simulation.addTotalEnergy(bubble.calculateEnergy());
+  simulation.addInitialTotalEnergy(particles.getInitialTotalEnergy());
+  simulation.addInitialTotalEnergy(bubble.calculateEnergy());
 
   // 8) Streaming object
 
@@ -248,19 +248,24 @@ int main(int argc, char* argv[]) {
   DataStreamer streamer(filePath.string());
 
   if (config.streamDataOn) {
-    streamer.initData();
+    streamer.initStream_Data();
+    streamer.initStream_RadialVelocity(config.streamDensityBinsCount,
+                                       config.bubbleInitialRadius * 2);
+    streamer.initStream_TangentialVelocity(config.streamDensityBinsCount,
+                                           config.bubbleInitialRadius * 2);
   }
   if (config.streamDensityOn) {
-    streamer.initDensityProfile(config.streamDensityBinsCount,
-                                config.bubbleInitialRadius * 2 * std::sqrt(3));
-    streamer.initEnergyDensityProfile(
-        config.streamDensityBinsCount,
-        config.bubbleInitialRadius * 2 * std::sqrt(3));
+    streamer.initStream_Density(config.streamDensityBinsCount,
+                                config.bubbleInitialRadius * 2);
+    streamer.initStream_EnergyDensity(config.streamDensityBinsCount,
+                                      config.bubbleInitialRadius * 2);
     // If cyclic condition is set to 2*R_b then max distance is sqrt(3) 2 * R_b
   }
   if (config.streamMomentumOn) {
-    streamer.initMomentumProfile(config.streamMomentumBinsCount, 30);
+    streamer.initStream_MomentumIn(config.streamMomentumBinsCount, 5);
+    streamer.initStream_MomentumOut(config.streamMomentumBinsCount, 5);
   }
+
   streamer.stream(simulation, particles, bubble, kernels.getCommandQueue());
 
   std::fstream infoStream(filePath / "info.txt",

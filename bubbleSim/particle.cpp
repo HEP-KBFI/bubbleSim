@@ -406,6 +406,17 @@ numType ParticleCollection::calculateParticleEnergy(u_int i) {
                                  m_particles[i].m * m_particles[i].m))));
 }
 
+numType ParticleCollection::calculateParticleRadialVelocity(u_int i) {
+  return std::fma(m_particles[i].p_x, m_particles[i].x,
+                  std::fma(m_particles[i].p_y, m_particles[i].y,
+                           m_particles[i].p_z * m_particles[i].z)) /
+         (m_particles[i].E * calculateParticleRadius(i));
+}
+
+numType ParticleCollection::calculateParticleTangentialVelocity(u_int i) {
+  return std::sqrt(1 - std::pow(calculateParticleRadialVelocity(i), 2));
+}
+
 numType ParticleCollection::calculateNumberDensity(numType t_mass,
                                                    numType t_temperature,
                                                    numType t_dp,

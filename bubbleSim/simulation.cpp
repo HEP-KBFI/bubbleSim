@@ -144,11 +144,6 @@ void Simulation::step(ParticleCollection& particles, PhaseBubble& bubble,
   bubble.calculateRadiusAfterStep2(m_dt);
   bubble.writeBubbleBuffer(cl_queue);
   // Run kernel
-  numType total_energy1 = 0;
-  numType total_energy2 = 0;
-  for (Particle p : particles.getParticles()) {
-    total_energy1 += p.E;
-  }
 
   cl_queue.enqueueNDRangeKernel(t_bubbleInteractionKernel, cl::NullRange,
                                 cl::NDRange(particles.getParticleCountTotal()));
@@ -157,11 +152,10 @@ void Simulation::step(ParticleCollection& particles, PhaseBubble& bubble,
   particles.readParticlesBuffer(cl_queue);
   particles.read_dPBuffer(cl_queue);
   m_dP = 0.;
-  for (numType dPi : particles.get_dP()) {
-    m_dP += dPi;
-  }
-  for (Particle p : particles.getParticles()) {
-    total_energy2 += p.E;
+  numType totalEnergy = 0.;
+  for (size_t i = 0; i < particles.getParticleCountTotal(); i++) {
+    m_dP += particles.get_dP()[i];
+    m_totalEnergy += particles.getParticleEnergy(i);
   }
 
   m_dP = -m_dP / bubble.calculateArea();
@@ -174,7 +168,7 @@ void Simulation::step(ParticleCollection& particles, PhaseBubble& bubble,
   // 3) Assign particles to collision cells
 
   // 4) Calculate COM, Generate rotation
-
+  m_totalEnergy = totalEnergy;
   // 5) Collisions
 }
 
