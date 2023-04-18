@@ -3,6 +3,7 @@
         "seed": 1,
         "max_steps": 5000,
         "dt": 0.1,
+        "maxTime": 10,
         "cyclic_boundary_on": true
     },
     "parameters": {

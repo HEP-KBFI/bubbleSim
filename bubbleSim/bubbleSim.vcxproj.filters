@@ -66,6 +66,9 @@
     <ClInclude Include="datastreamer.h">
       <Filter>Header Files\Streamers</Filter>
     </ClInclude>
+    <ClInclude Include="timestep.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="simulation.cpp">

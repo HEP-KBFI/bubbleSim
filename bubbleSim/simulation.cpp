@@ -1,23 +1,27 @@
 #include "simulation.h"
 
-Simulation::Simulation(int t_seed, numType t_dt, cl::Context& cl_context) {
+Simulation::Simulation(int t_seed, numType t_max_dt, cl::Context& cl_context) {
   int openCLerrNum = 0;
   m_seed = t_seed;
-  m_dt = t_dt;
+  m_dt = t_max_dt;
+  m_step_dt = t_max_dt;
+  m_timestepAdapter = TimestepAdapter(t_max_dt, t_max_dt);
   m_dP = 0.;
   m_dtBuffer = cl::Buffer(cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
-                          sizeof(numType), &t_dt, &openCLerrNum);
+                          sizeof(numType), &m_step_dt, &openCLerrNum);
   m_cyclicBoundaryOn = false;
 }
 
-Simulation::Simulation(int t_seed, numType t_dt, numType t_boundaryRadius,
+Simulation::Simulation(int t_seed, numType t_max_dt, numType t_boundaryRadius,
                        cl::Context& cl_context) {
   int openCLerrNum = 0;
   m_seed = t_seed;
-  m_dt = t_dt;
+  m_dt = t_max_dt;
+  m_step_dt = t_max_dt;
+  m_timestepAdapter = TimestepAdapter(t_max_dt, t_max_dt);
   m_dP = 0.;
   m_dtBuffer = cl::Buffer(cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
-                          sizeof(numType), &t_dt, &openCLerrNum);
+                          sizeof(numType), &m_step_dt, &openCLerrNum);
   m_cyclicBoundaryOn = true;
   m_cyclicBoundaryRadius = t_boundaryRadius;
   m_cyclicBoundaryRadiusBuffer =
@@ -137,39 +141,63 @@ void Simulation::step(ParticleCollection& particles, PhaseBubble& bubble,
    * and rotation angle for the collision cells 5) Perform "collisions" ->
    * Rotate particle momentum (GPU)
    */
-  m_time += m_dt;
 
-  // 1)
+  // 1) Update timestep
+  numType currentStepEnergy = 0.;
+  numType bubbleStartSpeed = bubble.getSpeed();
+  m_step_dt = m_timestepAdapter.getTimestep();
+  write_dtBuffer(cl_queue);
+
+  // 2)
   // Write new bubble parameters to buffer on device
-  bubble.calculateRadiusAfterStep2(m_dt);
+  bubble.calculateRadiusAfterStep2(m_step_dt);
   bubble.writeBubbleBuffer(cl_queue);
-  // Run kernel
 
+  // 3) Run kernel
   cl_queue.enqueueNDRangeKernel(t_bubbleInteractionKernel, cl::NullRange,
                                 cl::NDRange(particles.getParticleCountTotal()));
-  // 2) Calculate how much "energy" particle get and then convert it to energy
+  // 3) Calculate how much "energy" particle get and then convert it to energy
   // bubble gets
   particles.readParticlesBuffer(cl_queue);
   particles.read_dPBuffer(cl_queue);
+
   m_dP = 0.;
-  numType totalEnergy = 0.;
-  for (size_t i = 0; i < particles.getParticleCountTotal(); i++) {
+  numType currentTotalEnergy = 0.;
+  for (u_int i = 0; i < particles.getParticleCountTotal(); i++) {
     m_dP += particles.get_dP()[i];
-    m_totalEnergy += particles.getParticleEnergy(i);
+    currentTotalEnergy += particles.getParticleEnergy(i);
+  }
+  m_dP = -m_dP / bubble.calculateArea();
+
+  // 4) Evolve bubble
+  bubble.evolveWall(m_step_dt, m_dP);
+
+  currentTotalEnergy += bubble.calculateEnergy();
+  numType bubbleStepFinalSpeed = bubble.getSpeed();
+  numType bubbleSpeedChange = std::abs(bubbleStepFinalSpeed - bubbleStartSpeed);
+
+  if ((bubbleSpeedChange > 0.02) && (m_step > 20)) {
+    std::cout << "Problem: "
+              << std::abs(bubbleStepFinalSpeed - bubbleStartSpeed) * 10 << ", "
+              << m_step_dt << ", " << bubbleStartSpeed << ", "
+              << bubbleStepFinalSpeed << std::endl;
+    particles.revertToLastStep(cl_queue);
+    bubble.revertBubbleToLastStep(cl_queue);
+    m_timestepAdapter.claculateNewTimeStep(
+        bubbleSpeedChange, bubble.getRadius(), bubble.getInitialRadius(),
+        0.0001, bubble.getSpeed());
+    step(particles, bubble, t_bubbleInteractionKernel, cl_queue);
+  } else {
+    m_timestepAdapter.claculateNewTimeStep(
+        bubbleSpeedChange, bubble.getRadius(), bubble.getInitialRadius(),
+        0.0001, bubble.getSpeed());
   }
 
-  m_dP = -m_dP / bubble.calculateArea();
-  /*std::cout << m_dP * bubble.getSpeed() * bubble.calculateArea() << ", "
-            << (total_energy2 - total_energy1) << std::endl;*/
-
-  // Evolve bubble
-  bubble.evolveWall(m_dt, m_dP);
-
-  // 3) Assign particles to collision cells
-
-  // 4) Calculate COM, Generate rotation
-  m_totalEnergy = totalEnergy;
   // 5) Collisions
+  m_time += m_step_dt;
+  m_step += 1;
+  particles.makeCopy();
+  bubble.makeBubbleCopy();
 }
 
 void Simulation::step(PhaseBubble& bubble, numType t_dP) {

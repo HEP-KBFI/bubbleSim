@@ -8,6 +8,7 @@ class ConfigReader {
   int m_seed;
   int m_maxSteps;
   numType dt;
+  numType maxTime;
   bool cyclicBoundaryOn;
   /*
    * Physics parameters
@@ -67,6 +68,7 @@ class ConfigReader {
     }
 
     dt = config["simulation"]["dt"];
+    maxTime = config["simulation"]["maxTime"];
     cyclicBoundaryOn = config["simulation"]["cyclic_boundary_on"];
     /*
      * Physical parameters

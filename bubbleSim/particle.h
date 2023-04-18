@@ -115,22 +115,27 @@ class ParticleCollection {
 
   // Data objects for buffers
   std::vector<Particle> m_particles;
+  std::vector<Particle> m_particles_copy;
   cl::Buffer m_particlesBuffer;
   std::vector<numType> m_dP;
+  std::vector<numType> m_dP_copy;
   cl::Buffer m_dPBuffer;
   /*
    * Count particle-bubble interactions when particle started in
    * false vacuum.
    */
   std::vector<int8_t> m_interactedBubbleFalseState;
+  std::vector<int8_t> m_interactedBubbleFalseState_copy;
   cl::Buffer m_interactedBubbleFalseStateBuffer;
   std::vector<int8_t> m_passedBubbleFalseState;
+  std::vector<int8_t> m_passedBubbleFalseState_copy;
   cl::Buffer m_passedBubbleFalseStateBuffer;
   /*
    * Interaction with bubble when particle started in true vacuum.
    * This also means that particle gets always through the bubble.
    */
   std::vector<int8_t> m_interactedBubbleTrueState;
+  std::vector<int8_t> m_interactedBubbleTrueState_copy;
   cl::Buffer m_interactedBubbleTrueStateBuffer;
 
  public:
@@ -389,5 +394,62 @@ class ParticleCollection {
     std::cout << "(" << particle.x << ", " << particle.y << ", " << particle.z
               << ") (" << particle.E << ", " << particle.p_x << ", "
               << particle.p_y << ", " << particle.p_z << ")" << std::endl;
+  }
+
+  void revertParticlesToLastStep(cl::CommandQueue& cl_queue) {
+    m_particles = m_particles_copy;
+    writeParticlesBuffer(cl_queue);
+  }
+
+  void revert_dPToLastStep(cl::CommandQueue& cl_queue) {
+    m_dP = m_dP_copy;
+    write_dPBuffer(cl_queue);
+  }
+
+  void revertInteractedBubbleFalseStateToLastStep(cl::CommandQueue& cl_queue) {
+    m_interactedBubbleFalseState = m_interactedBubbleFalseState_copy;
+    writeInteractedBubbleFalseStateBuffer(cl_queue);
+  }
+
+  void revertPassedBubbleFalseStateToLastStep(cl::CommandQueue& cl_queue) {
+    m_passedBubbleFalseState = m_passedBubbleFalseState_copy;
+    writePassedBubbleFalseStateBuffer(cl_queue);
+  }
+
+  void revertInteractedBubbleTrueStateToLastStep(cl::CommandQueue& cl_queue) {
+    m_interactedBubbleTrueState = m_interactedBubbleTrueState_copy;
+    writeInteractedBubbleTrueStateBuffer(cl_queue);
+  }
+
+  void revertToLastStep(cl::CommandQueue& cl_queue) {
+    revertParticlesToLastStep(cl_queue);
+    revert_dPToLastStep(cl_queue);
+    revertInteractedBubbleFalseStateToLastStep(cl_queue);
+    revertInteractedBubbleTrueStateToLastStep(cl_queue);
+    revertPassedBubbleFalseStateToLastStep(cl_queue);
+  }
+
+  void makeParticlesCopy() { m_particles_copy = m_particles; }
+
+  void make_dPCopy() { m_dP_copy = m_dP; }
+
+  void makeInteractedBubbleFalseStateCopy() {
+    m_interactedBubbleFalseState_copy = m_interactedBubbleFalseState;
+  }
+
+  void makePassedBubbleFalseStateCopy() {
+    m_passedBubbleFalseState_copy = m_passedBubbleFalseState;
+  }
+
+  void makeInteractedBubbleTrueStateCopy() {
+    m_interactedBubbleTrueState_copy = m_interactedBubbleTrueState;
+  }
+
+  void makeCopy() {
+    makeParticlesCopy();
+    make_dPCopy();
+    makeInteractedBubbleFalseStateCopy();
+    makeInteractedBubbleTrueStateCopy();
+    makePassedBubbleFalseStateCopy();
   }
 };

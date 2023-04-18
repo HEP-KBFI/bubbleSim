@@ -461,7 +461,7 @@ __kernel void particle_bubble_step_cyclic(
 				
 			}
 			else {
-				printf("Error -np<0, np=%.2f\n", np);
+				printf("Error -np<0, np=%.2f, i:%i\n", np, gid);
 				moveLinear(&particle, V_1, V_2, V_3, timeToWall);
 			}
 			
@@ -570,7 +570,6 @@ __kernel void particle_bubble_step_cyclic(
 	t_particles[gid].E = particle.E;
 	t_particles[gid].m = particle.m;
 }
-
 
 __kernel void particle_step(
 	__global Particle *t_particles,

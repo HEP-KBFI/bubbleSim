@@ -7,17 +7,20 @@
 #include "collision.h"
 #include "objects.h"
 #include "opencl_kernels.h"
+#include "timestep.h"
 
 class Simulation {
  public:
   Simulation() {}
-  Simulation(int t_seed, numType t_dt, cl::Context& cl_context);
-  Simulation(int t_seed, numType t_dt, numType boundaryRadius,
+  Simulation(int t_seed, numType t_max_dt, cl::Context& cl_context);
+  Simulation(int t_seed, numType t_max_dt, numType boundaryRadius,
              cl::Context& cl_context);
 
   numType getTime() { return m_time; }
 
   numType get_dt() { return m_dt; }
+
+  numType get_dt_currentStep() { return m_step_dt; }
 
   numType get_dP() { return m_dP; }
 
@@ -71,11 +74,13 @@ class Simulation {
   cl::Buffer& get_dtBuffer() { return m_dtBuffer; }
 
   void read_dtBuffer(cl::CommandQueue& cl_queue) {
-    cl_queue.enqueueReadBuffer(m_dtBuffer, CL_TRUE, 0, sizeof(numType), &m_dt);
+    cl_queue.enqueueReadBuffer(m_dtBuffer, CL_TRUE, 0, sizeof(numType),
+                               &m_step_dt);
   }
 
   void write_dtBuffer(cl::CommandQueue& cl_queue) {
-    cl_queue.enqueueWriteBuffer(m_dtBuffer, CL_TRUE, 0, sizeof(numType), &m_dt);
+    cl_queue.enqueueWriteBuffer(m_dtBuffer, CL_TRUE, 0, sizeof(numType),
+                                &m_step_dt);
   }
 
   void writeAllBuffersToKernel(cl::CommandQueue& cl_queue) {
@@ -87,8 +92,11 @@ class Simulation {
   // Cumulative time
   int m_seed;
   numType m_time = 0.;
+  size_t m_step = 0;
   // One step time length
   numType m_dt;
+  numType m_step_dt;
+  TimestepAdapter m_timestepAdapter;
   cl::Buffer m_dtBuffer;
 
   bool m_cyclicBoundaryOn = false;

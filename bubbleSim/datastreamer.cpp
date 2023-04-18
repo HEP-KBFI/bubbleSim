@@ -369,7 +369,7 @@ void DataStreamer::stream(Simulation& simulation,
         << bins_TangentialVelocity[m_binsCount_TangentialVelocity - 1] << "\n";
   }
   auto programEndTime = std::chrono::high_resolution_clock::now();
-  std::cout << "Time taken: "
+  std::cout << "Time taken (stream): "
             << std::chrono::duration_cast<std::chrono::milliseconds>(
                    programEndTime - programStartTime)
                    .count()

@@ -150,7 +150,7 @@ int main(int argc, char* argv[]) {
   }
 
   particles.add_to_total_initial_energy(genreatedParticleEnergy);
-
+  particles.makeCopy();
   // 5) Initialize simulation object
 
   Simulation simulation;
@@ -278,6 +278,10 @@ int main(int argc, char* argv[]) {
   // Energy, p_x, p_y, p_z, p^2
   std::array<double, 5> previous = {0., 0., 0., 0., 0.};
   std::array<double, 5> current = {0., 0., 0., 0., 0.};
+
+  numType streamTime = 0.;
+  numType streamAfterTime = 0.05;
+
   if (b_collisionDevelopment) {
     for (Particle p : particles.getParticles()) {
       current[0] += p.E;
@@ -357,9 +361,9 @@ int main(int argc, char* argv[]) {
         simulation.step(bubble, 0);
       }
     }
-
-    if (i % config.streamFreq == 0) {
-      std::cout << std::setprecision(10) << std::fixed << std::showpoint;
+    streamTime += simulation.get_dt_currentStep();
+    if (streamTime > streamAfterTime) {
+      std::cout << std::setprecision(5) << std::fixed << std::showpoint;
       std::cout << "Time: " << simulation.getTime()
                 << ", R: " << bubble.getRadius() << ", V: " << bubble.getSpeed()
                 << ", dP: " << simulation.get_dP() << std::endl;
@@ -367,7 +371,19 @@ int main(int argc, char* argv[]) {
         streamer.stream(simulation, particles, bubble,
                         kernels.getCommandQueue());
       }
+      streamTime = 0.;
     }
+    /*if (i % config.streamFreq == 0) {
+      std::cout << std::setprecision(10) << std::fixed << std::showpoint;
+      std::cout << "Time: " << simulation.getTime()
+                << ", R: " << bubble.getRadius() << ", V: " <<
+    bubble.getSpeed()
+                << ", dP: " << simulation.get_dP() << std::endl;
+      if (config.streamOn) {
+        streamer.stream(simulation, particles, bubble,
+                        kernels.getCommandQueue());
+      }
+    }*/
 
     if (std::isnan(bubble.getRadius()) || bubble.getRadius() <= 0) {
       std::cerr << "Ending simulaton. Radius is not a number or <= 0. (R_b="

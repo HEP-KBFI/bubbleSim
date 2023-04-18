@@ -30,6 +30,7 @@
     <ClInclude Include="random_number.hpp" />
     <ClInclude Include="simulation.h" />
     <ClInclude Include="source.h" />
+    <ClInclude Include="timestep.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="bubble.cpp" />

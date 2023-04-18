@@ -22,11 +22,13 @@ PhaseBubble::PhaseBubble(numType t_initialRadius, numType t_initialSpeed,
   numType gammaXspeed = t_initialSpeed * gamma;
   m_bubble = Bubble{t_initialRadius, radius2, radius2,
                     t_initialSpeed,  gamma,   gammaXspeed};
+  m_bubble_copy = m_bubble;
   m_bubbleBuffer =
       cl::Buffer(cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
                  sizeof(Bubble), &m_bubble, &openCLerrNum);
   m_dV = t_dV;
   m_sigma = t_sigma;
+  m_initialRadius = t_initialRadius;
 
   if (m_sigma < 0) {
     std::cerr << "sigma < 0" << std::endl;
