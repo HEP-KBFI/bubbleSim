@@ -24,6 +24,21 @@ OpenCLLoader::OpenCLLoader(std::string kernelPath) {
   createQueue(m_context, m_deviceUsed);
 }
 
+OpenCLLoader::OpenCLLoader(std::string kernelPath, std::string kernelName) {
+  std::string particleBubbleStepKernelName = "particle_bubble_step";
+  std::string particleBubbleBoundaryStepKernelName =
+      "particle_bubble_step_cyclic";
+
+  createContext(m_devices);
+  createProgram(m_context, m_deviceUsed, kernelPath);
+  createKernel(m_program, m_kernel, kernelName.c_str());  // cl::Kernel
+  createKernel(m_program, m_particleBubbleStepKernel,
+               particleBubbleStepKernelName.c_str());  // cl::Kernel
+  createKernel(m_program, m_particleBubbleBoundaryStepKernel,
+               particleBubbleBoundaryStepKernelName.c_str());
+  createQueue(m_context, m_deviceUsed);
+}
+
 void OpenCLLoader::createContext(std::vector<cl::Device>& devices) {
   int errNum;
   std::vector<cl::Platform> platforms;

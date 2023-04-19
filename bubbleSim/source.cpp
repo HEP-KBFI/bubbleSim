@@ -88,7 +88,6 @@ int main(int argc, char* argv[]) {
   using std::chrono::high_resolution_clock;
   using std::chrono::milliseconds;
   auto programStartTime = high_resolution_clock::now();
-
   ConfigReader config(s_configPath);
   /*
           ===============  ===============
@@ -104,7 +103,7 @@ int main(int argc, char* argv[]) {
   RandomNumberGenerator rn_generator(config.m_seed);
 
   // 2) Initialize openCL
-  OpenCLLoader kernels(s_kernelPath);
+  OpenCLLoader kernels(s_kernelPath, config.kernelName);
   // 3) Define required physical parameters
   /*
   alpha = dV/rho, eta = sqrt(M+^2 - m-^2)/T, Upsilon = sigma/(dV * R_0)
@@ -152,15 +151,12 @@ int main(int argc, char* argv[]) {
   particles.add_to_total_initial_energy(genreatedParticleEnergy);
   particles.makeCopy();
   // 5) Initialize simulation object
-
   Simulation simulation;
-  numType cycleBoundaryRadius;
   if (!config.cyclicBoundaryOn) {
     simulation = Simulation(config.m_seed, config.dt, kernels.getContext());
   } else {
-    cycleBoundaryRadius = 2 * config.bubbleInitialRadius;
-    simulation = Simulation(config.m_seed, config.dt, cycleBoundaryRadius,
-                            kernels.getContext());
+    simulation = Simulation(config.m_seed, config.dt,
+                            config.cyclicBoundaryRadius, kernels.getContext());
   }
 
   cl::Kernel* stepKernel;
@@ -175,6 +171,7 @@ int main(int argc, char* argv[]) {
               << std::endl;
     std::terminate();
   }
+  stepKernel = &kernels.m_kernel;
 
   // 6) Initialize bubble object
 
@@ -192,7 +189,6 @@ int main(int argc, char* argv[]) {
   numType alpha = config.parameterAlpha;
 
   numType sigma = config.parameterUpsilon * dV * config.bubbleInitialRadius;
-
   if (!config.bubbleIsTrueVacuum) {
     // If bubble is true vacuum then dV is correct. Otherwise dV sign must be
     // channged as change of direction changes
@@ -249,21 +245,30 @@ int main(int argc, char* argv[]) {
 
   if (config.streamDataOn) {
     streamer.initStream_Data();
-    streamer.initStream_RadialVelocity(config.streamDensityBinsCount,
-                                       config.bubbleInitialRadius * 2);
-    streamer.initStream_TangentialVelocity(config.streamDensityBinsCount,
-                                           config.bubbleInitialRadius * 2);
+  }
+  if (config.streamRadialVelocityOn) {
+    streamer.initStream_RadialVelocity(config.binsCountRadialVelocity,
+                                       config.maxValueRadialVelocity);
+  }
+  if (config.streamTangentialVelocityOn) {
+    streamer.initStream_TangentialVelocity(config.binsCountTangentialVelocity,
+                                           config.maxValueTangentialVelocity);
   }
   if (config.streamDensityOn) {
-    streamer.initStream_Density(config.streamDensityBinsCount,
-                                config.bubbleInitialRadius * 2);
-    streamer.initStream_EnergyDensity(config.streamDensityBinsCount,
-                                      config.bubbleInitialRadius * 2);
-    // If cyclic condition is set to 2*R_b then max distance is sqrt(3) 2 * R_b
+    streamer.initStream_Density(config.binsCountDensity,
+                                config.maxValueDensity);
   }
-  if (config.streamMomentumOn) {
-    streamer.initStream_MomentumIn(config.streamMomentumBinsCount, 5);
-    streamer.initStream_MomentumOut(config.streamMomentumBinsCount, 5);
+  if (config.streamEnergyOn) {
+    streamer.initStream_EnergyDensity(config.binsCountEnergy,
+                                      config.maxValueEnergy);
+  }
+  if (config.streamMomentumInOn) {
+    streamer.initStream_MomentumIn(config.binsCountMomentumIn,
+                                   config.maxValueMomentumIn);
+  }
+  if (config.streamMomentumOutOn) {
+    streamer.initStream_MomentumOut(config.binsCountMomentumOut,
+                                    config.maxValueMomentumOut);
   }
 
   streamer.stream(simulation, particles, bubble, kernels.getCommandQueue());
@@ -279,8 +284,7 @@ int main(int argc, char* argv[]) {
   std::array<double, 5> previous = {0., 0., 0., 0., 0.};
   std::array<double, 5> current = {0., 0., 0., 0., 0.};
 
-  numType streamTime = 0.;
-  numType streamAfterTime = 0.05;
+  numType timeSinceLastStream = 0.;
 
   if (b_collisionDevelopment) {
     for (Particle p : particles.getParticles()) {
@@ -313,7 +317,9 @@ int main(int argc, char* argv[]) {
             << ", V: " << bubble.getSpeed() << ", dP: " << simulation.get_dP()
             << std::endl;
 
-  for (int i = 1; i <= config.m_maxSteps; i++) {
+  auto streamEndTime = high_resolution_clock::now();
+  auto streamStartTime = high_resolution_clock::now();
+  for (int i = 1; simulation.getTime() <= config.maxTime; i++) {
     /*
       simulation.step(bubble, 0);
     }*/
@@ -361,29 +367,28 @@ int main(int argc, char* argv[]) {
         simulation.step(bubble, 0);
       }
     }
-    streamTime += simulation.get_dt_currentStep();
-    if (streamTime > streamAfterTime) {
+    timeSinceLastStream += simulation.get_dt_currentStep();
+
+    if (timeSinceLastStream >= config.streamTime) {
+      streamEndTime = high_resolution_clock::now();
+
       std::cout << std::setprecision(5) << std::fixed << std::showpoint;
       std::cout << "Time: " << simulation.getTime()
                 << ", R: " << bubble.getRadius() << ", V: " << bubble.getSpeed()
                 << ", dP: " << simulation.get_dP() << std::endl;
+      std::cout << "Time taken (steps): "
+                << std::chrono::duration_cast<std::chrono::milliseconds>(
+                       streamEndTime - streamStartTime)
+                       .count()
+                << " ms." << std::endl;
+
       if (config.streamOn) {
         streamer.stream(simulation, particles, bubble,
                         kernels.getCommandQueue());
       }
-      streamTime = 0.;
+      timeSinceLastStream = 0.;
+      streamStartTime = high_resolution_clock::now();
     }
-    /*if (i % config.streamFreq == 0) {
-      std::cout << std::setprecision(10) << std::fixed << std::showpoint;
-      std::cout << "Time: " << simulation.getTime()
-                << ", R: " << bubble.getRadius() << ", V: " <<
-    bubble.getSpeed()
-                << ", dP: " << simulation.get_dP() << std::endl;
-      if (config.streamOn) {
-        streamer.stream(simulation, particles, bubble,
-                        kernels.getCommandQueue());
-      }
-    }*/
 
     if (std::isnan(bubble.getRadius()) || bubble.getRadius() <= 0) {
       std::cerr << "Ending simulaton. Radius is not a number or <= 0. (R_b="

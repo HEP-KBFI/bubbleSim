@@ -147,7 +147,6 @@ void Simulation::step(ParticleCollection& particles, PhaseBubble& bubble,
   numType bubbleStartSpeed = bubble.getSpeed();
   m_step_dt = m_timestepAdapter.getTimestep();
   write_dtBuffer(cl_queue);
-
   // 2)
   // Write new bubble parameters to buffer on device
   bubble.calculateRadiusAfterStep2(m_step_dt);
@@ -161,12 +160,14 @@ void Simulation::step(ParticleCollection& particles, PhaseBubble& bubble,
   particles.readParticlesBuffer(cl_queue);
   particles.read_dPBuffer(cl_queue);
 
+  // Calculate particle energy change
   m_dP = 0.;
   numType currentTotalEnergy = 0.;
   for (u_int i = 0; i < particles.getParticleCountTotal(); i++) {
     m_dP += particles.get_dP()[i];
     currentTotalEnergy += particles.getParticleEnergy(i);
   }
+  // Convert energy change to pressure
   m_dP = -m_dP / bubble.calculateArea();
 
   // 4) Evolve bubble
@@ -176,17 +177,24 @@ void Simulation::step(ParticleCollection& particles, PhaseBubble& bubble,
   numType bubbleStepFinalSpeed = bubble.getSpeed();
   numType bubbleSpeedChange = std::abs(bubbleStepFinalSpeed - bubbleStartSpeed);
 
-  if ((bubbleSpeedChange > 0.02) && (m_step > 20)) {
-    std::cout << "Problem: "
-              << std::abs(bubbleStepFinalSpeed - bubbleStartSpeed) * 10 << ", "
-              << m_step_dt << ", " << bubbleStartSpeed << ", "
-              << bubbleStepFinalSpeed << std::endl;
+  if (bubbleSpeedChange > 2) {
+    std::cout << std::setprecision(8)
+              << "V/dV: " << std::abs(bubbleSpeedChange / bubbleStartSpeed)
+              << " dV: " << bubbleSpeedChange << " dP: " << m_dP
+              << " dt: " << m_step_dt << std::endl;
     particles.revertToLastStep(cl_queue);
     bubble.revertBubbleToLastStep(cl_queue);
-    m_timestepAdapter.claculateNewTimeStep(
+    /*m_timestepAdapter.claculateNewTimeStep(
         bubbleSpeedChange, bubble.getRadius(), bubble.getInitialRadius(),
-        0.0001, bubble.getSpeed());
+        0.0001, bubble.getSpeed());*/
+    m_timestepAdapter.calculateNewTimeStep();
     step(particles, bubble, t_bubbleInteractionKernel, cl_queue);
+  } else if (std::abs(bubbleStepFinalSpeed) > 1) {
+    particles.revertToLastStep(cl_queue);
+    bubble.revertBubbleToLastStep(cl_queue);
+    m_timestepAdapter.calculateNewTimeStep();
+    step(particles, bubble, t_bubbleInteractionKernel, cl_queue);
+
   } else {
     m_timestepAdapter.claculateNewTimeStep(
         bubbleSpeedChange, bubble.getRadius(), bubble.getInitialRadius(),

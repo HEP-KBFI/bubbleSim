@@ -11,6 +11,7 @@ typedef struct Bubble {
 
   cl_numType gamma;
   cl_numType gammaXspeed;  // gamma * speed
+  cl_numType gamma_dynamic;
 } Bubble;
 
 class PhaseBubble {

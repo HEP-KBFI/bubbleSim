@@ -5,11 +5,13 @@
 
 class ConfigReader {
  public:
+  std::string kernelName;
   int m_seed;
   int m_maxSteps;
   numType dt;
   numType maxTime;
   bool cyclicBoundaryOn;
+  numType cyclicBoundaryRadius;
   /*
    * Physics parameters
    */
@@ -46,17 +48,33 @@ class ConfigReader {
   bool streamOn;
   bool streamDataOn;
   bool streamDensityOn;
-  bool streamMomentumOn;
+  bool streamEnergyOn;
+  bool streamMomentumInOn;
+  bool streamMomentumOutOn;
+  bool streamRadialVelocityOn;
+  bool streamTangentialVelocityOn;
 
   std::string m_dataSavePath;
-  int streamFreq;
-  int streamDensityBinsCount;
-  int streamMomentumBinsCount;
+  numType streamTime;  // After what simulation time info is saved
+
+  int binsCountDensity;
+  int binsCountEnergy;
+  int binsCountRadialVelocity;
+  int binsCountTangentialVelocity;
+  int binsCountMomentumIn;
+  int binsCountMomentumOut;
+  numType maxValueDensity;
+  numType maxValueEnergy;
+  numType maxValueRadialVelocity;
+  numType maxValueTangentialVelocity;
+  numType maxValueMomentumIn;
+  numType maxValueMomentumOut;
 
   ConfigReader(std::string configPath) {
     std::ifstream configStream(configPath);
     nlohmann::json config = nlohmann::json::parse(configStream);
 
+    kernelName = config["kernel"]["name"];
     m_seed = config["simulation"]["seed"];
     m_maxSteps = config["simulation"]["max_steps"];
     if (m_maxSteps == 0) {
@@ -68,8 +86,9 @@ class ConfigReader {
     }
 
     dt = config["simulation"]["dt"];
-    maxTime = config["simulation"]["maxTime"];
+    maxTime = config["simulation"]["max_time"];
     cyclicBoundaryOn = config["simulation"]["cyclic_boundary_on"];
+    cyclicBoundaryRadius = config["simulation"]["cyclic_boundary_radius"];
     /*
      * Physical parameters
      */
@@ -106,11 +125,30 @@ class ConfigReader {
     streamOn = config["stream"]["stream"];
     streamDataOn = config["stream"]["stream_data"];
     streamDensityOn = config["stream"]["stream_density_profile"];
-    streamMomentumOn = config["stream"]["stream_momentum_profile"];
+    streamEnergyOn = config["stream"]["steam_energy_profile"];
+    streamMomentumInOn = config["stream"]["stream_momentumIn_profile"];
+    streamMomentumOutOn = config["stream"]["stream_momentumOut_profile"];
+    streamRadialVelocityOn = config["stream"]["stream_radial_velocity"];
+    streamTangentialVelocityOn = config["stream"]["stream_tangential_velocity"];
     m_dataSavePath = config["stream"]["data_save_path"];
-    streamFreq = config["stream"]["stream_freq"];
-    streamDensityBinsCount = config["stream"]["profile_density_bins_count"];
-    streamMomentumBinsCount = config["stream"]["profile_momentum_bins_count"];
+    streamTime = config["stream"]["stream_time"];
+    // Bins count
+
+    binsCountDensity = config["stream"]["bins_count_density"];
+    binsCountEnergy = config["stream"]["bins_count_energy"];
+    binsCountRadialVelocity = config["stream"]["bins_count_radial_velocity"];
+    binsCountTangentialVelocity =
+        config["stream"]["bins_count_tangential_velocity"];
+    binsCountMomentumIn = config["stream"]["bins_count_momentumIn"];
+    binsCountMomentumOut = config["stream"]["bins_count_momentumOut"];
+    // Maximum unit value for profile (radius, momentum, etc.)
+    maxValueDensity = config["stream"]["max_value_density"];
+    maxValueEnergy = config["stream"]["max_value_energy"];
+    maxValueRadialVelocity = config["stream"]["max_value_radial_velocity"];
+    maxValueTangentialVelocity =
+        config["stream"]["max_value_tangential_velocity"];
+    maxValueMomentumIn = config["stream"]["max_value_momentumIn"];
+    maxValueMomentumOut = config["stream"]["max_value_momentumOut"];
   }
   void print_info() {
     std::string sublabel_prefix = "==== ";

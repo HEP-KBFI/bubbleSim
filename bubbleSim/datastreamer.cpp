@@ -291,7 +291,7 @@ void DataStreamer::stream(Simulation& simulation,
       bins_MomentumOut[(int)(particleMomentum / m_dp_MomentumOut)] += 1;
     }
     if (m_initialized_Data) {
-      if (particleRadius < bubble.getRadius()) {
+      if (particleRadius <= bubble.getRadius()) {
         particleInCount += 1;
         particleInEnergy += particleCollection.getParticleEnergy(i);
       }

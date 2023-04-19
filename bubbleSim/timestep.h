@@ -17,6 +17,8 @@ class TimestepAdapter {
   }
   numType getTimestep() { return m_current_dt; }
 
+  void calculateNewTimeStep() { m_current_dt = m_current_dt / 10; }
+
   void claculateNewTimeStep(numType bubbleSpeedChange, numType bubbleRadius,
                             numType initialBubbleRadius, numType radiusFactor,
                             numType bubbleSpeed) {
