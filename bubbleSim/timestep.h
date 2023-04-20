@@ -19,6 +19,10 @@ class TimestepAdapter {
 
   void calculateNewTimeStep() { m_current_dt = m_current_dt / 10; }
 
+  void calculateNewTimeStep(PhaseBubble& bubble) {
+    m_current_dt = std::min(bubble.getInitialRadius() / 1000, m_max_dt);
+  }
+
   void claculateNewTimeStep(numType bubbleSpeedChange, numType bubbleRadius,
                             numType initialBubbleRadius, numType radiusFactor,
                             numType bubbleSpeed) {

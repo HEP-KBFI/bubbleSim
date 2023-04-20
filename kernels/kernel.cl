@@ -575,82 +575,6 @@ __kernel void particle_step(
 	t_particles[gid] = particle;
 }
 
-__kernel void assign_cell_index_to_particle(
-	__global Particle *t_particles,
-	__global const unsigned int *maxCellIndex,
-	__global const double *cellLength,
-	__global const double *cuboidShift
-	){
-	unsigned int gid = get_global_id(0);
-	
-	Particle particle = t_particles[gid];
-	// Find cell numbers
-	int x_index = (int) ((particle.x + cellLength[0]*maxCellIndex[0]/2 + cuboidShift[0]) / cellLength[0]);
-	int y_index = (int) ((particle.y + cellLength[0]*maxCellIndex[0]/2 + cuboidShift[1]) / cellLength[0]);
-	int z_index = (int) ((particle.z + cellLength[0]*maxCellIndex[0]/2 + cuboidShift[2]) / cellLength[0]);
-	// Idx = 0 -> if particle is outside of the cuboid cell structure	
-	// Convert cell number into 1D vector
-	if ((x_index < 0) || (x_index >= maxCellIndex[0])){
-		t_particles[gid].idxCollisionCell = 0;
-	}
-	else if ((y_index < 0) || (y_index >= maxCellIndex[0])){
-		t_particles[gid].idxCollisionCell = 0;
-	}
-	else if ((z_index < 0) || (z_index >= maxCellIndex[0])){
-		t_particles[gid].idxCollisionCell = 0;
-	}
-	else {
-		t_particles[gid].idxCollisionCell = 1 + x_index + y_index * maxCellIndex[0] + z_index * maxCellIndex[0] * maxCellIndex[0];
-	}
-	
-	//t_particles[gid].idxCollisionCell = x_index + y_index + z_index;
-
-}
-
-__kernel void assign_particle_cell_index_two_phase(
-	__global Particle *t_particles,
-	__global const int *maxCellIndex,
-	__global const double *cellLength,
-	__global const double *cuboidShift // Random particle location shift
-	
-	){
-	unsigned int gid = get_global_id(0);
-	
-	Particle particle = t_particles[gid];
-	// Find cell numbers
-	int a = (int) ((particle.x + cuboidShift[0]) / cellLength[0]);
-	int b = (int) ((particle.y + cuboidShift[1]) / cellLength[1]);
-	int c = (int) ((particle.z + cuboidShift[2]) / cellLength[2]);
-	// Idx = 0 -> if particle is outside of the cuboid cell structure
-	// Convert cell number into 1D vector. First half of the vector is for outisde the bubble and second half is inside the bubble
-	if ((a < 0) || (a >= maxCellIndex[0])){
-		t_particles[gid].idxCollisionCell = 0;
-	}
-	else if ((b < 0) || (b >= maxCellIndex[1])){
-		t_particles[gid].idxCollisionCell = 0;
-	}
-	else if ((c < 0) || (c >= maxCellIndex[2])){
-		t_particles[gid].idxCollisionCell = 0;
-	}
-	else {
-		t_particles[gid].idxCollisionCell = 1 + a + b * maxCellIndex[0] + c * maxCellIndex[0] * maxCellIndex[1] + particle.b_inBubble * maxCellIndex[0] * maxCellIndex[1]*maxCellIndex[2];
-	}
-	
-}
-
-__kernel void label_particles_position_by_coordinate(
-	__global Particle *t_particles,
-	__global Bubble *t_bubble
-	){
-	unsigned int gid = get_global_id(0);
-	
-	// If R_b^2 > R_x^2 then particle is inside the bubble
-	t_particles[gid].b_inBubble = fma(
-									t_particles[gid].x, t_particles[gid].x,
-										fma(t_particles[gid].y, t_particles[gid].y,
-											t_particles[gid].z * t_particles[gid].z )) < t_bubble[0].radius2;
-}
-
 __kernel void particles_with_false_bubble_step_reflect(
     __global Particle *t_particles, __global double *t_dP,
     __global char *t_interactedFalse, __global char *t_passedFalse,
@@ -752,6 +676,84 @@ __kernel void particles_with_false_bubble_step_reflect(
   t_particles[gid].E = particle.E;
   t_particles[gid].m = particle.m;
 }
+
+
+__kernel void assign_cell_index_to_particle(
+	__global Particle *t_particles,
+	__global const unsigned int *maxCellIndex,
+	__global const double *cellLength,
+	__global const double *cuboidShift
+	){
+	unsigned int gid = get_global_id(0);
+	
+	Particle particle = t_particles[gid];
+	// Find cell numbers
+	int x_index = (int) ((particle.x + cellLength[0]*maxCellIndex[0]/2 + cuboidShift[0]) / cellLength[0]);
+	int y_index = (int) ((particle.y + cellLength[0]*maxCellIndex[0]/2 + cuboidShift[1]) / cellLength[0]);
+	int z_index = (int) ((particle.z + cellLength[0]*maxCellIndex[0]/2 + cuboidShift[2]) / cellLength[0]);
+	// Idx = 0 -> if particle is outside of the cuboid cell structure	
+	// Convert cell number into 1D vector
+	if ((x_index < 0) || (x_index >= maxCellIndex[0])){
+		t_particles[gid].idxCollisionCell = 0;
+	}
+	else if ((y_index < 0) || (y_index >= maxCellIndex[0])){
+		t_particles[gid].idxCollisionCell = 0;
+	}
+	else if ((z_index < 0) || (z_index >= maxCellIndex[0])){
+		t_particles[gid].idxCollisionCell = 0;
+	}
+	else {
+		t_particles[gid].idxCollisionCell = 1 + x_index + y_index * maxCellIndex[0] + z_index * maxCellIndex[0] * maxCellIndex[0];
+	}
+	
+	//t_particles[gid].idxCollisionCell = x_index + y_index + z_index;
+
+}
+
+__kernel void assign_particle_cell_index_two_phase(
+	__global Particle *t_particles,
+	__global const int *maxCellIndex,
+	__global const double *cellLength,
+	__global const double *cuboidShift // Random particle location shift
+	
+	){
+	unsigned int gid = get_global_id(0);
+	
+	Particle particle = t_particles[gid];
+	// Find cell numbers
+	int a = (int) ((particle.x + cuboidShift[0]) / cellLength[0]);
+	int b = (int) ((particle.y + cuboidShift[1]) / cellLength[1]);
+	int c = (int) ((particle.z + cuboidShift[2]) / cellLength[2]);
+	// Idx = 0 -> if particle is outside of the cuboid cell structure
+	// Convert cell number into 1D vector. First half of the vector is for outisde the bubble and second half is inside the bubble
+	if ((a < 0) || (a >= maxCellIndex[0])){
+		t_particles[gid].idxCollisionCell = 0;
+	}
+	else if ((b < 0) || (b >= maxCellIndex[1])){
+		t_particles[gid].idxCollisionCell = 0;
+	}
+	else if ((c < 0) || (c >= maxCellIndex[2])){
+		t_particles[gid].idxCollisionCell = 0;
+	}
+	else {
+		t_particles[gid].idxCollisionCell = 1 + a + b * maxCellIndex[0] + c * maxCellIndex[0] * maxCellIndex[1] + particle.b_inBubble * maxCellIndex[0] * maxCellIndex[1]*maxCellIndex[2];
+	}
+	
+}
+
+__kernel void label_particles_position_by_coordinate(
+	__global Particle *t_particles,
+	__global Bubble *t_bubble
+	){
+	unsigned int gid = get_global_id(0);
+	
+	// If R_b^2 > R_x^2 then particle is inside the bubble
+	t_particles[gid].b_inBubble = fma(
+									t_particles[gid].x, t_particles[gid].x,
+										fma(t_particles[gid].y, t_particles[gid].y,
+											t_particles[gid].z * t_particles[gid].z )) < t_bubble[0].radius2;
+}
+
 
 __kernel void label_particles_position_by_mass(
 	__global Particle *t_particles,

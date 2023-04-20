@@ -14,3 +14,4 @@
 #include "objects.h"
 #include "opencl_kernels.h"
 #include "simulation.h"
+#include "stack"

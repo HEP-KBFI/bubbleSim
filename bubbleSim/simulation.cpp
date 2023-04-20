@@ -177,16 +177,9 @@ void Simulation::step(ParticleCollection& particles, PhaseBubble& bubble,
   numType bubbleStepFinalSpeed = bubble.getSpeed();
   numType bubbleSpeedChange = std::abs(bubbleStepFinalSpeed - bubbleStartSpeed);
 
-  if (bubbleSpeedChange > 2) {
-    std::cout << std::setprecision(8)
-              << "V/dV: " << std::abs(bubbleSpeedChange / bubbleStartSpeed)
-              << " dV: " << bubbleSpeedChange << " dP: " << m_dP
-              << " dt: " << m_step_dt << std::endl;
+  if (bubbleSpeedChange > 0.01) {
     particles.revertToLastStep(cl_queue);
     bubble.revertBubbleToLastStep(cl_queue);
-    /*m_timestepAdapter.claculateNewTimeStep(
-        bubbleSpeedChange, bubble.getRadius(), bubble.getInitialRadius(),
-        0.0001, bubble.getSpeed());*/
     m_timestepAdapter.calculateNewTimeStep();
     step(particles, bubble, t_bubbleInteractionKernel, cl_queue);
   } else if (std::abs(bubbleStepFinalSpeed) > 1) {

@@ -43,6 +43,44 @@ class DataStreamer {
   void stream(Simulation& simulation, ParticleCollection& particleCollection,
               PhaseBubble& bubble, cl::CommandQueue& cl_queue);
 
+  // These functions are meant to be used if only certain step is wanted to be
+  // saved. Because otherwise this would mean different for cycles which makes
+  // code slower.
+
+  void streamMomentumIn(std::ofstream& t_stream, size_t t_binsCount,
+                        numType t_minMomentumValue, numType t_maxMomentumValue,
+                        ParticleCollection& particleCollection,
+                        PhaseBubble& bubble, cl::CommandQueue& cl_queue);
+
+  void streamMomentumOut(std::ofstream& t_stream, size_t t_binsCount,
+                         numType t_minMomentumValue, numType t_maxMomentumValue,
+                         ParticleCollection& particleCollection,
+                         PhaseBubble& bubble, cl::CommandQueue& cl_queue);
+
+  void streamNumberDensity(std::ofstream& t_stream, size_t t_binsCount,
+                           numType t_minRadiusValue, numType t_maxRadiusValue,
+                           ParticleCollection& particleCollection,
+                           cl::CommandQueue& cl_queue);
+  void streamEnergyDensity(std::ofstream& t_stream, size_t t_binsCount,
+                           numType t_minRadiusValue, numType t_maxRadiusValue,
+                           ParticleCollection& particleCollection,
+                           cl::CommandQueue& cl_queue);
+  void streamRadialVelocity(std::ofstream& t_stream, size_t t_binsCount,
+                            numType t_minRadiusValue, numType t_maxRadiusValue,
+                            ParticleCollection& particleCollection,
+                            cl::CommandQueue& cl_queue);
+  void streamTangentialVelocity(std::ofstream& t_stream, size_t t_binsCount,
+                                numType t_minRadiusValue,
+                                numType t_maxRadiusValue,
+                                ParticleCollection& particleCollection,
+                                cl::CommandQueue& cl_queue);
+  void StreamRadialMomentumProfile(
+      std::ofstream& t_stream, size_t t_binsCountRadius,
+      size_t t_binsCountMomentum, numType t_minRadiusValue,
+      numType t_maxRadiusValue, numType t_minMomentumValue,
+      numType t_maxMomentumValue, ParticleCollection& particleCollection,
+      cl::CommandQueue& cl_queue);
+
  private:
   std::filesystem::path m_filePath;
 
