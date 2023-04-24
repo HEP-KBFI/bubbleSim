@@ -6,6 +6,9 @@ class TimestepAdapter {
   numType m_current_dt;
   numType m_max_dt;
 
+  u_int m_repeatCounter = 0;
+  u_int m_repeatValue = 0;
+
  public:
   TimestepAdapter() {
     m_current_dt = 0.;
@@ -17,24 +20,9 @@ class TimestepAdapter {
   }
   numType getTimestep() { return m_current_dt; }
 
-  void calculateNewTimeStep() { m_current_dt = m_current_dt / 10; }
+  void calculateNewTimeStep() { m_current_dt = m_current_dt / 2; }
 
   void calculateNewTimeStep(PhaseBubble& bubble) {
-    m_current_dt = std::min(bubble.getInitialRadius() / 1000, m_max_dt);
-  }
-
-  void claculateNewTimeStep(numType bubbleSpeedChange, numType bubbleRadius,
-                            numType initialBubbleRadius, numType radiusFactor,
-                            numType bubbleSpeed) {
-    // https://www.gnu.org/software/gsl/doc/html/ode-initval.html#adaptive-step-size-control
-    if (bubbleSpeedChange >= 0.02) {
-      m_current_dt =
-          m_current_dt * 0.9 * std::pow(bubbleSpeedChange / 0.02, -1. / 2.);
-    } else if (bubbleSpeedChange <= 0.01 * 0.5) {
-      m_current_dt = std::min(
-          m_current_dt * 0.9 * std::pow(bubbleSpeedChange / 0.02, -1. / 3.),
-          bubbleRadius / std::abs(100));
-      m_current_dt = std::min(m_current_dt, m_max_dt);
-    }
+    m_current_dt = std::min(bubble.getRadius() / 1000, m_max_dt);
   }
 };

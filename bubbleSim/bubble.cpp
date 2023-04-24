@@ -64,7 +64,9 @@ void PhaseBubble::evolveWall(numType dt, numType dP) {
   numType gammaChange;
   numType sgn = ((0 < m_bubble.speed) - (m_bubble.speed < 0));  // sign of speed
 
-  if (m_bubble.gamma >= 2) {
+  if (m_bubble.gamma >= 10) {
+    newRadius = m_bubble.radius + dt * m_bubble.speed;
+
     gammaChange = (std::fma(m_dV, dt, dP) / m_sigma *
                        std::sqrt((m_bubble.gamma - 1) / m_bubble.gamma) -
                    2 * std::sqrt((m_bubble.gamma - 1) * m_bubble.gamma) /
@@ -72,7 +74,6 @@ void PhaseBubble::evolveWall(numType dt, numType dP) {
                   sgn;
     newGamma = m_bubble.gamma + gammaChange;
     newSpeed = std::sqrt(1 - 1 / std::pow(newGamma, 2)) * sgn;
-    newRadius = m_bubble.radius + dt * m_bubble.speed;
 
   } else {
     newRadius = m_bubble.radius + dt * m_bubble.speed;
@@ -83,7 +84,7 @@ void PhaseBubble::evolveWall(numType dt, numType dP) {
         m_bubble.speed +
         std::sqrt(pow(velocityElement, 3)) * std::fma(m_dV, dt, dP) / m_sigma -
         2 * velocityElement * dt / m_bubble.radius;
-    newGamma = 1 / std::sqrt(1 - std::pow(newSpeed, 2.));
+    newGamma = 1.0 / std::exp((std::log1p((-newSpeed * newSpeed)) * 0.5));
   }
   m_bubble.radius = newRadius;
   m_bubble.speed = newSpeed;

@@ -134,7 +134,7 @@ void calculateNormal(
 /*
  * Take in particle and calculate it's radius from (0,0,0)=center of bubble.
 */
-double calculateRadius(Particle particle){
+double calculateRadiusSquared(Particle particle){
 	return fma(particle.x, particle.x, fma(particle.y, particle.y, particle.z * particle.z));
 }
 
@@ -185,7 +185,7 @@ __kernel void particle_bubble_step(
 	double Vy = particle.pY/particle.E;
 	double Vz = particle.pZ/particle.E;
 	// Particle radius -> check if particle inside the bubble
-	double X2 = calculateRadius(particle);
+	double X2 = calculateRadiusSquared(particle);
 	
 	// Particle coordinates after time dt assuming it's movement is linear.
 	double X_dt_x = fma(Vx, dt, particle.x); // x component
@@ -214,7 +214,7 @@ __kernel void particle_bubble_step(
 			moveLinear(&particle, Vx, Vy, Vz, timeToWall);
 			// X2 must be used to calculate normal because "bubble" radius changes as well
 			// and current object bubble radius can't be used
-			X2 = calculateRadius(particle); 
+			X2 = calculateRadiusSquared(particle); 
 			
 			// If M_in > M_out then normal is towards inside
 			// If M_in < M_out then normal is towards outside
@@ -283,7 +283,7 @@ __kernel void particle_bubble_step(
 			// Calculate time till collision and move up to this point
 			timeToWall = calculateTimeToWall(particle, bubble, dt);
 			moveLinear(&particle, Vx, Vy, Vz, timeToWall);
-			X2 = calculateRadius(particle);
+			X2 = calculateRadiusSquared(particle);
 			
 			// Calculate normal during the collision
 			calculateNormal(&n_x, &n_y, &n_z, particle, bubble, X2, M_in, M_out);
@@ -364,7 +364,7 @@ __kernel void particle_bubble_step_cyclic(
 	double Vy = particle.pY/particle.E;
 	double Vz = particle.pZ/particle.E;
 	
-	double X2 = calculateRadius(particle);
+	double X2 = calculateRadiusSquared(particle);
 	
 	double X_dt_x = fma(Vx, dt, particle.x);
 	double X_dt_y = fma(Vy, dt, particle.y);
@@ -373,7 +373,7 @@ __kernel void particle_bubble_step_cyclic(
 	
 	double n_x, n_y, n_z;
 	double timeToWall, np;
-			
+
 	// Check if particle in false vacuum
 	// If M_in < M_out -> Check if particle starts inside
 	// If M_in > M_out -> Check if particle starts outside
@@ -399,7 +399,7 @@ __kernel void particle_bubble_step_cyclic(
 			moveLinear(&particle, Vx, Vy, Vz, timeToWall);
 			// Update X2
 			// double X2 = X_1 * X_1 + X_2 * X_2 + X_3 * X_3;
-			X2 = calculateRadius(particle);
+			X2 = calculateRadiusSquared(particle);
 			// n_x = X_1 * Gamma/sqrt(X2);
 			// n_y = X_2 * Gamma/sqrt(X2);
 			// n_z = X_3 * Gamma/sqrt(X2);
@@ -487,7 +487,7 @@ __kernel void particle_bubble_step_cyclic(
 			moveLinear(&particle, Vx, Vy, Vz, timeToWall);
 			// Update X2
 			// double X2 = X_1 * X_1 + X_2 * X_2 + X_3 * X_3;
-			X2 = calculateRadius(particle);
+			X2 = calculateRadiusSquared(particle);
 			// n_x = X_1 * Gamma/sqrt(X2);
 			// n_y = X_2 * Gamma/sqrt(X2);
 			// n_z = X_3 * Gamma/sqrt(X2);
@@ -603,7 +603,7 @@ __kernel void particles_with_false_bubble_step_reflect(
   double Vz = particle.pZ / particle.E;
 
   // fma(a, b, c) = a * b + c
-  double X2 = calculateRadius(particle);
+  double X2 = calculateRadiusSquared(particle);
 
   // Calculate new coordinates if particle would move linearly
   // after time dt
@@ -630,6 +630,7 @@ __kernel void particles_with_false_bubble_step_reflect(
     }
     // reflect particles that would to get out
     else {
+		
       timeToWall = calculateTimeToWall(particle, bubble, dt);
       moveLinear(&particle, Vx, Vy, Vz, timeToWall);
 
@@ -637,11 +638,12 @@ __kernel void particles_with_false_bubble_step_reflect(
 
       // Relativistic reflection algorithm
       // Calculate normal at the location where particle and bubble interact
-      collide_radius = bubble.radius + timeToWall * bubble.speed;
+      collide_radius = pow(bubble.radius + timeToWall * bubble.speed, 2.);
       calculateNormal(&n_x, &n_y, &n_z, particle, bubble, collide_radius, M_in,
                       M_out);
       np = bubble.speed * bubble.gamma * particle.E - n_x * particle.pX -
            n_y * particle.pY - n_z * particle.pZ;
+	  
       particle.pX = fma(np * 2., n_x, particle.pX);
       particle.pY = fma(np * 2., n_y, particle.pY);
       particle.pZ = fma(np * 2., n_z, particle.pZ);

@@ -217,7 +217,8 @@ int main(int argc, char* argv[]) {
 
   simulation.addInitialTotalEnergy(particles.getInitialTotalEnergy());
   simulation.addInitialTotalEnergy(bubble.calculateEnergy());
-
+  simulation.setInitialCompactness(simulation.getInitialTotalEnergy() /
+                                   bubble.getInitialRadius());
   // 8) Streaming object
 
   /*
@@ -317,7 +318,8 @@ int main(int argc, char* argv[]) {
               << std::endl;
   }
   std::cout << "Time: " << simulation.getTime() << ", R: " << bubble.getRadius()
-            << ", V: " << bubble.getSpeed() << ", dP: " << simulation.get_dP()
+            << ", V: " << bubble.getSpeed()
+            << ", dP: " << simulation.get_dP() / simulation.get_dt_currentStep()
             << std::endl;
 
   size_t counter = 0;
@@ -632,7 +634,9 @@ int main(int argc, char* argv[]) {
       std::cout << std::setprecision(5) << std::fixed << std::showpoint;
       std::cout << "Time: " << simulation.getTime()
                 << ", R: " << bubble.getRadius() << ", V: " << bubble.getSpeed()
-                << ", dP: " << simulation.get_dP() << std::endl;
+                << ", dP: "
+                << simulation.get_dP() / simulation.get_dt_currentStep()
+                << std::endl;
       std::cout << "Time taken (steps): "
                 << std::chrono::duration_cast<std::chrono::milliseconds>(
                        streamEndTime - streamStartTime)

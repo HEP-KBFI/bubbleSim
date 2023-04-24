@@ -32,6 +32,12 @@ class Simulation {
 
   numType getInitialTotalEnergy() { return m_initialTotalEnergy; }
 
+  numType getInitialCompactnes() { return m_initialCompactness; }
+
+  void setInitialCompactness(numType t_initialCompacntess) {
+    m_initialCompactness = t_initialCompacntess;
+  }
+
   void addInitialTotalEnergy(numType energy) { m_initialTotalEnergy += energy; }
 
   void set_dt(numType t_dt) {
@@ -104,6 +110,7 @@ class Simulation {
   cl::Buffer m_cyclicBoundaryRadiusBuffer;
 
   // Simulation values
+  numType m_initialCompactness = 0.;
   numType m_totalEnergy = 0.;
   numType m_initialTotalEnergy = 0.;
 

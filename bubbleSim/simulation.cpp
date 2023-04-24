@@ -176,8 +176,14 @@ void Simulation::step(ParticleCollection& particles, PhaseBubble& bubble,
   currentTotalEnergy += bubble.calculateEnergy();
   numType bubbleStepFinalSpeed = bubble.getSpeed();
   numType bubbleSpeedChange = std::abs(bubbleStepFinalSpeed - bubbleStartSpeed);
-
-  if (bubbleSpeedChange > 0.01) {
+  if ((bubbleStartSpeed > 0) && (bubbleStartSpeed - bubbleStepFinalSpeed > 0)) {
+    if (bubbleSpeedChange > 0.00005) {
+      particles.revertToLastStep(cl_queue);
+      bubble.revertBubbleToLastStep(cl_queue);
+      m_timestepAdapter.calculateNewTimeStep();
+      step(particles, bubble, t_bubbleInteractionKernel, cl_queue);
+    }
+  } else if (bubbleSpeedChange > 0.005) {
     particles.revertToLastStep(cl_queue);
     bubble.revertBubbleToLastStep(cl_queue);
     m_timestepAdapter.calculateNewTimeStep();
@@ -187,11 +193,8 @@ void Simulation::step(ParticleCollection& particles, PhaseBubble& bubble,
     bubble.revertBubbleToLastStep(cl_queue);
     m_timestepAdapter.calculateNewTimeStep();
     step(particles, bubble, t_bubbleInteractionKernel, cl_queue);
-
   } else {
-    m_timestepAdapter.claculateNewTimeStep(
-        bubbleSpeedChange, bubble.getRadius(), bubble.getInitialRadius(),
-        0.0001, bubble.getSpeed());
+    m_timestepAdapter.calculateNewTimeStep(bubble);
   }
 
   // 5) Collisions

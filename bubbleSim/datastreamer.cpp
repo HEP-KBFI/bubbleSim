@@ -288,7 +288,9 @@ void DataStreamer::stream(Simulation& simulation,
   if (m_initialized_Data) {
     totalEnergy = particleTotalEnergy + bubble.calculateEnergy();
     std::cout << std::fixed << std::noshowpoint << std::setprecision(8);
-    m_stream_Data << simulation.getTime() << "," << simulation.get_dP() << ",";
+    m_stream_Data << simulation.getTime() << ","
+                  << simulation.get_dP() / simulation.get_dt_currentStep()
+                  << ",";
     m_stream_Data << bubble.getRadius() << "," << bubble.getSpeed() << ",";
     m_stream_Data << bubble.calculateEnergy() << "," << particleTotalEnergy
                   << ",";
@@ -299,7 +301,7 @@ void DataStreamer::stream(Simulation& simulation,
     m_stream_Data << particlePassedFalseCount << ","
                   << particleInteractedTrueCount << ","
                   << (particleInEnergy + bubble.calculateEnergy()) /
-                         bubble.getRadius()
+                         bubble.getRadius() / simulation.getInitialCompactnes()
                   << std::endl;
 
     particleCollection.resetAndWriteInteractedBubbleFalseState(cl_queue);
@@ -472,7 +474,7 @@ void DataStreamer::streamEnergyDensity(std::ofstream& t_stream,
       bins[(int)((particleRadius - t_minRadiusValue) / dr)] += p.E;
     }
   }
-  for (numType i = 0; i < t_binsCount - 1; i++) {
+  for (size_t i = 0; i < t_binsCount - 1; i++) {
     t_stream << bins[i] << ",";
   }
   t_stream << bins[t_binsCount - 1] << "\n";
