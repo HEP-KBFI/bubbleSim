@@ -107,9 +107,10 @@ int main(int argc, char* argv[]) {
   OpenCLLoader kernels(s_kernelPath, config.kernelName);
 
   // 3) Define required physical parameters
-  numType temperatureFalse = std::sqrt(std::pow(config.particleMassTrue, 2) -
-                                       std::pow(config.particleMassFalse, 2)) /
-                             config.parameterEta;
+  numType temperatureFalse =
+      std::sqrt(std::abs(std::pow(config.particleMassTrue, 2) -
+                         std::pow(config.particleMassFalse, 2))) /
+      config.parameterEta;
   numType temperatureTrue = 0;  // -> No particles generated in true vacuum,
                                 // thus set temperature in true vacuum 0
 
