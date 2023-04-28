@@ -56,7 +56,7 @@ class ConfigReader {
 
   std::string m_dataSavePath;
   numType streamTime;  // After what simulation time info is saved
-
+  int streamStep;
   int binsCountDensity;
   int binsCountEnergy;
   int binsCountRadialVelocity;
@@ -131,7 +131,11 @@ class ConfigReader {
     streamRadialVelocityOn = config["stream"]["stream_radial_velocity"];
     streamTangentialVelocityOn = config["stream"]["stream_tangential_velocity"];
     m_dataSavePath = config["stream"]["data_save_path"];
-    streamTime = config["stream"]["stream_time"];
+    streamTime = config["stream"]
+                       ["stream_time"];  // time after which simulation is saved
+    streamStep =
+        config["stream"]
+              ["stream_step"];  // Step after which simulation state is saved
     // Bins count
 
     binsCountDensity = config["stream"]["bins_count_density"];
@@ -153,22 +157,26 @@ class ConfigReader {
   void print_info() {
     std::string sublabel_prefix = "==== ";
     std::string sublabel_sufix = " ====";
+    std::cout << std::setprecision(6);
     std::cout << "=============== Config ===============" << std::endl;
     std::cout << sublabel_prefix + "Simulation" + sublabel_sufix << std::endl;
     std::cout << "seed: " << m_seed << ", max_steps: " << m_maxSteps
-              << ", dt: " << dt << ", Cyclic boundary on: " << cyclicBoundaryOn
+              << ", dt: " << dt << ", Stream time: " << streamTime
+              << ", Stream step: " << streamStep << std::endl;
+    std::cout << "Cyclic boundary on: " << cyclicBoundaryOn
+              << ", Cyclic boundary radius: " << cyclicBoundaryRadius
               << std::endl;
     std::cout << sublabel_prefix + "Parameters" << sublabel_sufix << std::endl;
-    std::cout << std::setprecision(5) << std::fixed;
     std::cout << "alpha: " << parameterAlpha << ", eta: " << parameterEta
               << ", upsilon: " << parameterUpsilon
               << ", coupling: " << parameterCoupling << std::endl;
-    std::cout << std::setprecision(2);
+
     std::cout << sublabel_prefix + "Bubble" << sublabel_sufix << std::endl;
     std::cout << "R_b: " << bubbleInitialRadius
               << ", V_b: " << bubbleInitialSpeed
               << ", isTrueVacuum: " << bubbleIsTrueVacuum
-              << ", Interaction: " << bubbleInteractionsOn << std::endl;
+              << ", Interaction wth bubble: " << bubbleInteractionsOn
+              << std::endl;
     std::cout << sublabel_prefix + "Particles" << sublabel_sufix << std::endl;
     std::cout << "Mass false: " << particleMassFalse
               << ", Mass true: " << particleMassTrue << std::endl;

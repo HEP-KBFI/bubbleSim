@@ -38,7 +38,11 @@ class Simulation {
     m_initialCompactness = t_initialCompacntess;
   }
 
-  void addInitialTotalEnergy(numType energy) { m_initialTotalEnergy += energy; }
+  void addInitialTotalEnergy(numType energy) {
+    assert(m_time == 0.);
+    m_initialTotalEnergy += energy;
+    m_totalEnergy += energy;
+  }
 
   void set_dt(numType t_dt) {
     if (t_dt <= 0.) {
@@ -46,6 +50,8 @@ class Simulation {
       std::terminate();
     }
   };
+
+  int getStep() { return m_step; }
 
   void step(PhaseBubble& bubble, numType t_dP);
   /*

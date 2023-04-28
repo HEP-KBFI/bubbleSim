@@ -6,6 +6,8 @@ class TimestepAdapter {
   numType m_current_dt;
   numType m_max_dt;
 
+  numType m_radius_dt_ratio = 1000.;
+
   u_int m_repeatCounter = 0;
   u_int m_repeatValue = 0;
 
@@ -23,6 +25,6 @@ class TimestepAdapter {
   void calculateNewTimeStep() { m_current_dt = m_current_dt / 2; }
 
   void calculateNewTimeStep(PhaseBubble& bubble) {
-    m_current_dt = std::min(bubble.getRadius() / 1000, m_max_dt);
+    m_current_dt = std::min(bubble.getRadius() / m_radius_dt_ratio, m_max_dt);
   }
 };

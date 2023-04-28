@@ -132,35 +132,25 @@ void Simulation::set_particle_bounce_buffers(ParticleCollection& t_particles,
 void Simulation::step(ParticleCollection& particles, PhaseBubble& bubble,
                       cl::Kernel& t_bubbleInteractionKernel,
                       cl::CommandQueue& cl_queue) {
-  /*
-   * 1) Move particles and do collision with phase bubble (GPU)
-   * (1.1 Bounce particles back from some distance?)
-   * 2) Calculate dP and evolve bubble
-   * 3) Assign particles to collision cells (GPU)
-   * 4) Calculate COM frame for particles in each cell. Generate rotation axis
-   * and rotation angle for the collision cells 5) Perform "collisions" ->
-   * Rotate particle momentum (GPU)
-   */
-
   // 1) Update timestep
-  numType currentStepEnergy = 0.;
-  numType bubbleStartSpeed = bubble.getSpeed();
+  // numType bubbleStartSpeed = bubble.getSpeed();
+  m_timestepAdapter.calculateNewTimeStep(bubble);
   m_step_dt = m_timestepAdapter.getTimestep();
+
+  // Move timestep to GPU
   write_dtBuffer(cl_queue);
-  // 2)
-  // Write new bubble parameters to buffer on device
+  // 2) Update data on GPU
   bubble.calculateRadiusAfterStep2(m_step_dt);
   bubble.writeBubbleBuffer(cl_queue);
 
-  // 3) Run kernel
+  // 3) Run kernel (move particles on GPU)
   cl_queue.enqueueNDRangeKernel(t_bubbleInteractionKernel, cl::NullRange,
                                 cl::NDRange(particles.getParticleCountTotal()));
-  // 3) Calculate how much "energy" particle get and then convert it to energy
-  // bubble gets
+  // 4 Read particle data from GPU after the step
   particles.readParticlesBuffer(cl_queue);
   particles.read_dPBuffer(cl_queue);
 
-  // Calculate particle energy change
+  // Calculate particle energy change -> pressure on the wall
   m_dP = 0.;
   numType currentTotalEnergy = 0.;
   for (u_int i = 0; i < particles.getParticleCountTotal(); i++) {
@@ -170,10 +160,11 @@ void Simulation::step(ParticleCollection& particles, PhaseBubble& bubble,
   // Convert energy change to pressure
   m_dP = -m_dP / bubble.calculateArea();
 
-  // 4) Evolve bubble
+  // 5) Evolve bubble
   bubble.evolveWall(m_step_dt, m_dP);
-
   currentTotalEnergy += bubble.calculateEnergy();
+
+  /* In development: adaptive timestep ; step revert
   numType bubbleStepFinalSpeed = bubble.getSpeed();
   numType bubbleSpeedChange = std::abs(bubbleStepFinalSpeed - bubbleStartSpeed);
   if ((bubbleStartSpeed > 0) && (bubbleStartSpeed - bubbleStepFinalSpeed > 0)) {
@@ -196,19 +187,25 @@ void Simulation::step(ParticleCollection& particles, PhaseBubble& bubble,
   } else {
     m_timestepAdapter.calculateNewTimeStep(bubble);
   }
+  */
 
-  // 5) Collisions
+  // Update simulation info
+  m_totalEnergy = currentTotalEnergy;
   m_time += m_step_dt;
   m_step += 1;
-  particles.makeCopy();
-  bubble.makeBubbleCopy();
+
+  // In development: step revert
+  // particles.makeCopy();
+  // bubble.makeBubbleCopy();
 }
 
+// Step for only calculating bubble
 void Simulation::step(PhaseBubble& bubble, numType t_dP) {
   m_time += m_dt;
   bubble.evolveWall(m_dt, t_dP);
 }
 
+// In development: collisions
 void Simulation::step(ParticleCollection& particles,
                       CollisionCellCollection& cells,
                       RandomNumberGenerator& generator_collision, int i,

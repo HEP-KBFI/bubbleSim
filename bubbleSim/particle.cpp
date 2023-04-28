@@ -525,47 +525,43 @@ numType ParticleCollection::countParticlesEnergy(numType t_radius1,
 
 void ParticleCollection::print_info(ConfigReader t_config,
                                     PhaseBubble& t_bubble) {
-  numType mu =
+  // exp(mu/T) -> ~ chemical potential ->
+  std::cout << std::setprecision(6);
+  numType exp_mu_T =
       std::log((m_particleCountIn * std::pow(M_PI, 2)) /
                (t_bubble.calculateVolume() * std::pow(m_temperatureFalse, 3)));
   numType nFromParameters = m_particleCountIn / t_bubble.calculateVolume();
-
+  // Assuming m = 0
   numType rhoFromParameters =
       m_particleCountIn * 3 * m_massTrue /
       (t_config.parameterEta * t_bubble.calculateVolume());
   numType energyFromParameters = 3 * m_massTrue / t_config.parameterEta;
 
-  numType nFromTheory =
-      std::pow(m_temperatureFalse, 3) / std::pow(M_PI, 2) * std::exp(mu);
-  numType rhoFromTheory =
-      3 * std::pow(m_temperatureFalse, 4) / std::pow(M_PI, 2) * std::exp(mu);
-  numType energyFromTheory = 3 * m_temperatureFalse;
-
   numType particleTotalEnergy = countParticlesEnergy();
   numType nSim = m_particleCountIn / t_bubble.calculateVolume();
-
   numType rhoSim = particleTotalEnergy / t_bubble.calculateVolume();
   numType energySim = particleTotalEnergy / m_particleCountFalse;
+  numType dVrho = abs(t_bubble.getdV()) / rhoSim;
 
   std::string sublabel_prefix = "==== ";
   std::string sublabel_sufix = " ====";
-  std::cout << std::setprecision(5);
+
   std::cout << "=============== Particles ===============" << std::endl;
-  std::cout << sublabel_prefix + "mu: " << mu << sublabel_sufix << std::endl;
+  std::cout << sublabel_prefix + "exp(mu/T) (m-=0): " << exp_mu_T
+            << sublabel_sufix << std::endl;
+  std::cout << sublabel_prefix + "dV/rho: " << dVrho << sublabel_sufix
+            << std::endl;
+
   std::cout << sublabel_prefix + "Number density" + sublabel_sufix << std::endl;
   std::cout << "Sim: " << nSim << ", Param: " << nFromParameters
-            << ", Theory: " << nFromTheory
-            << ", Ratio (sim/param): " << nSim / nFromParameters
-            << ", Ratio  (sim/theory): " << nSim / nFromTheory << std::endl;
+            << ", Ratio (sim/param): " << nSim / nFromParameters << std::endl;
   std::cout << sublabel_prefix + "Energy density" + sublabel_sufix << std::endl;
-  std::cout << "Sim: " << rhoSim << ", Param: " << rhoFromParameters
-            << ", Theory: " << rhoFromTheory
+  std::cout << "Sim: " << rhoSim << ", Param (m=0): " << rhoFromParameters
+
             << ", Ratio (sim/param): " << rhoSim / rhoFromParameters
-            << ", Ratio  (sim/theory): " << rhoSim / rhoFromTheory << std::endl;
+            << std::endl;
   std::cout << sublabel_prefix + "<E>" + sublabel_sufix << std::endl;
-  std::cout << "Sim: " << energySim << ", Param: " << energyFromParameters
-            << ", Theory: " << energyFromTheory
+  std::cout << "Sim: " << energySim << ", Param (m=0): " << energyFromParameters
             << ", Ratio (sim/param): " << energySim / energyFromParameters
-            << ", Ratio  (sim/theory): " << energySim / energyFromTheory
             << std::endl;
 }

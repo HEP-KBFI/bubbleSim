@@ -95,35 +95,13 @@ void PhaseBubble::evolveWall(numType dt, numType dP) {
 }
 
 void PhaseBubble::print_info(ConfigReader& t_config) {
-  numType dVFromParameters = t_config.particleCountFalse *
-                             t_config.particleMassTrue *
-                             (3 * t_config.parameterAlpha + 1) /
-                             (t_config.parameterEta * calculateVolume());
-  numType sigmaFromParameters = m_bubble.radius * t_config.particleCountFalse *
-                                t_config.parameterUpsilon *
-                                t_config.particleMassTrue *
-                                (3 * t_config.parameterAlpha + 1) /
-                                (t_config.parameterEta * calculateVolume());
-  numType energyFromParameters =
-      t_config.particleCountFalse * t_config.particleMassTrue *
-      (3 * t_config.parameterAlpha + 1) *
-      (1 + 3 * t_config.parameterUpsilon /
-               std::sqrt(1 - std::pow(m_bubble.speed, 2))) /
-      t_config.parameterEta;
-
   std::string sublabel_prefix = "==== ";
   std::string sublabel_sufix = " ====";
+  std::cout << std::setprecision(6);
   std::cout << "=============== Bubble ===============" << std::endl;
-  std::cout << sublabel_prefix + "dV" + sublabel_sufix << std::endl;
-  std::cout << std::setprecision(5);
-  std::cout << "Sim: " << m_dV << ", Params: " << dVFromParameters
-            << ", Ratio: " << m_dV / dVFromParameters << std::endl;
-  std::cout << sublabel_prefix + "Sigma" + sublabel_sufix << std::endl;
-  std::cout << "Sim: " << m_sigma << ", Params: " << sigmaFromParameters
-            << ", Ratio: " << m_sigma / sigmaFromParameters << std::endl;
-  std::cout << sublabel_prefix + "Energy" + sublabel_sufix << std::endl;
-  std::cout << "Sim: " << calculateEnergy()
-            << ", Params: " << energyFromParameters
-            << ", Ratio: " << calculateEnergy() / energyFromParameters
+  std::cout << sublabel_prefix + "dV: " << m_dV << sublabel_sufix << std::endl;
+  std::cout << sublabel_prefix + "Sigma: " << m_sigma << sublabel_sufix
             << std::endl;
+  std::cout << sublabel_prefix + "Energy: " << calculateEnergy()
+            << sublabel_sufix << std::endl;
 }
