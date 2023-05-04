@@ -111,6 +111,7 @@ int main(int argc, char* argv[]) {
       std::sqrt(std::abs(std::pow(config.particleMassTrue, 2) -
                          std::pow(config.particleMassFalse, 2))) /
       config.parameterEta;
+
   numType temperatureTrue = 0;  // -> No particles generated in true vacuum,
                                 // thus set temperature in true vacuum 0
 

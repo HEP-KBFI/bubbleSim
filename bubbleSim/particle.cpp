@@ -315,7 +315,7 @@ ParticleCollection::ParticleCollection(
     m_particleCountIn = t_particleCountFalse;
     m_particleCountOut = t_particleCountTrue;
   }
-  m_massDelta2 = std::pow(t_massTrue - t_massFalse, 2);
+  m_massDelta2 = std::abs(std::pow(t_massTrue, 2) - std::pow(t_massFalse, 2));
 
   m_massInBuffer =
       cl::Buffer(cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,

@@ -137,7 +137,6 @@ class ConfigReader {
         config["stream"]
               ["stream_step"];  // Step after which simulation state is saved
     // Bins count
-
     binsCountDensity = config["stream"]["bins_count_density"];
     binsCountEnergy = config["stream"]["bins_count_energy"];
     binsCountRadialVelocity = config["stream"]["bins_count_radial_velocity"];
