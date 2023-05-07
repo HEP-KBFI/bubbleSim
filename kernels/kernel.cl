@@ -556,6 +556,239 @@ __kernel void particle_bubble_step_cyclic(
 	t_particles[gid].m = particle.m;
 }
 
+__kernel void particle_bubble_step_cyclic_mass_inverted(	
+	__global Particle *t_particles,	
+	__global double *t_dP,
+	__global char *t_interactedFalse,
+	__global char *t_passedFalse,
+	__global char *t_interactedTrue,
+	__constant Bubble *t_bubble,
+	__constant double *t_dt,
+	__constant double *t_m_in,
+	__constant double *t_m_out,
+	__constant double *t_delta_m2,
+	__constant double *t_cycleRadius
+	){
+	
+	unsigned int gid = get_global_id(0);
+	// Mass inverted: Simualte situation where mass inside is higher
+	// dE - dP is not actual energy difference. dE = ΔE/R_b -> to avoid singularities/noise near R_b ~ 0
+
+	// Bubble parameters	
+	struct Bubble bubble = t_bubble[0];
+	// Particle
+	struct Particle particle = t_particles[gid];
+	
+	double M_in = t_m_in[0];
+	double M_out = t_m_out[0];
+	double Delta_M2 = t_delta_m2[0];
+	
+	// Particle parameters
+	double dt = t_dt[0];
+
+	double Vx = particle.pX/particle.E;
+	double Vy = particle.pY/particle.E;
+	double Vz = particle.pZ/particle.E;
+	
+	double X2 = calculateRadiusSquared(particle);
+	
+	double X_dt_x = fma(Vx, dt, particle.x);
+	double X_dt_y = fma(Vy, dt, particle.y);
+	double X_dt_z = fma(Vz, dt, particle.z);
+	double X_dt2 = fma(X_dt_x, X_dt_x, fma( X_dt_y, X_dt_y, X_dt_z * X_dt_z));
+	
+	double n_x, n_y, n_z;
+	double timeToWall, np;
+
+	// Check if particle in false vacuum
+	// If M_in < M_out -> Check if particle starts inside
+	// If M_in > M_out -> Check if particle starts outside
+	if (((X2 < bubble.radius2) && (M_out < M_in)) || ((X2 > bubble.radius2) && (M_out > M_in))){
+		// If M_in < M_out -> Check if particle stays in
+		// If M_in > M_out -> Check if particle stays out
+		if (((X_dt2 < bubble.radiusAfterStep2) && (M_out < M_in)) || ((X_dt2 > bubble.radiusAfterStep2) && (M_out > M_in))) {
+			// X_1 = fma(Vx, dt, X_1);
+			// X_2 = fma(Vy, dt, X_2);
+			// X_3 = fma(Vz, dt, X_3);
+			moveLinear(&particle, Vx, Vy, Vz, dt);
+			t_dP[gid] = 0.;
+			// t_interactedFalse[gid] += 0;
+			// t_passedFalse[gid] += 0;
+			// t_interactedTrue[gid] += 0;
+		}
+		// Maybe get outside
+		else {
+			timeToWall = calculateTimeToWall(particle, bubble, dt);
+			// X_1 = fma(Vx, timeToWall, X_1);
+			// X_2 = fma(Vy, timeToWall, X_2);
+			// X_3 = fma(Vz, timeToWall, X_3);
+			moveLinear(&particle, Vx, Vy, Vz, timeToWall);
+			// Update X2
+			// double X2 = X_1 * X_1 + X_2 * X_2 + X_3 * X_3;
+			X2 = calculateRadiusSquared(particle);
+			// n_x = X_1 * Gamma/sqrt(X2);
+			// n_y = X_2 * Gamma/sqrt(X2);
+			// n_z = X_3 * Gamma/sqrt(X2);
+			
+			// If M_in > M_out then normal is towards inside
+			// If M_in < M_out then normal is towards outside
+			calculateNormal(&n_x, &n_y, &n_z, particle, bubble, X2, M_out, M_in);
+					
+			np = bubble.speed * bubble.gamma * particle.E - n_x*particle.pX - n_y*particle.pY - n_z*particle.pZ;
+			
+			// ========== Interaction with the bubble ==========
+			// Particle bounces from the wall and stays where it was -> Stays in lower mass region
+			// Particle keeps lower mass
+			
+			if (-np > 0){
+				// P_i = P_i + np * n_i * sqrt(1-sqrt(1+Δm^2/np^2))
+				particle.pX = fma(np * (1-sqrt(1+Delta_M2/pow(np, 2))), n_x, particle.pX);
+				particle.pY = fma(np * (1-sqrt(1+Delta_M2/pow(np, 2))), n_y, particle.pY);
+				particle.pZ = fma(np * (1-sqrt(1+Delta_M2/pow(np, 2))), n_z, particle.pZ);
+				t_dP[gid] = bubble.gamma * np * (1.-sqrt(1.+Delta_M2/pow(np, 2.)));
+				
+				if (M_out < M_in) {
+					particle.m = M_out;
+					}
+				else {
+					particle.m = M_in;
+					}
+				
+				// E_particle = sqrt(M[gid]*M[gid] + P_1*P_1 + P_2*P_2 + P_3*P_3);
+				particle.E = calculateEnergy(particle);
+				t_interactedTrue[gid] += 1;
+			}
+			else {
+				printf("Error -np<0, np=%.2f, i:%i\n", np, gid);
+				moveLinear(&particle, Vx, Vy, Vz, timeToWall);
+			}
+			
+			
+			// Update velocity vector
+			Vx = particle.pX / particle.E;
+			Vy = particle.pY / particle.E;
+			Vz = particle.pZ / particle.E;
+			// ========== Movement after the bubble interaction ==========
+			moveLinear(&particle, Vx, Vy, Vz, dt - timeToWall);
+		}
+	}
+	
+	// If M_in < M_out -> Then particle starts outside
+	// If M_in > M_out -> Then particle starts inside
+	else {
+		// If M_in < M_out -> Particle stays outside
+		// If M_in > M_out -> Particle stays inside
+		if (((X_dt2 > bubble.radiusAfterStep2) && (M_out < M_in)) || ((X_dt2 < bubble.radiusAfterStep2) && (M_out > M_in))) {
+			// X_1 = fma(Vx, dt, X_1);
+			// X_2 = fma(Vy, dt, X_2);
+			// X_3 = fma(Vz, dt, X_3);
+			moveLinear(&particle, Vx, Vy, Vz, dt);
+			t_dP[gid] = 0.;
+			// t_interactedFalse[gid] += 0;
+			// t_passedFalse[gid] += 0;
+			// t_interactedTrue[gid] += 0;
+		}
+		// Particle gets lower mass
+		// If M_in < M_out -> Particle goes inside from out of the bubble
+		// If M_in > M_out -> Particle goes outside from the bubble to inside
+		else {
+			timeToWall = calculateTimeToWall(particle, bubble, dt);
+			// X_1 = fma(Vx, timeToWall, X_1);
+			// X_2 = fma(Vy, timeToWall, X_2);
+			// X_3 = fma(Vz, timeToWall, X_3);
+			moveLinear(&particle, Vx, Vy, Vz, timeToWall);
+			// Update X2
+			// double X2 = X_1 * X_1 + X_2 * X_2 + X_3 * X_3;
+			X2 = calculateRadiusSquared(particle);
+			// n_x = X_1 * Gamma/sqrt(X2);
+			// n_y = X_2 * Gamma/sqrt(X2);
+			// n_z = X_3 * Gamma/sqrt(X2);
+			calculateNormal(&n_x, &n_y, &n_z, particle, bubble, X2, M_out, M_in);
+			
+			np = bubble.speed * bubble.gamma*particle.E - n_x*particle.pX - n_y*particle.pY - n_z*particle.pZ;
+			if ((0 < np) && (np < sqrt(Delta_M2))){
+				printf("Error  i:%f\n", np);
+				// P_i = P_i + 2 * np * n_i
+				particle.pX = fma(np*2., n_x, particle.pX);
+				particle.pY = fma(np*2., n_y, particle.pY);
+				particle.pZ = fma(np*2., n_z, particle.pZ);
+				t_dP[gid] = bubble.gamma * np * 2. ;
+				
+				// E_particle = sqrt(pow(M[gid], 2.) + P_1*P_1 + P_2*P_2 + P_3*P_3);
+				
+				particle.E = calculateEnergy(particle);
+				t_interactedFalse[gid] += 1;
+			}
+			// Particle gets through the bubble wall -> Gets higher mass
+			// Particle gets higher mass
+			else if (np >= sqrt(Delta_M2)) {
+				if (M_out < M_in){
+					particle.m = M_in;
+				}
+				else {
+					particle.m = M_out;
+				}
+				
+				particle.pX = fma(np * (1.-sqrt(1.-Delta_M2/pow(np, 2.))), n_x, particle.pX);
+				particle.pY = fma(np * (1.-sqrt(1.-Delta_M2/pow(np, 2.))), n_y, particle.pY);
+				particle.pZ = fma(np * (1.-sqrt(1.-Delta_M2/pow(np, 2.))), n_z, particle.pZ);
+				t_dP[gid] = bubble.gamma * np * (1.-sqrt(1.-Delta_M2/pow(np, 2.)));
+				
+				particle.E = calculateEnergy(particle);
+
+				t_interactedFalse[gid] += 1;
+				t_passedFalse[gid] += 1;
+				
+			}
+			else {
+				printf("Error -np<0, np=%.2f, i:%i\n", np, gid);
+				moveLinear(&particle, Vx, Vy, Vz, timeToWall);
+			}
+			
+			// Update velocity vector
+			Vx = particle.pX / particle.E;
+			Vy = particle.pY / particle.E;
+			Vz = particle.pZ / particle.E;
+			// Movement after the bubble interaction
+			//X_1 = fma(Vx, dt - timeToWall, X_1);
+			//X_2 = fma(Vy, dt - timeToWall, X_2);
+			//X_3 = fma(Vz, dt - timeToWall, X_3);
+			moveLinear(&particle, Vx, Vy, Vz, dt - timeToWall);
+			
+			//t_interactedFalse[gid] += 0;
+			//t_passedFalse[gid] += 0;
+		}
+	}
+	/*
+	* ========== Cyclic condition ==========
+	* If -R_cyclic < particle.x < R_cyclic 	-> Then leave coordinate same
+	* If particle.x > R_cyclic 				-> Then particle.x = particle.x - 2 * R_cyclic
+	* If particle.x < -R_cyclic				-> Then particle.x = particle.x + 2 * R_cyclic
+	*/
+	
+	double cyclicRadius = t_cycleRadius[0];
+	particle.x = (cyclicRadius > fabs(particle.x)) * particle.x +
+				 (particle.x > cyclicRadius) * (particle.x - 2*cyclicRadius) + 
+				 (particle.x < -cyclicRadius) * (particle.x + 2*cyclicRadius);
+	particle.y = (cyclicRadius > fabs(particle.y)) * particle.y +
+				 (particle.y > cyclicRadius) * (particle.y - 2*cyclicRadius) + 
+				 (particle.y < -cyclicRadius) * (particle.y + 2*cyclicRadius);
+	particle.z = (cyclicRadius > fabs(particle.z)) * particle.z +
+				 (particle.z > cyclicRadius) * (particle.z - 2*cyclicRadius) + 
+				 (particle.z < -cyclicRadius) * (particle.z + 2*cyclicRadius);
+				 
+	t_particles[gid].x = particle.x;
+	t_particles[gid].y = particle.y;
+	t_particles[gid].z = particle.z;
+	
+	t_particles[gid].pX = particle.pX;
+	t_particles[gid].pY = particle.pY;
+	t_particles[gid].pZ = particle.pZ;
+	t_particles[gid].E = particle.E;
+	t_particles[gid].m = particle.m;
+}
+
+
 __kernel void particle_step(
 	__global Particle *t_particles,
 	__constant double *boundaryDistanceFromCenter,
