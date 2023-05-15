@@ -3,14 +3,14 @@
 Compile and run on the cluster:
 
 ```
-export IMG=/home/software/singularity/base
+export IMG=/home/software/singularity/base.simg
 
 singularity exec $IMG make clean
 singularity exec $IMG make -j8
 
 # Run with oclgrind
 
-singularity exec /home/software/singularity/base-2022-11-17.simg oclgrind --data-races --uninitialized --log oclgrind.log ./build/bubbleSim.exe configs/test_oclgrind.json kernels/kernel.cl
+singularity exec $IMG oclgrind --data-races --uninitialized --log oclgrind.log ./build/bubbleSim.exe configs/test_oclgrind.json kernels/kernel.cl
 
 
 
