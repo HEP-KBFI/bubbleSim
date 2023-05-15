@@ -20,13 +20,15 @@ PhaseBubble::PhaseBubble(numType t_initialRadius, numType t_initialSpeed,
   numType gamma =
       1.0 / std::exp((std::log1p((-t_initialSpeed * t_initialSpeed)) * 0.5));
   numType gammaXspeed = t_initialSpeed * gamma;
-  m_bubble = Bubble{t_initialRadius, radius2, radius2,
-                    t_initialSpeed,  gamma,   gammaXspeed};
+  m_bubble = Bubble{t_initialRadius, radius2,     radius2, t_initialSpeed,
+                    gamma,           gammaXspeed, gamma};
+  m_bubble_copy = m_bubble;
   m_bubbleBuffer =
       cl::Buffer(cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
                  sizeof(Bubble), &m_bubble, &openCLerrNum);
   m_dV = t_dV;
   m_sigma = t_sigma;
+  m_initialRadius = t_initialRadius;
 
   if (m_sigma < 0) {
     std::cerr << "sigma < 0" << std::endl;
@@ -54,54 +56,52 @@ numType PhaseBubble::calculateRadiusAfterStep2(numType dt) {
       pow(std::fma(m_bubble.speed, dt, m_bubble.radius), 2);
   return m_bubble.radiusAfterStep2;
 }
-void PhaseBubble::evolveWall(numType dt, numType dP) {
-  numType newRadius = m_bubble.radius + dt * m_bubble.speed;
 
-  numType velocityElement = std::fma(-m_bubble.speed, m_bubble.speed, 1);
-  m_bubble.speed +=
-      std::sqrt(pow(velocityElement, 3)) * std::fma(m_dV, dt, dP) / m_sigma -
-      2 * velocityElement * dt / m_bubble.radius;
-  /*std::cout << std::sqrt(pow(velocityElement, 3)) * std::fma(m_dV, dt, -dP) /
-                   m_sigma
-            << ", " << 2 * velocityElement * dt / m_bubble.radius << std::endl;
-  std::cout << m_dV * dt - dP << std::endl;*/
+void PhaseBubble::evolveWall(numType dt, numType dP) {
+  numType newRadius;  // R_(i+1)
+  numType newSpeed;   // V_(i+1)
+  numType newGamma;   // gamma_(i+1)
+  numType gammaChange;
+  numType sgn = ((0 < m_bubble.speed) - (m_bubble.speed < 0));  // sign of speed
+
+  if (m_bubble.gamma >= 10) {
+    newRadius = m_bubble.radius + dt * m_bubble.speed;
+
+    gammaChange = (std::fma(m_dV, dt, dP) / m_sigma *
+                       std::sqrt((m_bubble.gamma - 1) / m_bubble.gamma) -
+                   2 * std::sqrt((m_bubble.gamma - 1) * m_bubble.gamma) /
+                       m_bubble.radius * dt) *
+                  sgn;
+    newGamma = m_bubble.gamma + gammaChange;
+    newSpeed = std::sqrt(1 - 1 / std::pow(newGamma, 2)) * sgn;
+
+  } else {
+    newRadius = m_bubble.radius + dt * m_bubble.speed;
+
+    numType velocityElement = std::fma(-m_bubble.speed, m_bubble.speed, 1);
+
+    newSpeed =
+        m_bubble.speed +
+        std::sqrt(pow(velocityElement, 3)) * std::fma(m_dV, dt, dP) / m_sigma -
+        2 * velocityElement * dt / m_bubble.radius;
+    newGamma = 1.0 / std::exp((std::log1p((-newSpeed * newSpeed)) * 0.5));
+  }
   m_bubble.radius = newRadius;
-  m_bubble.gamma =
-      1.0 / std::exp((std::log1p((-m_bubble.speed * m_bubble.speed)) * 0.5));
+  m_bubble.speed = newSpeed;
+  m_bubble.gamma = newGamma;
+
   m_bubble.radius2 = std::pow(m_bubble.radius, 2);
   m_bubble.gammaXspeed = m_bubble.speed * m_bubble.gamma;
 }
 
 void PhaseBubble::print_info(ConfigReader& t_config) {
-  numType dVFromParameters = t_config.particleCountFalse *
-                             t_config.particleMassTrue *
-                             (3 * t_config.parameterAlpha + 1) /
-                             (t_config.parameterEta * calculateVolume());
-  numType sigmaFromParameters = m_bubble.radius * t_config.particleCountFalse *
-                                t_config.parameterUpsilon *
-                                t_config.particleMassTrue *
-                                (3 * t_config.parameterAlpha + 1) /
-                                (t_config.parameterEta * calculateVolume());
-  numType energyFromParameters =
-      t_config.particleCountFalse * t_config.particleMassTrue *
-      (3 * t_config.parameterAlpha + 1) *
-      (1 + 3 * t_config.parameterUpsilon /
-               std::sqrt(1 - std::pow(m_bubble.speed, 2))) /
-      t_config.parameterEta;
-
   std::string sublabel_prefix = "==== ";
   std::string sublabel_sufix = " ====";
+  std::cout << std::setprecision(6);
   std::cout << "=============== Bubble ===============" << std::endl;
-  std::cout << sublabel_prefix + "dV" + sublabel_sufix << std::endl;
-  std::cout << std::setprecision(5);
-  std::cout << "Sim: " << m_dV << ", Params: " << dVFromParameters
-            << ", Ratio: " << m_dV / dVFromParameters << std::endl;
-  std::cout << sublabel_prefix + "Sigma" + sublabel_sufix << std::endl;
-  std::cout << "Sim: " << m_sigma << ", Params: " << sigmaFromParameters
-            << ", Ratio: " << m_sigma / sigmaFromParameters << std::endl;
-  std::cout << sublabel_prefix + "Energy" + sublabel_sufix << std::endl;
-  std::cout << "Sim: " << calculateEnergy()
-            << ", Params: " << energyFromParameters
-            << ", Ratio: " << calculateEnergy() / energyFromParameters
+  std::cout << sublabel_prefix + "dV: " << m_dV << sublabel_sufix << std::endl;
+  std::cout << sublabel_prefix + "Sigma: " << m_sigma << sublabel_sufix
             << std::endl;
+  std::cout << sublabel_prefix + "Energy: " << calculateEnergy()
+            << sublabel_sufix << std::endl;
 }

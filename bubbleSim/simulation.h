@@ -7,17 +7,20 @@
 #include "collision.h"
 #include "objects.h"
 #include "opencl_kernels.h"
+#include "timestep.h"
 
 class Simulation {
  public:
   Simulation() {}
-  Simulation(int t_seed, numType t_dt, cl::Context& cl_context);
-  Simulation(int t_seed, numType t_dt, numType boundaryRadius,
+  Simulation(int t_seed, numType t_max_dt, cl::Context& cl_context);
+  Simulation(int t_seed, numType t_max_dt, numType boundaryRadius,
              cl::Context& cl_context);
 
   numType getTime() { return m_time; }
 
   numType get_dt() { return m_dt; }
+
+  numType get_dt_currentStep() { return m_step_dt; }
 
   numType get_dP() { return m_dP; }
 
@@ -27,7 +30,19 @@ class Simulation {
 
   numType getTotalEnergy() { return m_totalEnergy; }
 
-  void addTotalEnergy(numType energy) { m_totalEnergy += energy; }
+  numType getInitialTotalEnergy() { return m_initialTotalEnergy; }
+
+  numType getInitialCompactnes() { return m_initialCompactness; }
+
+  void setInitialCompactness(numType t_initialCompacntess) {
+    m_initialCompactness = t_initialCompacntess;
+  }
+
+  void addInitialTotalEnergy(numType energy) {
+    assert(m_time == 0.);
+    m_initialTotalEnergy += energy;
+    m_totalEnergy += energy;
+  }
 
   void set_dt(numType t_dt) {
     if (t_dt <= 0.) {
@@ -35,6 +50,8 @@ class Simulation {
       std::terminate();
     }
   };
+
+  int getStep() { return m_step; }
 
   void step(PhaseBubble& bubble, numType t_dP);
   /*
@@ -69,11 +86,13 @@ class Simulation {
   cl::Buffer& get_dtBuffer() { return m_dtBuffer; }
 
   void read_dtBuffer(cl::CommandQueue& cl_queue) {
-    cl_queue.enqueueReadBuffer(m_dtBuffer, CL_TRUE, 0, sizeof(numType), &m_dt);
+    cl_queue.enqueueReadBuffer(m_dtBuffer, CL_TRUE, 0, sizeof(numType),
+                               &m_step_dt);
   }
 
   void write_dtBuffer(cl::CommandQueue& cl_queue) {
-    cl_queue.enqueueWriteBuffer(m_dtBuffer, CL_TRUE, 0, sizeof(numType), &m_dt);
+    cl_queue.enqueueWriteBuffer(m_dtBuffer, CL_TRUE, 0, sizeof(numType),
+                                &m_step_dt);
   }
 
   void writeAllBuffersToKernel(cl::CommandQueue& cl_queue) {
@@ -85,8 +104,11 @@ class Simulation {
   // Cumulative time
   int m_seed;
   numType m_time = 0.;
+  size_t m_step = 0;
   // One step time length
   numType m_dt;
+  numType m_step_dt;
+  TimestepAdapter m_timestepAdapter;
   cl::Buffer m_dtBuffer;
 
   bool m_cyclicBoundaryOn = false;
@@ -94,7 +116,9 @@ class Simulation {
   cl::Buffer m_cyclicBoundaryRadiusBuffer;
 
   // Simulation values
+  numType m_initialCompactness = 0.;
   numType m_totalEnergy = 0.;
+  numType m_initialTotalEnergy = 0.;
 
   // Current simulation state values
   numType m_dP = 0.;

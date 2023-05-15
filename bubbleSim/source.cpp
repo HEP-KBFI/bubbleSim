@@ -40,7 +40,7 @@ std::filesystem::path createSimulationFilePath(std::string& t_dataPath,
   return filePath;
 }
 
-void createSimulationInfoFile(std::fstream& infoStream,
+void createSimulationInfoFile(std::ofstream& infoStream,
                               std::filesystem::path& filePath,
                               ConfigReader& t_config, numType t_dV, numType t_n,
                               numType t_rho) {
@@ -64,8 +64,8 @@ void createSimulationInfoFile(std::fstream& infoStream,
              << t_config.cyclicBoundaryOn << ",";
   infoStream << t_dV << "," << t_n << "," << t_rho << ",";
 }
-void appendSimulationInfoFile(std::fstream& infoStream, int t_postionDifference,
-                              int t_programRuntime) {
+void appendSimulationInfoFile(std::ofstream& infoStream,
+                              int t_postionDifference, int t_programRuntime) {
   infoStream << t_postionDifference << "," << t_programRuntime << std::endl;
 }
 
@@ -75,8 +75,10 @@ int main(int argc, char* argv[]) {
     exit(0);
   }
 
+  // Collision is in development
   bool b_collisionDevelopment = false;
 
+  // Read configs and kernel file
   std::string s_configPath = argv[1];  // "config.json"
   std::string s_kernelPath = argv[2];  // "kernel.cl";
 
@@ -88,7 +90,6 @@ int main(int argc, char* argv[]) {
   using std::chrono::high_resolution_clock;
   using std::chrono::milliseconds;
   auto programStartTime = high_resolution_clock::now();
-
   ConfigReader config(s_configPath);
   /*
           ===============  ===============
@@ -97,29 +98,26 @@ int main(int argc, char* argv[]) {
 
   /*
     =============== Initialization ===============
-    === TODO ===
  */
 
   // 1) Initialize random number generators
   RandomNumberGenerator rn_generator(config.m_seed);
 
-  // 2) Initialize openCL
-  OpenCLLoader kernels(s_kernelPath);
-  // 3) Define required physical parameters
-  /*
-  alpha = dV/rho, eta = sqrt(M+^2 - m-^2)/T, Upsilon = sigma/(dV * R_0)
+  // 2) Initialize openCL (kernels, commandQueues)
+  OpenCLLoader kernels(s_kernelPath, config.kernelName);
 
-  Define M+ -> Get T -> Get rho -> get dV -> get sigma
-  M+ is defined in a config
-  */
-  numType temperatureFalse = std::sqrt(std::pow(config.particleMassTrue, 2) -
-                                       std::pow(config.particleMassFalse, 2)) /
-                             config.parameterEta;
-  numType temperatureTrue = 0;  // -> No particles generated in true vacuum
+  // 3) Define required physical parameters
+  numType temperatureFalse =
+      std::sqrt(std::abs(std::pow(config.particleMassTrue, 2) -
+                         std::pow(config.particleMassFalse, 2))) /
+      config.parameterEta;
+
+  numType temperatureTrue = 0;  // -> No particles generated in true vacuum,
+                                // thus set temperature in true vacuum 0
 
   // 4) Generate particles
-
   ParticleGenerator particleGenerator1;
+  // 4.1) Create generator (calculates distribution)
   if (b_collisionDevelopment) {
     particleGenerator1 = ParticleGenerator(config.particleMassFalse, 3.);
   } else {
@@ -127,13 +125,14 @@ int main(int argc, char* argv[]) {
         ParticleGenerator(config.particleMassFalse, temperatureFalse,
                           30 * temperatureFalse, 1e-5 * temperatureFalse);
   }
-
+  // 4.2) Create arrays for particles which hold the data of the particles
   ParticleCollection particles(
       config.particleMassTrue, config.particleMassFalse, temperatureTrue,
       temperatureFalse, config.particleCountTrue, config.particleCountFalse,
       config.parameterCoupling, config.bubbleIsTrueVacuum,
       kernels.getContext());
 
+  // 4.3) Generate particles
   numType genreatedParticleEnergy;
   if (b_collisionDevelopment) {
     genreatedParticleEnergy = particleGenerator1.generateNParticlesInBox(
@@ -151,20 +150,26 @@ int main(int argc, char* argv[]) {
 
   particles.add_to_total_initial_energy(genreatedParticleEnergy);
 
-  // 5) Initialize simulation object
+  // In development: step revert
+  // particles.makeCopy();
 
+  // 5) Initialize simulation object: controls one simulation step
   Simulation simulation;
-  numType cycleBoundaryRadius;
   if (!config.cyclicBoundaryOn) {
     simulation = Simulation(config.m_seed, config.dt, kernels.getContext());
   } else {
-    cycleBoundaryRadius = 2 * config.bubbleInitialRadius;
-    simulation = Simulation(config.m_seed, config.dt, cycleBoundaryRadius,
-                            kernels.getContext());
+    simulation = Simulation(config.m_seed, config.dt,
+                            config.cyclicBoundaryRadius, kernels.getContext());
   }
 
+  // 6) Define which openCL kernel to use. Kernel defines calculation process on
+  // the GPU.
+  //
   cl::Kernel* stepKernel;
-  if (!config.bubbleInteractionsOn) {
+  // In development: set kernel name in config file.
+  // NB! Different kernels might need different input
+
+  /*if (!config.bubbleInteractionsOn) {
     stepKernel = &kernels.m_particleStepKernel;
   } else if ((config.bubbleInteractionsOn) && (!config.cyclicBoundaryOn)) {
     stepKernel = &kernels.m_particleBubbleStepKernel;
@@ -174,55 +179,95 @@ int main(int argc, char* argv[]) {
     std::cerr << "Kernel for current configuration is not available"
               << std::endl;
     std::terminate();
-  }
+  }*/
+  stepKernel = &kernels.m_kernel;
 
-  // 6) Initialize bubble object
-
+  // 7) Initialize bubble object
   numType bubbleVolume = 4 * M_PI / 3 * std::pow(config.bubbleInitialRadius, 3);
   numType initialEnergyDensityFalse =
       particles.countParticlesEnergy() / bubbleVolume;
   numType initialNumberDensityFalse =
       particles.getParticleCountFalse() / bubbleVolume;
-  /*
-  numType Tn = initialNumberDensityFalse * temperatureFalse;            // > 0
-  numType dV = config.parameterAlpha * initialEnergyDensityFalse + Tn;  // > 0
-  */
 
   numType dV = config.parameter_dV;
   numType alpha = config.parameterAlpha;
 
   numType sigma = config.parameterUpsilon * dV * config.bubbleInitialRadius;
-
   if (!config.bubbleIsTrueVacuum) {
-    // If bubble is true vacuum then dV is correct. Otherwise dV sign must be
-    // channged as change of direction changes
+    // If bubble is true vacuum then dV is correct sign. Otherwise dV sign must
+    // be changed as change of direction changes.
     dV = -dV;
   }
   PhaseBubble bubble(config.bubbleInitialRadius, config.bubbleInitialSpeed, dV,
                      sigma, kernels.getContext());
 
+  // Add all energy together in simulation for later use
+  simulation.addInitialTotalEnergy(particles.getInitialTotalEnergy());
+  simulation.addInitialTotalEnergy(bubble.calculateEnergy());
+  simulation.setInitialCompactness(simulation.getInitialTotalEnergy() /
+                                   bubble.getInitialRadius());
+
+  // In development: collision
   CollisionCellCollection cells(config.collisionCellLength,
                                 config.collisionCellCount, false,
                                 kernels.getContext());
-
-  simulation.set_particle_interaction_buffers(particles, cells,
-                                              kernels.m_cellAssignmentKernel,
-                                              kernels.m_rotationKernel);
   if (b_collisionDevelopment) {
+    simulation.set_particle_interaction_buffers(particles, cells,
+                                                kernels.m_cellAssignmentKernel,
+                                                kernels.m_rotationKernel);
+
     simulation.set_particle_step_buffers(particles, cells,
                                          kernels.m_particleStepKernel);
-  } else if (config.bubbleInteractionsOn) {
+    simulation.set_particle_bounce_buffers(particles, cells,
+                                           kernels.m_particleBounceKernel);
+
+  } else if (config.bubbleInteractionsOn) {  // Set up buffers for GPU
     simulation.set_particle_step_buffers(particles, bubble, *stepKernel);
   }
-  simulation.set_particle_bounce_buffers(particles, cells,
-                                         kernels.m_particleBounceKernel);
 
-  // Add all energy together
+  // Copy data to the GPU
+  particles.writeAllBuffersToKernel(kernels.getCommandQueue());
+  simulation.writeAllBuffersToKernel(kernels.getCommandQueue());
+  bubble.writeAllBuffersToKernel(kernels.getCommandQueue());
+  if (b_collisionDevelopment) {
+    cells.writeAllBuffersToKernel(kernels.getCommandQueue());
+  }
 
-  simulation.addTotalEnergy(particles.getInitialTotalEnergy());
-  simulation.addTotalEnergy(bubble.calculateEnergy());
+  // 8) Streaming initialization
+  std::string dataFolderName = createFileNameFromCurrentDate();
 
-  // 8) Streaming object
+  std::filesystem::path filePath =
+      createSimulationFilePath(config.m_dataSavePath, dataFolderName);
+  DataStreamer streamer(filePath.string());
+
+  if (config.streamDataOn) {
+    streamer.initStream_Data();
+  }
+  if (config.streamRadialVelocityOn) {
+    streamer.initStream_RadialVelocity(config.binsCountRadialVelocity,
+                                       config.maxValueRadialVelocity);
+  }
+  if (config.streamTangentialVelocityOn) {
+    streamer.initStream_TangentialVelocity(config.binsCountTangentialVelocity,
+                                           config.maxValueTangentialVelocity);
+  }
+  if (config.streamDensityOn) {
+    streamer.initStream_Density(config.binsCountDensity,
+                                config.maxValueDensity);
+  }
+  if (config.streamEnergyOn) {
+    streamer.initStream_EnergyDensity(config.binsCountEnergy,
+                                      config.maxValueEnergy);
+  }
+  if (config.streamMomentumInOn) {
+    streamer.initStream_MomentumIn(config.binsCountMomentumIn,
+                                   config.maxValueMomentumIn);
+  }
+  if (config.streamMomentumOutOn) {
+    streamer.initStream_MomentumOut(config.binsCountMomentumOut,
+                                    config.maxValueMomentumOut);
+  }
+  streamer.stream(simulation, particles, bubble, kernels.getCommandQueue());
 
   /*
    * =============== Display text ===============
@@ -236,75 +281,40 @@ int main(int argc, char* argv[]) {
   std::cout << std::endl;
   // 9) Streams
 
-  particles.writeAllBuffersToKernel(kernels.getCommandQueue());
-  simulation.writeAllBuffersToKernel(kernels.getCommandQueue());
-  bubble.writeAllBuffersToKernel(kernels.getCommandQueue());
-  cells.writeAllBuffersToKernel(kernels.getCommandQueue());
-
-  std::string dataFolderName = createFileNameFromCurrentDate();
-
-  std::filesystem::path filePath =
-      createSimulationFilePath(config.m_dataSavePath, dataFolderName);
-  DataStreamer streamer(filePath.string());
-
-  if (config.streamDataOn) {
-    streamer.initData();
-  }
-  if (config.streamDensityOn) {
-    streamer.initDensityProfile(config.streamDensityBinsCount,
-                                config.bubbleInitialRadius * 2 * std::sqrt(3));
-    streamer.initEnergyDensityProfile(
-        config.streamDensityBinsCount,
-        config.bubbleInitialRadius * 2 * std::sqrt(3));
-    // If cyclic condition is set to 2*R_b then max distance is sqrt(3) 2 * R_b
-  }
-  if (config.streamMomentumOn) {
-    streamer.initMomentumProfile(config.streamMomentumBinsCount, 30);
-  }
-  streamer.stream(simulation, particles, bubble, kernels.getCommandQueue());
-
-  std::fstream infoStream(filePath / "info.txt",
-                          std::ios::out | std::ios::trunc);
   std::cout << std::setprecision(8) << std::endl;
+  // Create simulation info file which includes description of the simulation
+  std::ofstream infoStream(filePath / "info.txt",
+                           std::ios::out | std::ios::trunc);
+
   createSimulationInfoFile(infoStream, filePath, config, dV,
                            initialNumberDensityFalse,
                            initialEnergyDensityFalse);
 
-  // Energy, p_x, p_y, p_z, p^2
-  std::array<double, 5> previous = {0., 0., 0., 0., 0.};
-  std::array<double, 5> current = {0., 0., 0., 0., 0.};
-  if (b_collisionDevelopment) {
-    for (Particle p : particles.getParticles()) {
-      current[0] += p.E;
-      current[1] += p.p_x;  // std::abs(p.p_x);
-      current[2] += p.p_y;  // std::abs(p.p_y);
-      current[3] += p.p_z;  // std::abs(p.p_z);
-      current[4] += std::sqrt(
-          std::fma(p.p_x, p.p_x, std::fma(p.p_y, p.p_y, p.p_z * p.p_z)));
-    }
-    previous[0] = current[0];
-    previous[1] = current[1];
-    previous[2] = current[2];
-    previous[3] = current[3];
-    previous[4] = current[4];
+  /*
+    =============== Run simulation ===============
+  */
 
-    std::cout << std::setprecision(10) << "Current energy: " << current[0]
-              << ", delta: " << current[0] - previous[0] << std::endl;
-    std::cout << "Current p1: " << current[1]
-              << ", delta: " << current[1] - previous[1] << std::endl;
-    std::cout << "Current p2: " << current[2]
-              << ", delta: " << current[2] - previous[2] << std::endl;
-    std::cout << "Current p3: " << current[3]
-              << ", delta: " << current[3] - previous[3] << std::endl;
-    std::cout << "Current p: " << current[4]
-              << ", delta: " << current[4] - previous[4] << std::endl
-              << std::endl;
-  }
-  std::cout << "Time: " << simulation.getTime() << ", R: " << bubble.getRadius()
-            << ", V: " << bubble.getSpeed() << ", dP: " << simulation.get_dP()
+  numType simTimeSinceLastStream = 0.;
+  int stepsSinceLastStream = 0;
+  std::cout << "=============== Simulation ===============" << std::endl;
+  std::cout << std::setprecision(6) << std::fixed << std::showpoint;
+  std::cout << "Step: " << simulation.getStep()
+            << ", Time: " << simulation.getTime()
+            << ", R: " << bubble.getRadius() << ", V: " << bubble.getSpeed()
+            << ", C/C0: "
+            << (simulation.getTotalEnergy() / bubble.getRadius()) /
+                   simulation.getInitialCompactnes()
+            << ", dP: " << simulation.get_dP() / simulation.get_dt_currentStep()
+            << ", E: "
+            << simulation.getTotalEnergy() / simulation.getInitialTotalEnergy()
             << std::endl;
 
-  for (int i = 1; i <= config.m_maxSteps; i++) {
+  // auto streamEndTime = high_resolution_clock::now();
+  // auto streamStartTime = high_resolution_clock::now();
+  for (int i = 1; (simulation.getTime() <= config.maxTime); i++) {
+    if (config.m_maxSteps > 0 && simulation.getStep() > config.m_maxSteps) {
+      break;
+    }
     /*
       simulation.step(bubble, 0);
     }*/
@@ -315,35 +325,6 @@ int main(int argc, char* argv[]) {
                       kernels.getCommandQueue());
 
       particles.readParticlesBuffer(kernels.getCommandQueue());
-      current[0] = 0.;
-      current[1] = 0.;
-      current[2] = 0.;
-      current[3] = 0.;
-      current[4] = 0.;
-      for (Particle p : particles.getParticles()) {
-        current[0] += p.E;
-        current[1] += p.p_x;  // std::abs(p.p_x);
-        current[2] += p.p_y;  // std::abs(p.p_y);
-        current[3] += p.p_z;  // std::abs(p.p_z);
-        current[4] += std::sqrt(
-            std::fma(p.p_x, p.p_x, std::fma(p.p_y, p.p_y, p.p_z * p.p_z)));
-      }
-      std::cout << std::setprecision(10) << "Current energy: " << current[0]
-                << ", delta: " << current[0] - previous[0] << std::endl;
-      std::cout << "Current p1: " << current[1]
-                << ", delta: " << current[1] - previous[1] << std::endl;
-      std::cout << "Current p2: " << current[2]
-                << ", delta: " << current[2] - previous[2] << std::endl;
-      std::cout << "Current p3: " << current[3]
-                << ", delta: " << current[3] - previous[3] << std::endl;
-      std::cout << "Current p: " << current[4]
-                << ", delta: " << current[4] - previous[4] << std::endl
-                << std::endl;
-      previous[0] = current[0];
-      previous[1] = current[1];
-      previous[2] = current[2];
-      previous[3] = current[3];
-      previous[4] = current[4];
     } else {
       if (config.bubbleInteractionsOn) {
         simulation.step(particles, bubble, *stepKernel,
@@ -352,16 +333,50 @@ int main(int argc, char* argv[]) {
         simulation.step(bubble, 0);
       }
     }
+    simTimeSinceLastStream += simulation.get_dt_currentStep();
+    stepsSinceLastStream += 1;
 
-    if (i % config.streamFreq == 0) {
-      std::cout << std::setprecision(10) << std::fixed << std::showpoint;
-      std::cout << "Time: " << simulation.getTime()
+    if (config.streamStep > 0) {
+      if (stepsSinceLastStream == config.streamStep) {
+        if (config.streamOn) {
+          streamer.stream(simulation, particles, bubble,
+                          kernels.getCommandQueue());
+          stepsSinceLastStream = 0;
+        }
+      }
+    }
+
+    if (simTimeSinceLastStream >= config.streamTime) {
+      // streamEndTime = high_resolution_clock::now();
+
+      std::cout << std::setprecision(6) << std::fixed << std::showpoint;
+
+      std::cout << "Step: " << simulation.getStep()
+                << ", Time: " << simulation.getTime()
                 << ", R: " << bubble.getRadius() << ", V: " << bubble.getSpeed()
-                << ", dP: " << simulation.get_dP() << std::endl;
+                << ", C/C0: "
+                << (simulation.getTotalEnergy() / bubble.getRadius()) /
+                       simulation.getInitialCompactnes()
+                << ", dP: "
+                << simulation.get_dP() / simulation.get_dt_currentStep()
+                << ", E: "
+                << simulation.getTotalEnergy() /
+                       simulation.getInitialTotalEnergy()
+                << std::endl;
+
+      /*std::cout << "Time taken (steps): "
+                << std::chrono::duration_cast<std::chrono::milliseconds>(
+                       streamEndTime - streamStartTime)
+                       .count()
+                << " ms." << std::endl;*/
+
       if (config.streamOn) {
         streamer.stream(simulation, particles, bubble,
                         kernels.getCommandQueue());
       }
+      simTimeSinceLastStream = 0.;
+      stepsSinceLastStream = 0;
+      // streamStartTime = high_resolution_clock::now();
     }
 
     if (std::isnan(bubble.getRadius()) || bubble.getRadius() <= 0) {
@@ -375,8 +390,14 @@ int main(int argc, char* argv[]) {
       break;
     }
   }
+
+  /*
+    =============== End simulation ===============
+  */
+
   // Stream last state
   streamer.stream(simulation, particles, bubble, kernels.getCommandQueue());
+
   // Measure runtime
   auto programEndTime = high_resolution_clock::now();
   auto ms_int = std::chrono::duration_cast<std::chrono::milliseconds>(

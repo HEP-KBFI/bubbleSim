@@ -11,6 +11,7 @@ typedef struct Bubble {
 
   cl_numType gamma;
   cl_numType gammaXspeed;  // gamma * speed
+  cl_numType gamma_dynamic;
 } Bubble;
 
 class PhaseBubble {
@@ -23,6 +24,7 @@ class PhaseBubble {
   numType getRadiusAfterDt2() { return m_bubble.radiusAfterStep2; }
   numType getdV() { return m_dV; }
   numType getSigma() { return m_sigma; }
+  numType getInitialRadius() { return m_initialRadius; }
 
   PhaseBubble(numType t_initialRadius, numType t_initialSpeed, numType t_dV,
               numType t_sigma, cl::Context& cl_context);
@@ -47,11 +49,20 @@ class PhaseBubble {
     writeBubbleBuffer(cl_queue);
   }
 
+  void revertBubbleToLastStep(cl::CommandQueue& cl_queue) {
+    m_bubble = m_bubble_copy;
+    writeBubbleBuffer(cl_queue);
+  }
+
+  void makeBubbleCopy() { m_bubble_copy = m_bubble; }
+
   void print_info(ConfigReader& t_config);
 
  private:
   Bubble m_bubble;
+  Bubble m_bubble_copy;
   cl::Buffer m_bubbleBuffer;
   numType m_dV;
   numType m_sigma;
+  numType m_initialRadius;
 };
