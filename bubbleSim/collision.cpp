@@ -52,23 +52,23 @@ CollisionCellCollection::CollisionCellCollection(
 
 void CollisionCellCollection::generateShiftVector(
     RandomNumberGenerator& t_rng) {
-  m_shiftVector = {m_cellLength / 2. - t_rng.generate_number() * m_cellLength,
-                   m_cellLength / 2. - t_rng.generate_number() * m_cellLength,
-                   m_cellLength / 2. - t_rng.generate_number() * m_cellLength};
+  m_shiftVector = {m_cellLength / (numType)2. - t_rng.generate_number() * m_cellLength,
+                   m_cellLength / (numType)2. - t_rng.generate_number() * m_cellLength,
+                   m_cellLength / (numType)2. - t_rng.generate_number() * m_cellLength};
 }
 
 void CollisionCellCollection::recalculate_cells(
     std::vector<Particle>& t_particles, RandomNumberGenerator& t_rng) {
   // 0 index cell is for particles outside the collision cell grid
 
-  double phi, theta;
+  numType phi, theta;
 
   std::vector<std::array<cl_numType, 5>> frames;
   frames.resize(m_cellCount);
   /*
    * Sum up all momentums, energies and masses for each cell
    */
-  for (Particle particle : t_particles) {
+  for (Particle& particle : t_particles) {
     if (particle.idxCollisionCell == 0) continue;
     frames[particle.idxCollisionCell][0] += particle.p_x;
     frames[particle.idxCollisionCell][1] += particle.p_y;
@@ -110,10 +110,15 @@ void CollisionCellCollection::recalculate_cells(
       /*
        * Generate rotation axis and angle for CollisionCell
        */
-      m_collisionCells[i].theta = 2 * M_PI * t_rng.generate_number();
+      m_collisionCells[i].theta = -M_PI / 2 + M_PI * t_rng.generate_number();
       m_collisionCells[i].x = std::sin(phi) * std::cos(theta);
       m_collisionCells[i].y = std::sin(phi) * std::sin(theta);
       m_collisionCells[i].z = std::cos(phi);
     }
   }
+
+  /*int particle1_idx = t_particles[0].idxCollisionCell;
+  std::cout << t_particles[0].E << ", " << t_particles[0].p_x << ", "
+            << t_particles[0].p_y << ", " << t_particles[0].p_z << std::endl;
+  std::cout << m_collisionCells[particle1_idx].theta << std::endl;*/
 }

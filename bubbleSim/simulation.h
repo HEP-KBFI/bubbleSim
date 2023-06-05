@@ -51,7 +51,7 @@ class Simulation {
     }
   };
 
-  int getStep() { return m_step; }
+  size_t getStep() { return m_step; }
 
   void step(PhaseBubble& bubble, numType t_dP);
   /*

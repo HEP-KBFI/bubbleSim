@@ -76,11 +76,13 @@ int main(int argc, char* argv[]) {
   }
 
   // Collision is in development
-  bool b_collisionDevelopment = false;
+  bool b_collisionDevelopment = true;
 
   // Read configs and kernel file
   std::string s_configPath = argv[1];  // "config.json"
   std::string s_kernelPath = argv[2];  // "kernel.cl";
+
+  s_configPath = "D:\\dev\\bubbleSim\\configs\\test_collision.json";
 
   std::cout << "Config path: " << s_configPath << std::endl;
   std::cout << "Kernel path: " << s_kernelPath << std::endl;
@@ -91,7 +93,7 @@ int main(int argc, char* argv[]) {
   using std::chrono::milliseconds;
   auto programStartTime = high_resolution_clock::now();
   ConfigReader config(s_configPath);
-  /*
+   /*
           ===============  ===============
   */
   // If seed = 0 then it generates random seed.
@@ -119,7 +121,8 @@ int main(int argc, char* argv[]) {
   ParticleGenerator particleGenerator1;
   // 4.1) Create generator (calculates distribution)
   if (b_collisionDevelopment) {
-    particleGenerator1 = ParticleGenerator(config.particleMassFalse, 3.);
+    particleGenerator1 = ParticleGenerator(config.particleMassFalse,
+                                           3 * config.particleTemperatureFalse);
   } else {
     particleGenerator1 =
         ParticleGenerator(config.particleMassFalse, temperatureFalse,
@@ -143,6 +146,7 @@ int main(int argc, char* argv[]) {
         config.bubbleInitialRadius, (u_int)particles.getParticleCountTotal(),
         rn_generator, particles.getParticles());
   }
+
   numType total_energy = 0;
   for (unsigned int i = 0; i < config.particleCountFalse; i++) {
     total_energy += particles.getParticleEnergy(i);
@@ -216,8 +220,7 @@ int main(int argc, char* argv[]) {
                                                 kernels.m_cellAssignmentKernel,
                                                 kernels.m_rotationKernel);
 
-    simulation.set_particle_step_buffers(particles, cells,
-                                         kernels.m_particleStepKernel);
+    simulation.set_particle_step_buffers(particles, cells, *stepKernel);
     simulation.set_particle_bounce_buffers(particles, cells,
                                            kernels.m_particleBounceKernel);
 
@@ -238,8 +241,8 @@ int main(int argc, char* argv[]) {
 
   std::filesystem::path filePath =
       createSimulationFilePath(config.m_dataSavePath, dataFolderName);
+  
   DataStreamer streamer(filePath.string());
-
   if (config.streamDataOn) {
     streamer.initStream_Data();
   }
@@ -268,6 +271,8 @@ int main(int argc, char* argv[]) {
                                     config.maxValueMomentumOut);
   }
   streamer.stream(simulation, particles, bubble, kernels.getCommandQueue());
+
+
 
   /*
    * =============== Display text ===============
@@ -308,16 +313,15 @@ int main(int argc, char* argv[]) {
             << ", E: "
             << simulation.getTotalEnergy() / simulation.getInitialTotalEnergy()
             << std::endl;
-
+  double px = 0;
+  double py = 0;
+  double pz = 0;
   // auto streamEndTime = high_resolution_clock::now();
   // auto streamStartTime = high_resolution_clock::now();
   for (int i = 1; (simulation.getTime() <= config.maxTime); i++) {
     if (config.m_maxSteps > 0 && simulation.getStep() > config.m_maxSteps) {
       break;
     }
-    /*
-      simulation.step(bubble, 0);
-    }*/
     if (b_collisionDevelopment) {
       simulation.step(particles, cells, rn_generator, i, *stepKernel,
                       kernels.m_cellAssignmentKernel, kernels.m_rotationKernel,
@@ -325,6 +329,22 @@ int main(int argc, char* argv[]) {
                       kernels.getCommandQueue());
 
       particles.readParticlesBuffer(kernels.getCommandQueue());
+      /*std::cout << particles.getParticles()[0].E << ", "
+                << particles.getParticles()[0].p_x << ", "
+                << particles.getParticles()[0].p_y << ", "
+                << particles.getParticles()[0].p_z << std::endl;*/
+      /*px = 0;
+      py = 0;
+      pz = 0;
+      for (Particle& p : particles.getParticles()) {
+        px += p.p_x;
+        py += p.p_y;
+        pz += p.p_z;
+      }
+      std::cout << px / 750000. << std::endl;
+      std::cout << py / 750000. << std::endl;
+      std::cout << pz / 750000. << std::endl;*/
+
     } else {
       if (config.bubbleInteractionsOn) {
         simulation.step(particles, bubble, *stepKernel,

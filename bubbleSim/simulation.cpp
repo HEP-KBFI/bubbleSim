@@ -216,22 +216,17 @@ void Simulation::step(ParticleCollection& particles,
                       cl::CommandQueue& cl_queue) {
   m_time += m_dt;
   // Move particles
-  cl_queue.enqueueNDRangeKernel(t_particleStepKernel, cl::NullRange,
-                                cl::NDRange(particles.getParticleCountTotal()));
+  
   // Generate shift vector
   if (i % 1 == 0) {
+    particles.readParticlesBuffer(cl_queue);
     cells.generateShiftVector(generator_collision);
     cells.writeShiftVectorBuffer(cl_queue);
-
     // Assign particles to collision cells
     cl_queue.enqueueNDRangeKernel(
         t_cellAssignmentKernel, cl::NullRange,
         cl::NDRange(particles.getParticleCountTotal()));
-    // Update particle data on CPU
-    particles.readParticlesBuffer(cl_queue);
-
     // Calculate COM and genrate rotation matrix for each cell
-
     cells.recalculate_cells(particles.getParticles(), generator_collision);
 
     // Update data on GPU
@@ -242,6 +237,8 @@ void Simulation::step(ParticleCollection& particles,
         t_rotationKernel, cl::NullRange,
         cl::NDRange(particles.getParticleCountTotal()));
   }
+  cl_queue.enqueueNDRangeKernel(t_particleStepKernel, cl::NullRange,
+      cl::NDRange(particles.getParticleCountTotal()));
   cl_queue.enqueueNDRangeKernel(t_particleBounceKernel, cl::NullRange,
                                 cl::NDRange(particles.getParticleCountTotal()));
 }

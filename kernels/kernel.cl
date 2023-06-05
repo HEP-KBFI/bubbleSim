@@ -788,23 +788,22 @@ __kernel void particle_bubble_step_cyclic_mass_inverted(
 	t_particles[gid].m = particle.m;
 }
 
-
 __kernel void particle_step(
 	__global Particle *t_particles,
-	__constant double *boundaryDistanceFromCenter,
+	__constant double *t_cycleRadius,
 	__constant double *t_dt
 	){
 	unsigned int gid = get_global_id(0);
 	
 	Particle particle = t_particles[gid];
-	double Vx = particle.pX/particle.E;
-	double Vy = particle.pY/particle.E;
-	double Vz = particle.pZ/particle.E;	
+	// double Vx = particle.pX/particle.E;
+	// double Vy = particle.pY/particle.E;
+	// double Vz = particle.pZ/particle.E;	
+	// double dt = t_dt[0];
 	
-	double dt = t_dt[0];
+	moveLinear(&particle, particle.pX/particle.E, particle.pY/particle.E, particle.pZ/particle.E, t_dt[0]);
 	
-	moveLinear(&particle, Vx, Vy, Vz, dt);
-	
+				 	
 	t_particles[gid] = particle;
 }
 
@@ -920,7 +919,6 @@ __kernel void assign_cell_index_to_particle(
 	__global const double *cuboidShift
 	){
 	unsigned int gid = get_global_id(0);
-	
 	Particle particle = t_particles[gid];
 	// Find cell numbers
 	int x_index = (int) ((particle.x + cellLength[0]*maxCellIndex[0]/2 + cuboidShift[0]) / cellLength[0]);
@@ -928,6 +926,7 @@ __kernel void assign_cell_index_to_particle(
 	int z_index = (int) ((particle.z + cellLength[0]*maxCellIndex[0]/2 + cuboidShift[2]) / cellLength[0]);
 	// Idx = 0 -> if particle is outside of the cuboid cell structure	
 	// Convert cell number into 1D vector
+	
 	if ((x_index < 0) || (x_index >= maxCellIndex[0])){
 		t_particles[gid].idxCollisionCell = 0;
 	}
@@ -989,7 +988,6 @@ __kernel void label_particles_position_by_coordinate(
 											t_particles[gid].z * t_particles[gid].z )) < t_bubble[0].radius2;
 }
 
-
 __kernel void label_particles_position_by_mass(
 	__global Particle *t_particles,
 	__global double *mass_in
@@ -1018,10 +1016,15 @@ __kernel void transform_momentum(
 			double sin_theta = sin(cell.theta);
 			double p0, p1, p2, p3;
 			
-			
-			
 			if ((cell.particle_count > 1) && (cell.mass != 0)){
 				// Lorentz boost
+				
+				//if (gid==0){
+				//	printf("p0: %.8f\np1: %.8f\np2: %.8f\np3: %.8f\nv1: %.8f\nv2: %.8f\nv3: %.8f\nn1: %.8f\nn2: %.8f\nn3: %.8f\ntheta: %.8f\n",
+				//		particle.E, particle.pX, particle.pY, particle.pZ, cell.vX, cell.vY, cell.vZ, cell.x, cell.y, cell.z, cell.theta
+				//		);
+				//}
+				
 				
 				p0 = cell.gamma * (
 					particle.E 
@@ -1090,35 +1093,153 @@ __kernel void transform_momentum(
 				particle.pX = p1;
 				particle.pY = p2;
 				particle.pZ = p3;
+				// if (gid==0){
+				//	printf("E: %.8f, pX: %.8f, pY: %.8f, pZ: %.8f\n", p0, p1, p2, p3);
+				// }
 				
 				t_particles[gid] = particle;
 			}
 		}
-	}
+}
+	
+__kernel void transform_momentum_massive(
+	__global Particle *t_particles,
+	__global CollisionCell *t_cells,	
+	__global unsigned int *number_of_cells
+	){
+		unsigned int gid = get_global_id(0);
+		// Copy object to register memory. Improves performance.
+		Particle particle = t_particles[gid];
+		// If in bubble then cell number is doubled and second half is in bubble cells.
+		
+		if (particle.idxCollisionCell != 0){
+			CollisionCell cell = t_cells[particle.idxCollisionCell];
+			//if (gid==0){
+			//		printf("Cell count: %i ,",cell.particle_count);
+			//	}
+			double gamma_minus_one = cell.gamma - 1;
+			double cos_theta = cos(cell.theta);
+			double one_minus_cos_theta = 1 - cos_theta;
+			double sin_theta = sin(cell.theta);
+			double p0, p1, p2, p3;
+			double p0result, p1result, p2result, p3result;
+			double new_gamma;
+			double mgamma;
+			
+			if ((cell.particle_count > 1) && (cell.mass != 0)){
+				// Lorentz boost
+				//if (gid==0){
+				//	printf("x: %.4f, %.4f, %.4f, cell: %i\n", particle.x, particle.y, particle.z, particle.idxCollisionCell);
+				//}
+				//if (gid==0){
+				//	printf("p0: %.8f\np1: %.8f\np2: %.8f\np3: %.8f\nv1: %.8f\nv2: %.8f\nv3: %.8f\nn1: %.8f\nn2: %.8f\nn3: %.8f\ntheta: %.8f\n",
+				//		particle.E, particle.pX, particle.pY, particle.pZ, cell.vX, cell.vY, cell.vZ, cell.x, cell.y, cell.z, cell.theta
+				//		);
+				//}
+				
+				
+				
+				p0 = cell.gamma * (
+					particle.E
+					- particle.pX * cell.vX
+					- particle.pY * cell.vY
+					- particle.pZ * cell.vZ
+					);
+				p1 = - particle.E * cell.gamma  * cell.vX 
+					+ particle.pX * (1 + cell.vX * cell.vX * gamma_minus_one/cell.v2)
+					+ particle.pY * cell.vX * cell.vY * gamma_minus_one/cell.v2
+					+ particle.pZ * cell.vX * cell.vZ * gamma_minus_one/cell.v2;
+				
+				p2 = -cell.gamma * particle.E * cell.vY 
+					+ particle.pY * (1 + cell.vY * cell.vY * gamma_minus_one/cell.v2)
+					+ particle.pX * cell.vX * cell.vY * gamma_minus_one/cell.v2
+					+ particle.pZ * cell.vY * cell.vZ * gamma_minus_one/cell.v2;
+				
+				p3 = -cell.gamma * particle.E * cell.vZ
+					+ particle.pZ * (1 + cell.vZ * cell.vZ * gamma_minus_one/cell.v2)
+					+ particle.pX * cell.vX * cell.vZ * gamma_minus_one/cell.v2
+					+ particle.pY * cell.vY * cell.vZ * gamma_minus_one/cell.v2;
+				
+				particle.E = p0;
+				particle.pX = p1;
+				particle.pY = p2;
+				particle.pZ = p3;
+
+				// Rotate momentum
+				p1 = particle.pX * (cos_theta + pow(cell.x, 2) * one_minus_cos_theta) + 
+					 particle.pY * (cell.x * cell.y * one_minus_cos_theta - cell.z * sin_theta) +
+					 particle.pZ * (cell.x * cell.z * one_minus_cos_theta + cell.y * sin_theta);
+				p2 = particle.pX * (cell.x * cell.y * one_minus_cos_theta + cell.z * sin_theta) + 
+					 particle.pY * (cos_theta + pow(cell.y, 2) * one_minus_cos_theta) +
+					 particle.pZ * (cell.y*cell.z*one_minus_cos_theta - cell.x * sin_theta);
+				p3 = particle.pX * (cell.x * cell.z * one_minus_cos_theta - cell.y * sin_theta) + 
+					 particle.pY * (cell.y * cell.z * one_minus_cos_theta + cell.x * sin_theta) +
+					 particle.pZ * (cos_theta + pow(cell.z, 2) * one_minus_cos_theta);
+				
+				particle.pX = p1;
+				particle.pY = p2;
+				particle.pZ = p3;
+				
+				// Lorentz inverse transformation
+				p0 = cell.gamma * (
+					particle.E 
+					+ particle.pX * cell.vX 
+					+ particle.pY * cell.vY 
+					+ particle.pZ * cell.vZ
+					);
+				p1 = cell.gamma * particle.E * cell.vX 
+					+ particle.pX * (1 + cell.vX * cell.vX * gamma_minus_one/cell.v2)
+					+ particle.pY * cell.vX * cell.vY * gamma_minus_one/cell.v2
+					+ particle.pZ * cell.vX * cell.vZ * gamma_minus_one/cell.v2;
+				
+				p2 = cell.gamma * particle.E * cell.vY 
+					+ particle.pY * (1 + cell.vY * cell.vY * gamma_minus_one/cell.v2)
+					+ particle.pX * cell.vX * cell.vY * gamma_minus_one/cell.v2
+					+ particle.pZ * cell.vY * cell.vZ * gamma_minus_one/cell.v2;
+				
+				p3 = cell.gamma * particle.E * cell.vZ 
+					+ particle.pZ * (1 + cell.vZ * cell.vZ * gamma_minus_one/cell.v2)
+					+ particle.pX * cell.vX * cell.vZ * gamma_minus_one/cell.v2
+					+ particle.pY * cell.vY * cell.vZ * gamma_minus_one/cell.v2;
+				
+				particle.E = p0;
+				particle.pX = p1;
+				particle.pY = p2;
+				particle.pZ = p3;
+			
+				
+				t_particles[gid] = particle;
+			}
+		}
+}	
+	
+
+
+
 
 __kernel void particle_bounce(
 	__global Particle *t_particles,
-	__global double *boundaryDistanceFromCenter // [x_delta]
+	__global double *t_cycleRadius // [x_delta]
 	){
 	unsigned int gid = get_global_id(0);
 	
 	Particle particle = t_particles[gid];
-	
+	double cyclicRadius = t_cycleRadius[0];
+
 		// If Particle is inside the boundary leave value same. Otherwise change the sign
 	
 	// abs(x) < Boundary -> leave momentum
-	// abs(x) > Boundary and x < -Boundary -> Set momentum positive
-	// abs(x) > Boundary and x > Boundary -> Set momentum negative
-	particle.pX = ( boundaryDistanceFromCenter[0] > fabs(particle.x)) * particle.pX + // If inside, leave momentum alone
-				  ((boundaryDistanceFromCenter[0] < fabs(particle.x)) && (-boundaryDistanceFromCenter[0] > particle.x)) * fabs(particle.pX) - // particle too -, chane to + 
-				  ((boundaryDistanceFromCenter[0] < fabs(particle.x)) && (boundaryDistanceFromCenter[0] < particle.x)) * fabs(particle.pX); // particle too +, chane to - 
-	particle.pY = ( boundaryDistanceFromCenter[0] > fabs(particle.y)) * particle.pY +
-				  ((boundaryDistanceFromCenter[0] < fabs(particle.y)) && (-boundaryDistanceFromCenter[0] > particle.y)) * fabs(particle.pY) -
-				  ((boundaryDistanceFromCenter[0] < fabs(particle.y)) && (boundaryDistanceFromCenter[0] < particle.y)) * fabs(particle.pY);
-	particle.pZ = ( boundaryDistanceFromCenter[0] > fabs(particle.z)) * particle.pZ +
-				  ((boundaryDistanceFromCenter[0] < fabs(particle.z)) && (-boundaryDistanceFromCenter[0] > particle.z)) * fabs(particle.pZ) -
-				  ((boundaryDistanceFromCenter[0] < fabs(particle.z)) && (boundaryDistanceFromCenter[0] < particle.z)) * fabs(particle.pZ);
-	
+	// abs(x) > Boundary and x < -Boundary
+	// abs(x) > Boundary and x > Boundary
+	particle.x = (cyclicRadius > fabs(particle.x)) * particle.x +
+				 (particle.x > cyclicRadius) * (particle.x - 2*cyclicRadius) + 
+				 (particle.x < -cyclicRadius) * (particle.x + 2*cyclicRadius);
+	particle.y = (cyclicRadius > fabs(particle.y)) * particle.y +
+				 (particle.y > cyclicRadius) * (particle.y - 2*cyclicRadius) + 
+				 (particle.y < -cyclicRadius) * (particle.y + 2*cyclicRadius);
+	particle.z = (cyclicRadius > fabs(particle.z)) * particle.z +
+				 (particle.z > cyclicRadius) * (particle.z - 2*cyclicRadius) + 
+				 (particle.z < -cyclicRadius) * (particle.z + 2*cyclicRadius);
 	// Update result
 	t_particles[gid] = particle;
 }
