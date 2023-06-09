@@ -82,7 +82,7 @@ int main(int argc, char* argv[]) {
   std::string s_configPath = argv[1];  // "config.json"
   std::string s_kernelPath = argv[2];  // "kernel.cl";
 
-  s_configPath = "D:\\dev\\bubbleSim\\configs\\test_collision.json";
+  // s_configPath = "D:\\dev\\bubbleSim\\configs\\test_collision.json";
 
   std::cout << "Config path: " << s_configPath << std::endl;
   std::cout << "Kernel path: " << s_kernelPath << std::endl;
