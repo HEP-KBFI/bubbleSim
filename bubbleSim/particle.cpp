@@ -393,23 +393,23 @@ numType ParticleCollection::calculateParticleMomentum(u_int i) {
   // return std::sqrt(m_P[3 * i] * m_P[3 * i] + m_P[3 * i + 1] * m_P[3 * i + 1]
   // + m_P[3 * i + 2] * m_P[3 * i + 2]);
 
-  return std::sqrt(std::fma(m_particles[i].p_x, m_particles[i].p_x,
-                            std::fma(m_particles[i].p_y, m_particles[i].p_y,
-                                     m_particles[i].p_z * m_particles[i].p_z)));
+  return std::sqrt(std::fma(m_particles[i].pX, m_particles[i].pX,
+                            std::fma(m_particles[i].pY, m_particles[i].pY,
+                                     m_particles[i].pZ * m_particles[i].pZ)));
 }
 
 numType ParticleCollection::calculateParticleEnergy(u_int i) {
   return std::sqrt(
-      std::fma(m_particles[i].p_x, m_particles[i].p_x,
-               std::fma(m_particles[i].p_y, m_particles[i].p_y,
-                        std::fma(m_particles[i].p_z, m_particles[i].p_z,
+      std::fma(m_particles[i].pX, m_particles[i].pX,
+               std::fma(m_particles[i].pY, m_particles[i].pY,
+                        std::fma(m_particles[i].pZ, m_particles[i].pZ,
                                  m_particles[i].m * m_particles[i].m))));
 }
 
 numType ParticleCollection::calculateParticleRadialVelocity(u_int i) {
-  return std::fma(m_particles[i].p_x, m_particles[i].x,
-                  std::fma(m_particles[i].p_y, m_particles[i].y,
-                           m_particles[i].p_z * m_particles[i].z)) /
+  return std::fma(m_particles[i].pX, m_particles[i].x,
+                  std::fma(m_particles[i].pY, m_particles[i].y,
+                           m_particles[i].pZ * m_particles[i].z)) /
          (m_particles[i].E * calculateParticleRadius(i));
 }
 

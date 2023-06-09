@@ -2,6 +2,7 @@
 #include "base.h"
 #include "objects.h"
 typedef struct CollisionCell {
+  cl_numType gamma;
   cl_numType v_x;
   cl_numType v_y;
   cl_numType v_z;
@@ -12,13 +13,12 @@ typedef struct CollisionCell {
 
   cl_numType theta;
 
-  cl_numType p_E;
-  cl_numType p_x;
-  cl_numType p_y;
-  cl_numType p_z;
+  cl_numType pE;
+  cl_numType pX;
+  cl_numType pY;
+  cl_numType pZ;
 
   cl_numType v2;
-  cl_numType gamma;
   cl_numType total_mass;
   cl_uint particle_count;
 } CollisionCell;
@@ -30,8 +30,13 @@ class CollisionCellCollection {
 
   std::array<numType, 3>& getShiftVector() { return m_shiftVector; }
 
+  unsigned int getCellCount() { return m_cellCount; }
+
   void recalculate_cells(std::vector<Particle>& t_particles,
                          RandomNumberGenerator& t_rng);
+
+  void recalculate_cells2(std::vector<Particle>& t_particles,
+      RandomNumberGenerator& t_rng);
 
   void generateShiftVector(RandomNumberGenerator& t_rng);
 

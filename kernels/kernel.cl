@@ -1,6 +1,6 @@
 #pragma OPENCL EXTENSION cl_khr_fp64 : enable
 
-// Particle type (also defined in c++ code)
+// Particle struct (also defined in C++ code)
 typedef struct Particle {
   double x;
   double y;
@@ -16,7 +16,8 @@ typedef struct Particle {
   char b_inBubble;
   int idxCollisionCell;
 } Particle;
-// Bubble type (also defined in c++ code)
+
+// Bubble struct (also defined in C++ code)
 typedef struct Bubble {
   double radius;
   double radius2;           // Squared
@@ -28,22 +29,24 @@ typedef struct Bubble {
 
 // In development
 typedef struct CollisionCell {
+  // 
+  double gamma;
   double vX;
   double vY;
   double vZ;
   
+  // Rotation vector
   double x;
   double y;
   double z;
   double theta;
   
-  double p_E;
-  double p_x;
-  double p_y;
-  double p_z;
+  double pE;
+  double pX;
+  double pY;
+  double pZ;
   
   double v2; // v2 = Sum: v_i^2 
-  double gamma;
   double mass;  
   unsigned int particle_count;
 } CollisionCell;
@@ -148,7 +151,7 @@ double calculateEnergy(Particle particle){
 }
 
 __kernel void particle_bubble_step(	
-	__global Particle *t_particles,	
+	__global Particle *particles,	
 	__global double *t_dP,
 	__global char *t_interactedFalse,
 	__global char *t_passedFalse,
@@ -169,7 +172,7 @@ __kernel void particle_bubble_step(
 	// Bubble parameters	
 	struct Bubble bubble = t_bubble[0];
 	// Particle
-	struct Particle particle = t_particles[gid];
+	struct Particle particle = particles[gid];
 	
 	double M_in = t_m_in[0];
 	double M_out = t_m_out[0];
@@ -320,18 +323,18 @@ __kernel void particle_bubble_step(
 	}
 	
 	// Update particle information
-	t_particles[gid].x = particle.x;
-	t_particles[gid].y = particle.y;
-	t_particles[gid].z = particle.z;
-	t_particles[gid].pX = particle.pX;
-	t_particles[gid].pY = particle.pY;
-	t_particles[gid].pZ = particle.pZ;
-	t_particles[gid].E = particle.E;
-	t_particles[gid].m = particle.m;
+	particles[gid].x = particle.x;
+	particles[gid].y = particle.y;
+	particles[gid].z = particle.z;
+	particles[gid].pX = particle.pX;
+	particles[gid].pY = particle.pY;
+	particles[gid].pZ = particle.pZ;
+	particles[gid].E = particle.E;
+	particles[gid].m = particle.m;
 }
 
 __kernel void particle_bubble_step_cyclic(	
-	__global Particle *t_particles,	
+	__global Particle *particles,	
 	__global double *t_dP,
 	__global char *t_interactedFalse,
 	__global char *t_passedFalse,
@@ -341,7 +344,7 @@ __kernel void particle_bubble_step_cyclic(
 	__constant double *t_m_in,
 	__constant double *t_m_out,
 	__constant double *t_delta_m2,
-	__constant double *t_cycleRadius
+	__constant double *boundaryRadius
 	){
 	
 	unsigned int gid = get_global_id(0);
@@ -351,7 +354,7 @@ __kernel void particle_bubble_step_cyclic(
 	// Bubble parameters	
 	struct Bubble bubble = t_bubble[0];
 	// Particle
-	struct Particle particle = t_particles[gid];
+	struct Particle particle = particles[gid];
 	
 	double M_in = t_m_in[0];
 	double M_out = t_m_out[0];
@@ -534,30 +537,30 @@ __kernel void particle_bubble_step_cyclic(
 	* If particle.x < -R_cyclic				-> Then particle.x = particle.x + 2 * R_cyclic
 	*/
 	
-	double cyclicRadius = t_cycleRadius[0];
-	particle.x = (cyclicRadius > fabs(particle.x)) * particle.x +
-				 (particle.x > cyclicRadius) * (particle.x - 2*cyclicRadius) + 
-				 (particle.x < -cyclicRadius) * (particle.x + 2*cyclicRadius);
-	particle.y = (cyclicRadius > fabs(particle.y)) * particle.y +
-				 (particle.y > cyclicRadius) * (particle.y - 2*cyclicRadius) + 
-				 (particle.y < -cyclicRadius) * (particle.y + 2*cyclicRadius);
-	particle.z = (cyclicRadius > fabs(particle.z)) * particle.z +
-				 (particle.z > cyclicRadius) * (particle.z - 2*cyclicRadius) + 
-				 (particle.z < -cyclicRadius) * (particle.z + 2*cyclicRadius);
+	double r_boundaryRadius = boundaryRadius[0];
+	particle.x = (r_boundaryRadius > fabs(particle.x)) * particle.x +
+				 (particle.x > r_boundaryRadius) * (particle.x - 2*r_boundaryRadius) + 
+				 (particle.x < -r_boundaryRadius) * (particle.x + 2*r_boundaryRadius);
+	particle.y = (r_boundaryRadius > fabs(particle.y)) * particle.y +
+				 (particle.y > r_boundaryRadius) * (particle.y - 2*r_boundaryRadius) + 
+				 (particle.y < -r_boundaryRadius) * (particle.y + 2*r_boundaryRadius);
+	particle.z = (r_boundaryRadius > fabs(particle.z)) * particle.z +
+				 (particle.z > r_boundaryRadius) * (particle.z - 2*r_boundaryRadius) + 
+				 (particle.z < -r_boundaryRadius) * (particle.z + 2*r_boundaryRadius);
 				 
-	t_particles[gid].x = particle.x;
-	t_particles[gid].y = particle.y;
-	t_particles[gid].z = particle.z;
+	particles[gid].x = particle.x;
+	particles[gid].y = particle.y;
+	particles[gid].z = particle.z;
 	
-	t_particles[gid].pX = particle.pX;
-	t_particles[gid].pY = particle.pY;
-	t_particles[gid].pZ = particle.pZ;
-	t_particles[gid].E = particle.E;
-	t_particles[gid].m = particle.m;
+	particles[gid].pX = particle.pX;
+	particles[gid].pY = particle.pY;
+	particles[gid].pZ = particle.pZ;
+	particles[gid].E = particle.E;
+	particles[gid].m = particle.m;
 }
 
 __kernel void particle_bubble_step_cyclic_mass_inverted(	
-	__global Particle *t_particles,	
+	__global Particle *particles,	
 	__global double *t_dP,
 	__global char *t_interactedFalse,
 	__global char *t_passedFalse,
@@ -567,7 +570,7 @@ __kernel void particle_bubble_step_cyclic_mass_inverted(
 	__constant double *t_m_in,
 	__constant double *t_m_out,
 	__constant double *t_delta_m2,
-	__constant double *t_cycleRadius
+	__constant double *boundaryRadius
 	){
 	
 	unsigned int gid = get_global_id(0);
@@ -577,7 +580,7 @@ __kernel void particle_bubble_step_cyclic_mass_inverted(
 	// Bubble parameters	
 	struct Bubble bubble = t_bubble[0];
 	// Particle
-	struct Particle particle = t_particles[gid];
+	struct Particle particle = particles[gid];
 	
 	double M_in = t_m_in[0];
 	double M_out = t_m_out[0];
@@ -766,36 +769,36 @@ __kernel void particle_bubble_step_cyclic_mass_inverted(
 	* If particle.x < -R_cyclic				-> Then particle.x = particle.x + 2 * R_cyclic
 	*/
 	
-	double cyclicRadius = t_cycleRadius[0];
-	particle.x = (cyclicRadius > fabs(particle.x)) * particle.x +
-				 (particle.x > cyclicRadius) * (particle.x - 2*cyclicRadius) + 
-				 (particle.x < -cyclicRadius) * (particle.x + 2*cyclicRadius);
-	particle.y = (cyclicRadius > fabs(particle.y)) * particle.y +
-				 (particle.y > cyclicRadius) * (particle.y - 2*cyclicRadius) + 
-				 (particle.y < -cyclicRadius) * (particle.y + 2*cyclicRadius);
-	particle.z = (cyclicRadius > fabs(particle.z)) * particle.z +
-				 (particle.z > cyclicRadius) * (particle.z - 2*cyclicRadius) + 
-				 (particle.z < -cyclicRadius) * (particle.z + 2*cyclicRadius);
+	double r_boundaryRadius = boundaryRadius[0];
+	particle.x = (r_boundaryRadius > fabs(particle.x)) * particle.x +
+				 (particle.x > r_boundaryRadius) * (particle.x - 2*r_boundaryRadius) + 
+				 (particle.x < -r_boundaryRadius) * (particle.x + 2*r_boundaryRadius);
+	particle.y = (r_boundaryRadius > fabs(particle.y)) * particle.y +
+				 (particle.y > r_boundaryRadius) * (particle.y - 2*r_boundaryRadius) + 
+				 (particle.y < -r_boundaryRadius) * (particle.y + 2*r_boundaryRadius);
+	particle.z = (r_boundaryRadius > fabs(particle.z)) * particle.z +
+				 (particle.z > r_boundaryRadius) * (particle.z - 2*r_boundaryRadius) + 
+				 (particle.z < -r_boundaryRadius) * (particle.z + 2*r_boundaryRadius);
 				 
-	t_particles[gid].x = particle.x;
-	t_particles[gid].y = particle.y;
-	t_particles[gid].z = particle.z;
+	particles[gid].x = particle.x;
+	particles[gid].y = particle.y;
+	particles[gid].z = particle.z;
 	
-	t_particles[gid].pX = particle.pX;
-	t_particles[gid].pY = particle.pY;
-	t_particles[gid].pZ = particle.pZ;
-	t_particles[gid].E = particle.E;
-	t_particles[gid].m = particle.m;
+	particles[gid].pX = particle.pX;
+	particles[gid].pY = particle.pY;
+	particles[gid].pZ = particle.pZ;
+	particles[gid].E = particle.E;
+	particles[gid].m = particle.m;
 }
 
 __kernel void particle_step(
-	__global Particle *t_particles,
-	__constant double *t_cycleRadius,
+	__global Particle *particles,
+	__constant double *boundaryRadius,
 	__constant double *t_dt
 	){
 	unsigned int gid = get_global_id(0);
 	
-	Particle particle = t_particles[gid];
+	Particle particle = particles[gid];
 	// double Vx = particle.pX/particle.E;
 	// double Vy = particle.pY/particle.E;
 	// double Vz = particle.pZ/particle.E;	
@@ -804,15 +807,15 @@ __kernel void particle_step(
 	moveLinear(&particle, particle.pX/particle.E, particle.pY/particle.E, particle.pZ/particle.E, t_dt[0]);
 	
 				 	
-	t_particles[gid] = particle;
+	particles[gid] = particle;
 }
 
 __kernel void particles_with_false_bubble_step_reflect(
-    __global Particle *t_particles, __global double *t_dP,
+    __global Particle *particles, __global double *t_dP,
     __global char *t_interactedFalse, __global char *t_passedFalse,
     __global char *t_interactedTrue, __constant Bubble *t_bubble,
     __constant double *t_dt, __constant double *t_m_in,
-    __constant double *t_m_out, __constant double *t_delta_m2, __constant double *t_cycleRadius) {
+    __constant double *t_m_out, __constant double *t_delta_m2, __constant double *boundaryRadius) {
   unsigned int gid = get_global_id(0);
   // dE - dP is not actual energy difference. dE = ΔE/R_b -> to avoid
   // singularities/noise near R_b ~ 0
@@ -820,7 +823,7 @@ __kernel void particles_with_false_bubble_step_reflect(
   // Bubble parameters
   struct Bubble bubble = t_bubble[0];
   // Particle
-  struct Particle particle = t_particles[gid];
+  struct Particle particle = particles[gid];
 
   double M_in = t_m_in[0];
   double M_out = t_m_out[0];
@@ -900,115 +903,93 @@ __kernel void particles_with_false_bubble_step_reflect(
     particle.z = 100000;
   }
 
-  t_particles[gid].x = particle.x;
-  t_particles[gid].y = particle.y;
-  t_particles[gid].z = particle.z;
+  particles[gid].x = particle.x;
+  particles[gid].y = particle.y;
+  particles[gid].z = particle.z;
 
-  t_particles[gid].pX = particle.pX;
-  t_particles[gid].pY = particle.pY;
-  t_particles[gid].pZ = particle.pZ;
-  t_particles[gid].E = particle.E;
-  t_particles[gid].m = particle.m;
+  particles[gid].pX = particle.pX;
+  particles[gid].pY = particle.pY;
+  particles[gid].pZ = particle.pZ;
+  particles[gid].E = particle.E;
+  particles[gid].m = particle.m;
 }
 
 
-__kernel void assign_cell_index_to_particle(
-	__global Particle *t_particles,
+__kernel void assign_particle_to_collision_cell(
+	__global Particle *particles,
 	__global const unsigned int *maxCellIndex,
 	__global const double *cellLength,
 	__global const double *cuboidShift
 	){
 	unsigned int gid = get_global_id(0);
-	Particle particle = t_particles[gid];
-	// Find cell numbers
-	int x_index = (int) ((particle.x + cellLength[0]*maxCellIndex[0]/2 + cuboidShift[0]) / cellLength[0]);
-	int y_index = (int) ((particle.y + cellLength[0]*maxCellIndex[0]/2 + cuboidShift[1]) / cellLength[0]);
-	int z_index = (int) ((particle.z + cellLength[0]*maxCellIndex[0]/2 + cuboidShift[2]) / cellLength[0]);
-	// Idx = 0 -> if particle is outside of the cuboid cell structure	
-	// Convert cell number into 1D vector
+
+	// Read variables to local registers
+	Particle particle = particles[gid];
+
+	if (gid == 0){
+		printf("%p \n", &particle);
+	}
+	if (gid == 100){
+		printf("%p \n", &particle.x);
+	}
+	unsigned int r_maximumCellIndex = maxCellIndex[0];
+	double r_cellLength = cellLength[0];
+
+	// Find cell number in 3D cell
+	int x_index = (int) ((particle.x + r_cellLength*r_maximumCellIndex/2 + cuboidShift[0]) / r_cellLength);
+	int y_index = (int) ((particle.y + r_cellLength*r_maximumCellIndex/2 + cuboidShift[1]) / r_cellLength);
+	int z_index = (int) ((particle.z + r_cellLength*r_maximumCellIndex/2 + cuboidShift[2]) / r_cellLength);
 	
-	if ((x_index < 0) || (x_index >= maxCellIndex[0])){
-		t_particles[gid].idxCollisionCell = 0;
+	// Assign particles which don't fit to the cell structure at index = 0.
+	int isIndexZero = ((x_index < 0) || (x_index >= r_maximumCellIndex) || (y_index < 0) || (y_index >= r_maximumCellIndex) || (z_index < 0) || (z_index >= r_maximumCellIndex));
+	// If index not zero -> !isIndexZero
+	particles[gid].idxCollisionCell = 0 + !isIndexZero*(1 + x_index + y_index * r_maximumCellIndex + z_index * r_maximumCellIndex * r_maximumCellIndex);
+
+	// Old implementation
+	/*
+	if ((x_index < 0) || (x_index >= r_maximumCellIndex)){
+		particles[gid].idxCollisionCell = 0;
 	}
-	else if ((y_index < 0) || (y_index >= maxCellIndex[0])){
-		t_particles[gid].idxCollisionCell = 0;
+	else if ((y_index < 0) || (y_index >= r_maximumCellIndex)){
+		particles[gid].idxCollisionCell = 0;
 	}
-	else if ((z_index < 0) || (z_index >= maxCellIndex[0])){
-		t_particles[gid].idxCollisionCell = 0;
+	else if ((z_index < 0) || (z_index >= r_maximumCellIndex)){
+		particles[gid].idxCollisionCell = 0;
 	}
 	else {
-		t_particles[gid].idxCollisionCell = 1 + x_index + y_index * maxCellIndex[0] + z_index * maxCellIndex[0] * maxCellIndex[0];
+		particles[gid].idxCollisionCell = 1 + x_index + y_index * r_maximumCellIndex + z_index * r_maximumCellIndex * r_maximumCellIndex;
 	}
-	
-	//t_particles[gid].idxCollisionCell = x_index + y_index + z_index;
-
+	*/
 }
 
-__kernel void assign_particle_cell_index_two_phase(
-	__global Particle *t_particles,
-	__global const int *maxCellIndex,
-	__global const double *cellLength,
-	__global const double *cuboidShift // Random particle location shift
-	
-	){
-	unsigned int gid = get_global_id(0);
-	
-	Particle particle = t_particles[gid];
-	// Find cell numbers
-	int a = (int) ((particle.x + cuboidShift[0]) / cellLength[0]);
-	int b = (int) ((particle.y + cuboidShift[1]) / cellLength[1]);
-	int c = (int) ((particle.z + cuboidShift[2]) / cellLength[2]);
-	// Idx = 0 -> if particle is outside of the cuboid cell structure
-	// Convert cell number into 1D vector. First half of the vector is for outisde the bubble and second half is inside the bubble
-	if ((a < 0) || (a >= maxCellIndex[0])){
-		t_particles[gid].idxCollisionCell = 0;
-	}
-	else if ((b < 0) || (b >= maxCellIndex[1])){
-		t_particles[gid].idxCollisionCell = 0;
-	}
-	else if ((c < 0) || (c >= maxCellIndex[2])){
-		t_particles[gid].idxCollisionCell = 0;
-	}
-	else {
-		t_particles[gid].idxCollisionCell = 1 + a + b * maxCellIndex[0] + c * maxCellIndex[0] * maxCellIndex[1] + particle.b_inBubble * maxCellIndex[0] * maxCellIndex[1]*maxCellIndex[2];
-	}
-	
-}
-
-__kernel void label_particles_position_by_coordinate(
-	__global Particle *t_particles,
+__kernel void is_particle_in_bubble(
+	__global Particle *particles,
 	__global Bubble *t_bubble
 	){
 	unsigned int gid = get_global_id(0);
 	
 	// If R_b^2 > R_x^2 then particle is inside the bubble
-	t_particles[gid].b_inBubble = fma(
-									t_particles[gid].x, t_particles[gid].x,
-										fma(t_particles[gid].y, t_particles[gid].y,
-											t_particles[gid].z * t_particles[gid].z )) < t_bubble[0].radius2;
+	particles[gid].b_inBubble = fma(
+									particles[gid].x, particles[gid].x,
+										fma(particles[gid].y, particles[gid].y,
+											particles[gid].z * particles[gid].z )) < t_bubble[0].radius2;
 }
 
-__kernel void label_particles_position_by_mass(
-	__global Particle *t_particles,
-	__global double *mass_in
-	){
-	unsigned int gid = get_global_id(0);
-	
-	// If R_b^2 > R_x^2 then particle is inside the bubble
-	t_particles[gid].b_inBubble = t_particles[gid].m == mass_in[0];
-}
-
-__kernel void transform_momentum(
-	__global Particle *t_particles,
-	__global CollisionCell *t_cells,	
+__kernel void collide_particles(
+	__global Particle *particles,
+	__global CollisionCell *cells,	
 	__global unsigned int *number_of_cells
 	
 	){
+		/*
+		* Collision algorith based on multi particle collision algorithm.
+		* 
+		*/
 		unsigned int gid = get_global_id(0);
-		Particle particle = t_particles[gid];
+		Particle particle = particles[gid];
 		// If in bubble then cell number is doubled and second half is in bubble cells.
 		if (particle.idxCollisionCell != 0){
-			CollisionCell cell = t_cells[particle.idxCollisionCell];
+			CollisionCell cell = cells[particle.idxCollisionCell];
 			
 			double gamma_minus_one = cell.gamma - 1;
 			double cos_theta = cos(cell.theta);
@@ -1018,14 +999,15 @@ __kernel void transform_momentum(
 			
 			if ((cell.particle_count > 1) && (cell.mass != 0)){
 				// Lorentz boost
-				
 				//if (gid==0){
 				//	printf("p0: %.8f\np1: %.8f\np2: %.8f\np3: %.8f\nv1: %.8f\nv2: %.8f\nv3: %.8f\nn1: %.8f\nn2: %.8f\nn3: %.8f\ntheta: %.8f\n",
 				//		particle.E, particle.pX, particle.pY, particle.pZ, cell.vX, cell.vY, cell.vZ, cell.x, cell.y, cell.z, cell.theta
 				//		);
 				//}
-				
-				
+				/*
+				* Lorentz transformation to zero momentum frame
+				*/
+
 				p0 = cell.gamma * (
 					particle.E 
 					- particle.pX * cell.vX 
@@ -1052,7 +1034,9 @@ __kernel void transform_momentum(
 				particle.pY = p2;
 				particle.pZ = p3;
 
-				// Rotate momentum
+				/*
+				* Rotate particle momentum
+				*/
 				p1 = particle.pX * (cos_theta + pow(cell.x, 2) * one_minus_cos_theta) + 
 					 particle.pY * (cell.x * cell.y * one_minus_cos_theta - cell.z * sin_theta) +
 					 particle.pZ * (cell.x * cell.z * one_minus_cos_theta + cell.y * sin_theta);
@@ -1067,7 +1051,9 @@ __kernel void transform_momentum(
 				particle.pY = p2;
 				particle.pZ = p3;
 				
-				// Lorentz inverse transformation
+				/*
+				* Lorentz transformation back to initial momentum frame
+				*/
 				p0 = cell.gamma * (
 					particle.E 
 					+ particle.pX * cell.vX 
@@ -1097,52 +1083,48 @@ __kernel void transform_momentum(
 				//	printf("E: %.8f, pX: %.8f, pY: %.8f, pZ: %.8f\n", p0, p1, p2, p3);
 				// }
 				
-				t_particles[gid] = particle;
+				particles[gid] = particle;
 			}
 		}
 }
-	
-__kernel void transform_momentum_massive(
-	__global Particle *t_particles,
-	__global CollisionCell *t_cells,	
+
+__kernel void collide_particles2(
+	__global Particle *particles,
+	__global CollisionCell *cells,	
 	__global unsigned int *number_of_cells
+	
 	){
+		/*
+		* Collision algorith based on multi particle collision algorithm.
+		* 
+		*/
 		unsigned int gid = get_global_id(0);
-		// Copy object to register memory. Improves performance.
-		Particle particle = t_particles[gid];
+		Particle particle = particles[gid];
 		// If in bubble then cell number is doubled and second half is in bubble cells.
-		
 		if (particle.idxCollisionCell != 0){
-			CollisionCell cell = t_cells[particle.idxCollisionCell];
-			//if (gid==0){
-			//		printf("Cell count: %i ,",cell.particle_count);
-			//	}
+			CollisionCell cell = cells[particle.idxCollisionCell];
+			
 			double gamma_minus_one = cell.gamma - 1;
 			double cos_theta = cos(cell.theta);
 			double one_minus_cos_theta = 1 - cos_theta;
 			double sin_theta = sin(cell.theta);
 			double p0, p1, p2, p3;
-			double p0result, p1result, p2result, p3result;
-			double new_gamma;
-			double mgamma;
 			
 			if ((cell.particle_count > 1) && (cell.mass != 0)){
 				// Lorentz boost
-				//if (gid==0){
-				//	printf("x: %.4f, %.4f, %.4f, cell: %i\n", particle.x, particle.y, particle.z, particle.idxCollisionCell);
-				//}
 				//if (gid==0){
 				//	printf("p0: %.8f\np1: %.8f\np2: %.8f\np3: %.8f\nv1: %.8f\nv2: %.8f\nv3: %.8f\nn1: %.8f\nn2: %.8f\nn3: %.8f\ntheta: %.8f\n",
 				//		particle.E, particle.pX, particle.pY, particle.pZ, cell.vX, cell.vY, cell.vZ, cell.x, cell.y, cell.z, cell.theta
 				//		);
 				//}
-				
-				
-				
+				/*
+				* Lorentz transformation to zero momentum frame
+				*/
+
 				p0 = cell.gamma * (
-					particle.E
-					- particle.pX * cell.vX
-					- particle.pY * cell.vY
+					particle.E 
+					- particle.pX * cell.vX 
+					- particle.pY * cell.vY 
 					- particle.pZ * cell.vZ
 					);
 				p1 = - particle.E * cell.gamma  * cell.vX 
@@ -1155,7 +1137,7 @@ __kernel void transform_momentum_massive(
 					+ particle.pX * cell.vX * cell.vY * gamma_minus_one/cell.v2
 					+ particle.pZ * cell.vY * cell.vZ * gamma_minus_one/cell.v2;
 				
-				p3 = -cell.gamma * particle.E * cell.vZ
+				p3 = -cell.gamma * particle.E * cell.vZ 
 					+ particle.pZ * (1 + cell.vZ * cell.vZ * gamma_minus_one/cell.v2)
 					+ particle.pX * cell.vX * cell.vZ * gamma_minus_one/cell.v2
 					+ particle.pY * cell.vY * cell.vZ * gamma_minus_one/cell.v2;
@@ -1165,7 +1147,9 @@ __kernel void transform_momentum_massive(
 				particle.pY = p2;
 				particle.pZ = p3;
 
-				// Rotate momentum
+				/*
+				* Rotate particle momentum
+				*/
 				p1 = particle.pX * (cos_theta + pow(cell.x, 2) * one_minus_cos_theta) + 
 					 particle.pY * (cell.x * cell.y * one_minus_cos_theta - cell.z * sin_theta) +
 					 particle.pZ * (cell.x * cell.z * one_minus_cos_theta + cell.y * sin_theta);
@@ -1180,7 +1164,9 @@ __kernel void transform_momentum_massive(
 				particle.pY = p2;
 				particle.pZ = p3;
 				
-				// Lorentz inverse transformation
+				/*
+				* Lorentz transformation back to initial momentum frame
+				*/
 				p0 = cell.gamma * (
 					particle.E 
 					+ particle.pX * cell.vX 
@@ -1206,40 +1192,43 @@ __kernel void transform_momentum_massive(
 				particle.pX = p1;
 				particle.pY = p2;
 				particle.pZ = p3;
-			
+				// if (gid==0){
+				//	printf("E: %.8f, pX: %.8f, pY: %.8f, pZ: %.8f\n", p0, p1, p2, p3);
+				// }
 				
-				t_particles[gid] = particle;
+				particles[gid] = particle;
 			}
 		}
-}	
-	
+}
 
-
-
-
-__kernel void particle_bounce(
-	__global Particle *t_particles,
-	__global double *t_cycleRadius // [x_delta]
+__kernel void particle_boundary_check(
+	__global Particle *particles,
+	__global double *boundaryRadius // [x_delta]
 	){
+	/*
+	* If particle is out of boundaries then update it's location.
+	* Update coordinate that particle goes to the other side of the simulation space.
+	*/
 	unsigned int gid = get_global_id(0);
 	
-	Particle particle = t_particles[gid];
-	double cyclicRadius = t_cycleRadius[0];
+	Particle particle = particles[gid];
+	double r_boundaryRadius = boundaryRadius[0];
+	double doubleBoundaryRadius = 2 * r_boundaryRadius;
 
-		// If Particle is inside the boundary leave value same. Otherwise change the sign
+	// If Particle is inside the boundary leave value same. Otherwise change the sign
 	
-	// abs(x) < Boundary -> leave momentum
-	// abs(x) > Boundary and x < -Boundary
-	// abs(x) > Boundary and x > Boundary
-	particle.x = (cyclicRadius > fabs(particle.x)) * particle.x +
-				 (particle.x > cyclicRadius) * (particle.x - 2*cyclicRadius) + 
-				 (particle.x < -cyclicRadius) * (particle.x + 2*cyclicRadius);
-	particle.y = (cyclicRadius > fabs(particle.y)) * particle.y +
-				 (particle.y > cyclicRadius) * (particle.y - 2*cyclicRadius) + 
-				 (particle.y < -cyclicRadius) * (particle.y + 2*cyclicRadius);
-	particle.z = (cyclicRadius > fabs(particle.z)) * particle.z +
-				 (particle.z > cyclicRadius) * (particle.z - 2*cyclicRadius) + 
-				 (particle.z < -cyclicRadius) * (particle.z + 2*cyclicRadius);
+	// abs(x) < r_boundaryRadius 	-> leave just as it is
+	// x > r_boundaryRadius 		-> x - 2 * r_boundaryRadius
+	// x < r_boundaryRadius 		-> x + 2 * r_boundaryRadius
+	particle.x = (r_boundaryRadius > fabs(particle.x)) * particle.x +
+				 (particle.x > r_boundaryRadius) * (particle.x - doubleBoundaryRadius) + 
+				 (particle.x < -r_boundaryRadius) * (particle.x + doubleBoundaryRadius);
+	particle.y = (r_boundaryRadius > fabs(particle.y)) * particle.y +
+				 (particle.y > r_boundaryRadius) * (particle.y - doubleBoundaryRadius) + 
+				 (particle.y < -r_boundaryRadius) * (particle.y + doubleBoundaryRadius);
+	particle.z = (r_boundaryRadius > fabs(particle.z)) * particle.z +
+				 (particle.z > r_boundaryRadius) * (particle.z - doubleBoundaryRadius) + 
+				 (particle.z < -r_boundaryRadius) * (particle.z + doubleBoundaryRadius);
 	// Update result
-	t_particles[gid] = particle;
+	particles[gid] = particle;
 }

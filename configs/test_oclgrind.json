@@ -37,7 +37,7 @@
 		"cell_length": 0.5
 	},
 	"stream": {
-		"stream": true,
+		"stream": false,
         "stream_time": 0.01,
         "stream_step": 100,
         "data_save_path": "data",
