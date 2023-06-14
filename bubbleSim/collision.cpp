@@ -64,8 +64,7 @@ void CollisionCellCollection::recalculate_cells(
 
   numType phi, theta;
 
-  std::vector<std::array<cl_numType, 5>> frames;
-  frames.resize(m_cellCount);
+  std::vector<std::array<cl_numType, 6>> frames(m_cellCount, { (cl_numType)0,(cl_numType)0,(cl_numType)0,(cl_numType)0,(cl_numType)0,(cl_numType)1 });
   /*
    * Sum up all momentums, energies and masses for each cell
    */
@@ -76,6 +75,7 @@ void CollisionCellCollection::recalculate_cells(
     frames[particle.idxCollisionCell][2] += particle.pZ;
     frames[particle.idxCollisionCell][3] += particle.E;
     frames[particle.idxCollisionCell][4] += 1;
+    frames[particle.idxCollisionCell][5] *= particle.E;
   }
   /*
    * Calculate velocities for each collision cell
@@ -83,6 +83,22 @@ void CollisionCellCollection::recalculate_cells(
   for (size_t i = 1; i < m_cellCount; i++) {
     m_collisionCells[i].particle_count = (int)frames[i][4];
     if (frames[i][4] > 1) {
+        /*if (frames[i][4] != 2) {
+            m_collisionCells[i].particle_count = (int)0;
+            continue;
+        }
+        if (t_rng.generate_number() >= 0.01*0.01 / (9*frames[i][5])) {
+            m_collisionCells[i].particle_count = (int)0;
+            continue;
+        }
+        */
+        
+        if (t_rng.generate_number() >= std::pow(0.01/3, frames[i][4]) / (frames[i][5])) {
+          m_collisionCells[i].particle_count = (int)0;
+          continue;
+        }
+
+
       m_collisionCells[i].v_x = frames[i][0] / frames[i][3];
       m_collisionCells[i].v_y = frames[i][1] / frames[i][3];
       m_collisionCells[i].v_z = frames[i][2] / frames[i][3];

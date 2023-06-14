@@ -926,12 +926,6 @@ __kernel void assign_particle_to_collision_cell(
 	// Read variables to local registers
 	Particle particle = particles[gid];
 
-	if (gid == 0){
-		printf("%p \n", &particle);
-	}
-	if (gid == 100){
-		printf("%p \n", &particle.x);
-	}
 	unsigned int r_maximumCellIndex = maxCellIndex[0];
 	double r_cellLength = cellLength[0];
 
@@ -990,14 +984,13 @@ __kernel void collide_particles(
 		// If in bubble then cell number is doubled and second half is in bubble cells.
 		if (particle.idxCollisionCell != 0){
 			CollisionCell cell = cells[particle.idxCollisionCell];
-			
-			double gamma_minus_one = cell.gamma - 1;
-			double cos_theta = cos(cell.theta);
-			double one_minus_cos_theta = 1 - cos_theta;
-			double sin_theta = sin(cell.theta);
-			double p0, p1, p2, p3;
-			
 			if ((cell.particle_count > 1) && (cell.mass != 0)){
+				//printf("siin\n");
+				double gamma_minus_one = cell.gamma - 1;
+				double cos_theta = cos(cell.theta);
+				double one_minus_cos_theta = 1 - cos_theta;
+				double sin_theta = sin(cell.theta);
+				double p0, p1, p2, p3;
 				// Lorentz boost
 				//if (gid==0){
 				//	printf("p0: %.8f\np1: %.8f\np2: %.8f\np3: %.8f\nv1: %.8f\nv2: %.8f\nv3: %.8f\nn1: %.8f\nn2: %.8f\nn3: %.8f\ntheta: %.8f\n",

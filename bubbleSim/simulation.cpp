@@ -221,7 +221,7 @@ void Simulation::step(ParticleCollection& particles,
   cl_queue.enqueueNDRangeKernel(t_particleBounceKernel, cl::NullRange,
       cl::NDRange(particles.getParticleCountTotal()));
 
-  std::array<int, 5> particleIdx = { 84522, 355324 , 429220, 538040, 704867 };
+  // std::array<int, 5> particleIdx = { 84522, 355324 , 429220, 538040, 704867 };
 
   // Generate shift vector
   if (i % 1 == 0) {
@@ -240,7 +240,7 @@ void Simulation::step(ParticleCollection& particles,
 
       cells.recalculate_cells(particles.getParticles(), generator_collision);
 
-      int cell_idx = 0;
+      /*int cell_idx = 0;
       for (unsigned int i = 0; i < cells.getCellCount(); i++) {
           if ((cells.getCollisionCells()[i].particle_count >= 5) && (cells.getCollisionCells()[i].particle_count < 10)) {
               cell_idx = i;
@@ -252,11 +252,12 @@ void Simulation::step(ParticleCollection& particles,
       CollisionCell cell = cells.getCollisionCells()[cell_idx];
       Particle p;
       std::cout << "Cell idx: " << cell_idx << ", Gamma: " << cell.gamma << ", " << cell.v_x << ", " << cell.v_y << ", " << cell.v_z << std::endl;
-      for (int i=0; i<particles.getParticleCountTotal(); i++ ) {
+      */
+      /*for (int i=0; i<particles.getParticleCountTotal(); i++ ) {
           if (particles.getParticles()[i].idxCollisionCell == cell_idx) {
               particles.printParticleInfo(i);
           }
-      }
+      }*/
 
 
       // Update data on GPU
@@ -267,14 +268,12 @@ void Simulation::step(ParticleCollection& particles,
           t_rotationKernel, cl::NullRange,
           cl::NDRange(particles.getParticleCountTotal()));
       particles.readParticlesBuffer(cl_queue);
-      std::cout << "After collision" << std::endl;
-      for (int i = 0; i < particles.getParticleCountTotal(); i++) {
+
+      /*for (int i = 0; i < particles.getParticleCountTotal(); i++) {
           if (particles.getParticles()[i].idxCollisionCell == cell_idx) {
               particles.printParticleInfo(i);
           }
-      }
+      }*/
 
   }
-  exit(0);
-
 }

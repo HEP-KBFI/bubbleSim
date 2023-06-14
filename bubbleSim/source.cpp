@@ -120,18 +120,19 @@ int main(int argc, char* argv[]) {
   // 4) Generate particles
   ParticleGenerator particleGenerator1;
   // 4.1) Create generator (calculates distribution)
-  if (!b_collisionDevelopment) {
+  if (b_collisionDevelopment) {    
+      // <p> = 6 T^4
     particleGenerator1 = ParticleGenerator(config.particleMassFalse,
-                                           config.particleTemperatureFalse);
+                                           3*config.particleTemperatureFalse);
   } else {
     particleGenerator1 =
         ParticleGenerator(config.particleMassFalse, config.particleTemperatureFalse,
-                          30 * temperatureFalse, 1e-5 * temperatureFalse);
+                          30 * config.particleTemperatureFalse, 1e-5 * config.particleTemperatureFalse);
   }
   // 4.2) Create arrays for particles which hold the data of the particles
   ParticleCollection particles(
       config.particleMassTrue, config.particleMassFalse, temperatureTrue,
-      temperatureFalse, config.particleCountTrue, config.particleCountFalse,
+      config.particleTemperatureFalse, config.particleCountTrue, config.particleCountFalse,
       config.parameterCoupling, config.bubbleIsTrueVacuum,
       kernels.getContext());
 
@@ -298,19 +299,22 @@ int main(int argc, char* argv[]) {
                            initialNumberDensityFalse,
                            initialEnergyDensityFalse);
 
-
-  std::ofstream pLocStream("cellIdx.csv");
+  bool streamCellCount = false;
+  std::ofstream pLocStream;
   std::vector<unsigned int> pLocArray;
-  pLocArray.resize(config.collisionCellCount* config.collisionCellCount* config.collisionCellCount + 1, 0);
+  if (streamCellCount) {
+      std::ofstream pLocStream(filePath / "cellIdx.csv");
+      pLocArray.resize(config.collisionCellCount * config.collisionCellCount * config.collisionCellCount + 1, 0);
+  }
   /*
     =============== Run simulation ===============
   */
 
-  std::array<int, 5> particleIdx = { 84522, 355324 , 429220, 538040, 704867 };
+  /*std::array<int, 5> particleIdx = { 84522, 355324 , 429220, 538040, 704867 };
   for (int i : particleIdx) {
       particles.printParticleInfo(i);
   }
-
+*/
 
   numType simTimeSinceLastStream = 0.;
   int stepsSinceLastStream = 0;
@@ -336,19 +340,20 @@ int main(int argc, char* argv[]) {
       break;
     }
     if (b_collisionDevelopment) {
-      simulation.step(particles, cells, rn_generator, i, *stepKernel,
-                      kernels.m_cellAssignmentKernel, kernels.m_rotationKernel,
-                      kernels.m_particleBounceKernel,
-                      kernels.getCommandQueue());
-
-      /*for (Particle& p : particles.getParticles()) {
-          pLocArray[p.idxCollisionCell] += 1;
-      }
-      for (unsigned int loc : pLocArray) {
-          pLocStream << loc << ",";
-      }
-      pLocStream << "\n";
-      std::fill(pLocArray.begin(), pLocArray.end(), 0);*/
+        simulation.step(particles, cells, rn_generator, i, *stepKernel,
+            kernels.m_cellAssignmentKernel, kernels.m_rotationKernel,
+            kernels.m_particleBounceKernel,
+            kernels.getCommandQueue());
+        if (streamCellCount){
+        for (Particle& p : particles.getParticles()) {
+            pLocArray[p.idxCollisionCell] += 1;
+        }
+        for (unsigned int loc : pLocArray) {
+            pLocStream << loc << ",";
+        }
+        pLocStream << "\n";
+        std::fill(pLocArray.begin(), pLocArray.end(), 0);
+    }
     } else {
       if (config.bubbleInteractionsOn) {
         simulation.step(particles, bubble, *stepKernel,
