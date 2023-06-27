@@ -6,7 +6,7 @@
 		"seed": 1,
 		"dt": 0.1,
 		"max_steps": 100,
-		"max_time": 150,
+		"max_time": 1,
 		"cyclic_boundary_on": true,
 		"cyclic_boundary_radius": 500
 	},

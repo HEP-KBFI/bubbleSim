@@ -274,6 +274,6 @@ void Simulation::step(ParticleCollection& particles,
               particles.printParticleInfo(i);
           }
       }*/
-
   }
+  m_step += 1;
 }

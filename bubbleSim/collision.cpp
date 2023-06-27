@@ -93,7 +93,7 @@ void CollisionCellCollection::recalculate_cells(
         }
         */
         
-        if (t_rng.generate_number() >= std::pow(0.01/3, frames[i][4]) / (frames[i][5])) {
+        if (t_rng.generate_number() >= std::pow(0.01, frames[i][4]) / (9*frames[i][5])) {
           m_collisionCells[i].particle_count = (int)0;
           continue;
         }
