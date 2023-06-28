@@ -100,11 +100,12 @@ class Simulation {
   }
 
  private:
-  // Sim time paramters:
-  // Cumulative time
   int m_seed;
+
+  // Simulation time state
   numType m_time = 0.;
   u_int m_step = 0;
+
   // One step time length
   numType m_dt;
   numType m_step_dt;

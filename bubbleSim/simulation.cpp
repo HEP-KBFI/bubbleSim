@@ -205,7 +205,7 @@ void Simulation::step(PhaseBubble& bubble, numType t_dP) {
   bubble.evolveWall(m_dt, t_dP);
 }
 
-// In development: collisions
+// Collision step
 void Simulation::step(ParticleCollection& particles,
                       CollisionCellCollection& cells,
                       RandomNumberGenerator& generator_collision, int i,
@@ -214,12 +214,19 @@ void Simulation::step(ParticleCollection& particles,
                       cl::Kernel& t_rotationKernel,
                       cl::Kernel& t_particleBounceKernel,
                       cl::CommandQueue& cl_queue) {
-  m_time += m_dt;
+  /*
+  * 1) Move particles
+  * 2) Solve boundaries
+  */
   // Move particles
   cl_queue.enqueueNDRangeKernel(t_particleStepKernel, cl::NullRange,
                                 cl::NDRange(particles.getParticleCountTotal()));
-  // Generate shift vector
+  cl_queue.enqueueNDRangeKernel(
+        t_particleBounceKernel, cl::NullRange,
+        cl::NDRange(particles.getParticleCountTotal()));
+
   if (i % 1 == 0) {
+    // Generate shift vector
     cells.generateShiftVector(generator_collision);
     cells.writeShiftVectorBuffer(cl_queue);
 
@@ -227,21 +234,24 @@ void Simulation::step(ParticleCollection& particles,
     cl_queue.enqueueNDRangeKernel(
         t_cellAssignmentKernel, cl::NullRange,
         cl::NDRange(particles.getParticleCountTotal()));
+
     // Update particle data on CPU
     particles.readParticlesBuffer(cl_queue);
 
     // Calculate COM and genrate rotation matrix for each cell
-
     cells.recalculate_cells(particles.getParticles(), generator_collision);
+
 
     // Update data on GPU
     particles.writeParticlesBuffer(cl_queue);
     cells.writeCollisionCellBuffer(cl_queue);
-    // Update momentum
+    // Rotate momentum
     cl_queue.enqueueNDRangeKernel(
         t_rotationKernel, cl::NullRange,
         cl::NDRange(particles.getParticleCountTotal()));
+
+    // Update simulation time
+    m_time += m_dt;
+    m_step += 1;
   }
-  cl_queue.enqueueNDRangeKernel(t_particleBounceKernel, cl::NullRange,
-                                cl::NDRange(particles.getParticleCountTotal()));
 }
