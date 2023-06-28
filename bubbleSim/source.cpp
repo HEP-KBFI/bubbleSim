@@ -76,7 +76,7 @@ int main(int argc, char* argv[]) {
   }
 
   // Collision is in development
-  bool b_collisionDevelopment = true;
+  bool b_collisionDevelopment = false;
 
   // Read configs and kernel file
   std::string s_configPath = argv[1];  // "config.json"
