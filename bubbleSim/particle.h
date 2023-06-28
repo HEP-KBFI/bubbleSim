@@ -9,9 +9,9 @@ typedef struct Particle {
   cl_numType y;
   cl_numType z;
 
-  cl_numType p_x;
-  cl_numType p_y;
-  cl_numType p_z;
+  cl_numType pX;
+  cl_numType pY;
+  cl_numType pZ;
 
   cl_numType E;
   cl_numType m;
@@ -343,9 +343,9 @@ class ParticleCollection {
 
   numType getParticleMomentum(u_int i) {
     return std::sqrt(
-        std::fma(m_particles[i].p_x, m_particles[i].p_x,
-                 std::fma(m_particles[i].p_y, m_particles[i].p_y,
-                          m_particles[i].p_z * m_particles[i].p_z)));
+        std::fma(m_particles[i].pX, m_particles[i].pX,
+                 std::fma(m_particles[i].pY, m_particles[i].pY,
+                          m_particles[i].pZ * m_particles[i].pZ)));
   }
 
   numType getParticleMass(u_int i) { return m_particles[i].m; }
@@ -392,8 +392,8 @@ class ParticleCollection {
   void print_particle_info(unsigned int i) {
     Particle particle = m_particles[i];
     std::cout << "(" << particle.x << ", " << particle.y << ", " << particle.z
-              << ") (" << particle.E << ", " << particle.p_x << ", "
-              << particle.p_y << ", " << particle.p_z << ")" << std::endl;
+              << ") (" << particle.E << ", " << particle.pX << ", "
+              << particle.pY << ", " << particle.pZ << ")" << std::endl;
   }
 
   void revertParticlesToLastStep(cl::CommandQueue& cl_queue) {
@@ -451,5 +451,11 @@ class ParticleCollection {
     makeInteractedBubbleFalseStateCopy();
     makeInteractedBubbleTrueStateCopy();
     makePassedBubbleFalseStateCopy();
+  }
+
+  void printParticleInfo(size_t i) {
+    Particle p = m_particles[i];
+    std::printf("X: (%.7f, %.7f, %.7f), P: (%.7f, %.7f, %.7f, %.7f), m: %.7f\n",
+                p.x, p.y, p.z, p.E, p.pX, p.pY, p.pZ, p.m);
   }
 };

@@ -76,9 +76,9 @@ void CollisionCellCollection::recalculate_cells(
    */
   for (Particle& particle : t_particles) {
     if (particle.idxCollisionCell == 0) continue;
-    frames[particle.idxCollisionCell][0] += particle.p_x;
-    frames[particle.idxCollisionCell][1] += particle.p_y;
-    frames[particle.idxCollisionCell][2] += particle.p_z;
+    frames[particle.idxCollisionCell][0] += particle.pX;
+    frames[particle.idxCollisionCell][1] += particle.pY;
+    frames[particle.idxCollisionCell][2] += particle.pZ;
     frames[particle.idxCollisionCell][3] += particle.E;
     frames[particle.idxCollisionCell][4] += 1;
     frames[particle.idxCollisionCell][5] *= particle.E;

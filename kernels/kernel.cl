@@ -913,7 +913,7 @@ __kernel void particles_with_false_bubble_step_reflect(
 }
 
 
-__kernel void assign_cell_index_to_particle(
+__kernel void assign_particle_to_collision_cell(
 	__global Particle *t_particles,
 	__global const unsigned int *maxCellIndex,
 	__global const double *cellLength,
@@ -1000,11 +1000,10 @@ __kernel void label_particles_position_by_mass(
 	t_particles[gid].b_inBubble = t_particles[gid].m == mass_in[0];
 }
 
-__kernel void transform_momentum(
+__kernel void rotate_momentum(
 	__global Particle *t_particles,
 	__global CollisionCell *t_cells,	
 	__global unsigned int *number_of_cells
-	
 	){
 		unsigned int gid = get_global_id(0);
 		Particle particle = t_particles[gid];
@@ -1096,7 +1095,7 @@ __kernel void transform_momentum(
 		}
 	}
 
-__kernel void particle_bounce(
+__kernel void particle_boundary_check(
 	__global Particle *t_particles,
 	__global double *boundaryDistanceFromCenter // [x_delta]
 	){
