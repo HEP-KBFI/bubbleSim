@@ -129,6 +129,7 @@ int main(int argc, char* argv[]) {
         ParticleGenerator(config.particleMassFalse, config.particleTemperatureFalse,
                           30 * config.particleTemperatureFalse, 1e-5 * config.particleTemperatureFalse);
   }
+
   // 4.2) Create arrays for particles which hold the data of the particles
   ParticleCollection particles(
       config.particleMassTrue, config.particleMassFalse, temperatureTrue,
