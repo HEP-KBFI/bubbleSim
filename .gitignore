@@ -7,6 +7,9 @@
 dependencies/OpenCL
 bubbleSim/data
 
+# External tool files
+*.cltracer
+
 
 # User-specific files
 *.rsuser
