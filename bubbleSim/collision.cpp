@@ -98,24 +98,24 @@ void CollisionCellCollection::recalculate_cells(
         m_collisionCells[i].particle_count = (int)0;
         continue;
       }
-      m_collisionCells[i].v_x = frames[i][0] / frames[i][3];
-      m_collisionCells[i].v_y = frames[i][1] / frames[i][3];
-      m_collisionCells[i].v_z = frames[i][2] / frames[i][3];
+      m_collisionCells[i].vX = frames[i][0] / frames[i][3];
+      m_collisionCells[i].vY = frames[i][1] / frames[i][3];
+      m_collisionCells[i].vZ = frames[i][2] / frames[i][3];
       m_collisionCells[i].total_mass =
           std::sqrt(std::pow(frames[i][3], 2) - std::pow(frames[i][0], 2) -
                     std::pow(frames[i][1], 2) - std::pow(frames[i][2], 2));
-      m_collisionCells[i].p_x = frames[i][0] / frames[i][4];
-      m_collisionCells[i].p_y = frames[i][1] / frames[i][4];
-      m_collisionCells[i].p_z = frames[i][2] / frames[i][4];
-      m_collisionCells[i].p_E = frames[i][3] / frames[i][4];
+      m_collisionCells[i].pX = frames[i][0] / frames[i][4];
+      m_collisionCells[i].pY = frames[i][1] / frames[i][4];
+      m_collisionCells[i].pZ = frames[i][2] / frames[i][4];
+      m_collisionCells[i].pE = frames[i][3] / frames[i][4];
 
       /*
        * beta = sqrt(v_x^2 + v_y^2 + v_z^2);
        */
       m_collisionCells[i].v2 =
-          std::fma(m_collisionCells[i].v_x, m_collisionCells[i].v_x,
-                   std::fma(m_collisionCells[i].v_y, m_collisionCells[i].v_y,
-                            m_collisionCells[i].v_z * m_collisionCells[i].v_z));
+          std::fma(m_collisionCells[i].vX, m_collisionCells[i].vX,
+                   std::fma(m_collisionCells[i].vY, m_collisionCells[i].vY,
+                            m_collisionCells[i].vZ * m_collisionCells[i].vZ));
       /*
        * gamma = 1/sqrt(1-beta^2)
        */
