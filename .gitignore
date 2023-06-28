@@ -7,6 +7,8 @@
 dependencies/OpenCL
 bubbleSim/data
 
+# CLtracer files (used for profiling OpenCL)
+*.cltracer
 
 # User-specific files
 *.rsuser

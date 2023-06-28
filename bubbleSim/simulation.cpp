@@ -217,31 +217,63 @@ void Simulation::step(ParticleCollection& particles,
   m_time += m_dt;
   // Move particles
   cl_queue.enqueueNDRangeKernel(t_particleStepKernel, cl::NullRange,
-                                cl::NDRange(particles.getParticleCountTotal()));
+      cl::NDRange(particles.getParticleCountTotal()));
+  cl_queue.enqueueNDRangeKernel(t_particleBounceKernel, cl::NullRange,
+      cl::NDRange(particles.getParticleCountTotal()));
+
+  // std::array<int, 5> particleIdx = { 84522, 355324 , 429220, 538040, 704867 };
+
   // Generate shift vector
   if (i % 1 == 0) {
-    cells.generateShiftVector(generator_collision);
-    cells.writeShiftVectorBuffer(cl_queue);
+      cells.generateShiftVector(generator_collision);
+      cells.writeShiftVectorBuffer(cl_queue);
+      
+      // Assign particles to collision cells
+      cl_queue.enqueueNDRangeKernel(
+          t_cellAssignmentKernel, cl::NullRange,
+          cl::NDRange(particles.getParticleCountTotal()));
+      // Update particle data on CPU
+     
+      particles.readParticlesBuffer(cl_queue);
+      
+      // Calculate COM and genrate rotation matrix for each cell
 
-    // Assign particles to collision cells
-    cl_queue.enqueueNDRangeKernel(
-        t_cellAssignmentKernel, cl::NullRange,
-        cl::NDRange(particles.getParticleCountTotal()));
-    // Update particle data on CPU
-    particles.readParticlesBuffer(cl_queue);
+      cells.recalculate_cells(particles.getParticles(), generator_collision);
 
-    // Calculate COM and genrate rotation matrix for each cell
+      /*int cell_idx = 0;
+      for (unsigned int i = 0; i < cells.getCellCount(); i++) {
+          if ((cells.getCollisionCells()[i].particle_count >= 5) && (cells.getCollisionCells()[i].particle_count < 10)) {
+              cell_idx = i;
+              std::cout << "Found a cell " << std::endl;
+              break;
+          }
+      }
 
-    cells.recalculate_cells(particles.getParticles(), generator_collision);
+      CollisionCell cell = cells.getCollisionCells()[cell_idx];
+      Particle p;
+      std::cout << "Cell idx: " << cell_idx << ", Gamma: " << cell.gamma << ", " << cell.v_x << ", " << cell.v_y << ", " << cell.v_z << std::endl;
+      */
+      /*for (int i=0; i<particles.getParticleCountTotal(); i++ ) {
+          if (particles.getParticles()[i].idxCollisionCell == cell_idx) {
+              particles.printParticleInfo(i);
+          }
+      }*/
 
-    // Update data on GPU
-    particles.writeParticlesBuffer(cl_queue);
-    cells.writeCollisionCellBuffer(cl_queue);
-    // Update momentum
-    cl_queue.enqueueNDRangeKernel(
-        t_rotationKernel, cl::NullRange,
-        cl::NDRange(particles.getParticleCountTotal()));
+
+      // Update data on GPU
+      particles.writeParticlesBuffer(cl_queue);
+      cells.writeCollisionCellBuffer(cl_queue);
+      // Update momentum
+      cl_queue.enqueueNDRangeKernel(
+          t_rotationKernel, cl::NullRange,
+          cl::NDRange(particles.getParticleCountTotal()));
+      particles.readParticlesBuffer(cl_queue);
+
+      /*for (int i = 0; i < particles.getParticleCountTotal(); i++) {
+          if (particles.getParticles()[i].idxCollisionCell == cell_idx) {
+              particles.printParticleInfo(i);
+          }
+      }*/
   }
-  cl_queue.enqueueNDRangeKernel(t_particleBounceKernel, cl::NullRange,
-                                cl::NDRange(particles.getParticleCountTotal()));
+  m_step += 1;
 }

@@ -1,14 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Source Files">
-      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
-      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
-    </Filter>
-    <Filter Include="Header Files">
-      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
-      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
-    </Filter>
     <Filter Include="Resource Files">
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
@@ -16,81 +8,90 @@
     <Filter Include="Kernels">
       <UniqueIdentifier>{ad3d76ba-6f94-404f-bc5d-04c6fe891d8f}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\Objects">
-      <UniqueIdentifier>{ead60fb0-b85b-4979-a0a9-ef637c5cf283}</UniqueIdentifier>
+    <Filter Include="Physics">
+      <UniqueIdentifier>{d8b60eea-a10a-4d44-93e7-1c97ff73bee3}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files\Objects">
-      <UniqueIdentifier>{0187af86-67e0-4ada-9316-2c50a6d1db91}</UniqueIdentifier>
+    <Filter Include="Physics\Particle">
+      <UniqueIdentifier>{95515f3a-561d-4459-b2c3-c2100ac20678}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\Generators">
-      <UniqueIdentifier>{70c9ae99-7764-4421-ad94-5ac76b6b096b}</UniqueIdentifier>
+    <Filter Include="Physics\Bubble">
+      <UniqueIdentifier>{0a343cca-4fdc-401b-a415-4dcaa58ee610}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\Streamers">
-      <UniqueIdentifier>{a5c559dd-9d80-4aef-a16b-8988be73efcd}</UniqueIdentifier>
+    <Filter Include="Physics\Dynamics">
+      <UniqueIdentifier>{8d4d525e-9435-47ad-9eb5-1de1e4fb1975}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files\Streamers">
-      <UniqueIdentifier>{729ee2fd-1b8b-46ac-87ea-9dccda36f30d}</UniqueIdentifier>
+    <Filter Include="Stream">
+      <UniqueIdentifier>{3c2ad733-df12-4a24-b5ff-a4632821a808}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OpenCL">
+      <UniqueIdentifier>{01d28b61-e628-46b8-b3f5-1a908e45d035}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Config">
+      <UniqueIdentifier>{737877a4-c2eb-4180-b746-d325876d14d1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Code">
+      <UniqueIdentifier>{f596f1c2-9307-4993-9c65-9f20f7cfe7bc}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="simulation.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="source.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="base.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="opencl_kernels.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="particle.h">
+      <Filter>Physics\Particle</Filter>
     </ClInclude>
     <ClInclude Include="bubble.h">
-      <Filter>Header Files\Objects</Filter>
-    </ClInclude>
-    <ClInclude Include="particle.h">
-      <Filter>Header Files\Objects</Filter>
+      <Filter>Physics\Bubble</Filter>
     </ClInclude>
     <ClInclude Include="objects.h">
-      <Filter>Header Files\Objects</Filter>
-    </ClInclude>
-    <ClInclude Include="random_number.hpp">
-      <Filter>Source Files\Generators</Filter>
-    </ClInclude>
-    <ClInclude Include="config_reader.hpp">
-      <Filter>Header Files</Filter>
+      <Filter>Physics</Filter>
     </ClInclude>
     <ClInclude Include="collision.h">
-      <Filter>Header Files</Filter>
+      <Filter>Physics\Dynamics</Filter>
     </ClInclude>
     <ClInclude Include="datastreamer.h">
-      <Filter>Header Files\Streamers</Filter>
+      <Filter>Stream</Filter>
+    </ClInclude>
+    <ClInclude Include="opencl_kernels.h">
+      <Filter>OpenCL</Filter>
+    </ClInclude>
+    <ClInclude Include="config_reader.hpp">
+      <Filter>Config</Filter>
+    </ClInclude>
+    <ClInclude Include="base.h">
+      <Filter>Code</Filter>
+    </ClInclude>
+    <ClInclude Include="simulation.h">
+      <Filter>Code</Filter>
+    </ClInclude>
+    <ClInclude Include="source.h">
+      <Filter>Code</Filter>
     </ClInclude>
     <ClInclude Include="timestep.h">
-      <Filter>Header Files</Filter>
+      <Filter>Code</Filter>
+    </ClInclude>
+    <ClInclude Include="random_number.hpp">
+      <Filter>Code</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="simulation.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="source.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="opencl_kernels.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="particle.cpp">
+      <Filter>Physics\Particle</Filter>
     </ClCompile>
     <ClCompile Include="bubble.cpp">
-      <Filter>Source Files\Objects</Filter>
-    </ClCompile>
-    <ClCompile Include="particle.cpp">
-      <Filter>Source Files\Objects</Filter>
+      <Filter>Physics\Bubble</Filter>
     </ClCompile>
     <ClCompile Include="collision.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Physics\Dynamics</Filter>
     </ClCompile>
     <ClCompile Include="datastreamer.cpp">
-      <Filter>Source Files\Streamers</Filter>
+      <Filter>Stream</Filter>
+    </ClCompile>
+    <ClCompile Include="opencl_kernels.cpp">
+      <Filter>OpenCL</Filter>
+    </ClCompile>
+    <ClCompile Include="simulation.cpp">
+      <Filter>Code</Filter>
+    </ClCompile>
+    <ClCompile Include="source.cpp">
+      <Filter>Code</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

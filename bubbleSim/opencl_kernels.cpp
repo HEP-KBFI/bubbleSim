@@ -2,10 +2,10 @@
 
 OpenCLLoader::OpenCLLoader(std::string kernelPath) {
   std::string particleBubbleStepKernelName = "particle_bubble_step";
-  std::string cellAssignKernelName = "assign_cell_index_to_particle";
-  std::string transformKernelName = "transform_momentum";
+  std::string cellAssignKernelName = "assign_particle_to_collision_cell";
+  std::string transformKernelName = "collide_particles";
   std::string particleStepKernelName = "particle_step";
-  std::string particleBounceKernelName = "particle_bounce";
+  std::string particleBounceKernelName = "particle_boundary_check";
   std::string particleBubbleBoundaryStepKernelName =
       "particle_bubble_step_cyclic";
 
@@ -28,6 +28,10 @@ OpenCLLoader::OpenCLLoader(std::string kernelPath, std::string kernelName) {
   std::string particleBubbleStepKernelName = "particle_bubble_step";
   std::string particleBubbleBoundaryStepKernelName =
       "particle_bubble_step_cyclic";
+  // NB: Collision: change
+  std::string cellAssignKernelName = "assign_particle_to_collision_cell";
+  std::string transformKernelName = "collide_particles";
+  std::string particleBounceKernelName = "particle_boundary_check";
 
   createContext(m_devices);
   createProgram(m_context, m_deviceUsed, kernelPath);
@@ -37,6 +41,11 @@ OpenCLLoader::OpenCLLoader(std::string kernelPath, std::string kernelName) {
   createKernel(m_program, m_particleBubbleBoundaryStepKernel,
                particleBubbleBoundaryStepKernelName.c_str());
   createQueue(m_context, m_deviceUsed);
+
+  createKernel(m_program, m_rotationKernel, transformKernelName.c_str());
+  createKernel(m_program, m_cellAssignmentKernel, cellAssignKernelName.c_str());
+  createKernel(m_program, m_particleBounceKernel,
+               particleBounceKernelName.c_str());
 }
 
 void OpenCLLoader::createContext(std::vector<cl::Device>& devices) {

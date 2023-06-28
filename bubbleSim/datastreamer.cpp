@@ -26,6 +26,34 @@ void DataStreamer::initStream_Data() {
                 << std::endl;
 }
 
+void DataStreamer::initStream_Momentum(size_t t_binsCount,
+    numType t_maxMomentumValue) {
+    m_initialized_Momentum = true;
+    m_binsCount_Momentum = t_binsCount;
+    m_maxMomentum_Momentum = t_maxMomentumValue;
+    m_dp_Momentum = t_maxMomentumValue / t_binsCount;
+
+    m_stream_MomentumX.open(m_filePath / "pX.csv", std::ios::out);
+    m_stream_MomentumY.open(m_filePath / "pY.csv", std::ios::out);
+    m_stream_MomentumZ.open(m_filePath / "pZ.csv", std::ios::out);
+
+    m_stream_MomentumX << t_binsCount << "," << t_maxMomentumValue << "\n";
+    m_stream_MomentumY << t_binsCount << "," << t_maxMomentumValue << "\n";
+    m_stream_MomentumZ << t_binsCount << "," << t_maxMomentumValue << "\n";
+    for (size_t i = 1; i <= t_binsCount; i++) {
+        if (i == t_binsCount) {
+            m_stream_MomentumX << i << std::endl;
+            m_stream_MomentumY << i << std::endl;
+            m_stream_MomentumZ << i << std::endl;
+        }
+        else {
+            m_stream_MomentumX << i << ",";
+            m_stream_MomentumY << i << ",";
+            m_stream_MomentumZ << i << ",";
+        }
+    }
+}
+
 void DataStreamer::initStream_MomentumIn(size_t t_binsCount,
                                          numType t_maxMomentumValue) {
   m_initialized_MomentumIn = true;
@@ -170,6 +198,10 @@ void DataStreamer::stream(Simulation& simulation,
   numType totalEnergy;
 
   // Save momentum data
+  std::vector<u_int> bins_MomentumX;
+  std::vector<u_int> bins_MomentumY;
+  std::vector<u_int> bins_MomentumZ;
+
   std::vector<u_int> bins_MomentumIn;
   std::vector<u_int> bins_MomentumOut;
 
@@ -184,6 +216,11 @@ void DataStreamer::stream(Simulation& simulation,
   std::vector<u_int> bins_TangentialVelocityCount;
 
   // Initialize variables
+  if (m_initialized_Momentum) {
+      bins_MomentumX.resize(m_binsCount_Momentum, 0);
+      bins_MomentumY.resize(m_binsCount_Momentum, 0);
+      bins_MomentumZ.resize(m_binsCount_Momentum, 0);
+  }
   if (m_initialized_MomentumIn) {
     bins_MomentumIn.resize(m_binsCount_MomentumIn, 0);
   }
@@ -222,6 +259,12 @@ void DataStreamer::stream(Simulation& simulation,
     particleRadius = particleCollection.calculateParticleRadius(i);
     particleMomentum = particleCollection.calculateParticleMomentum(i);
 
+    if (m_initialized_Momentum) {
+        bins_MomentumX[std::clamp((int)(abs(particleCollection.getParticles()[i].pX / m_dp_Momentum)), 0, (int)m_binsCount_Momentum-1)] += 1;
+        bins_MomentumY[std::clamp((int)(abs(particleCollection.getParticles()[i].pY / m_dp_Momentum)), 0, (int)m_binsCount_Momentum - 1)] += 1;
+        bins_MomentumZ[std::clamp((int)(abs(particleCollection.getParticles()[i].pZ / m_dp_Momentum)), 0, (int)m_binsCount_Momentum - 1)] += 1;
+    }
+
     if (m_initialized_Density && (particleRadius < m_maxRadius_Density)) {
       bins_Density[(int)(particleRadius / m_dr_Density)] += 1;
     }
@@ -233,8 +276,8 @@ void DataStreamer::stream(Simulation& simulation,
     if (m_initialized_RadialVelocity &&
         (particleRadius < m_maxRadius_RadialVelocity)) {
       // Average A(N) = [A(N-1) * (N-1) + a(N) ]/N
-      particleRadialVelocity =
-          particleCollection.calculateParticleRadialVelocity(i);
+        particleRadialVelocity = (particleCollection.getParticles()[i].x * particleCollection.getParticles()[i].pX + particleCollection.getParticles()[i].y * particleCollection.getParticles()[i].pY + particleCollection.getParticles()[i].z * particleCollection.getParticles()[i].pZ) / (particleCollection.getParticles()[i].E * particleRadius);
+        //particleCollection.calculateParticleRadialVelocity(i);
       bins_RadialVelocity[(int)(particleRadius / m_dr_RadialVelocity)] =
           (bins_RadialVelocity[(int)(particleRadius / m_dr_RadialVelocity)] *
                bins_RadialVelocityCount[(int)(particleRadius /
@@ -249,8 +292,13 @@ void DataStreamer::stream(Simulation& simulation,
     }
     if (m_initialized_TangentialVelocity &&
         (particleRadius < m_maxRadius_TangentialVelocity)) {
-      particleTangentialVelocity =
-          particleCollection.calculateParticleTangentialVelocity(i);
+        if (m_initialized_RadialVelocity) {
+            particleTangentialVelocity = std::sqrt(1 - particleRadialVelocity);
+        }
+        else {
+            particleTangentialVelocity =
+                particleCollection.calculateParticleTangentialVelocity(i);
+        }
       bins_TangentialVelocity[(int)(particleRadius / m_dr_TangentialVelocity)] =
           (bins_TangentialVelocity[(int)(particleRadius /
                                          m_dr_TangentialVelocity)] *
@@ -351,6 +399,19 @@ void DataStreamer::stream(Simulation& simulation,
     }
     m_stream_TangentialVelocity
         << bins_TangentialVelocity[m_binsCount_TangentialVelocity - 1] << "\n";
+  }
+  if (m_initialized_Momentum) {
+      for (size_t i = 0; i < m_binsCount_Momentum - 1; i++) {
+          m_stream_MomentumX << bins_MomentumX[i] << ",";
+          m_stream_MomentumY << bins_MomentumY[i] << ",";
+          m_stream_MomentumZ << bins_MomentumZ[i] << ",";
+      }
+      m_stream_MomentumX << bins_MomentumX[m_binsCount_Momentum - 1]
+          << "\n";
+      m_stream_MomentumY << bins_MomentumY[m_binsCount_Momentum - 1]
+          << "\n";
+      m_stream_MomentumZ << bins_MomentumZ[m_binsCount_Momentum - 1]
+          << "\n";
   }
   /*auto programEndTime = std::chrono::high_resolution_clock::now();
   std::cout << "Time taken (stream): "
