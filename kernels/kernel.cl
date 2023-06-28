@@ -28,6 +28,7 @@ typedef struct Bubble {
 
 // In development
 typedef struct CollisionCell {
+  double gamma;
   double vX;
   double vY;
   double vZ;
@@ -43,7 +44,6 @@ typedef struct CollisionCell {
   double p_z;
   
   double v2; // v2 = Sum: v_i^2 
-  double gamma;
   double mass;  
   unsigned int particle_count;
 } CollisionCell;
