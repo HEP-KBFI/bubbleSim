@@ -102,7 +102,7 @@ class DataStreamer {
   // General data about simulation state
   bool m_initialized_Data = false;
   // Momentum profiles in and outside the bubble
-  bool m_initialized_Momentum = true;
+  bool m_initialized_Momentum = false;
   bool m_initialized_MomentumIn = false;
   bool m_initialized_MomentumOut = false;
   // Energy and number desnity profiles
