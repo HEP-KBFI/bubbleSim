@@ -158,24 +158,10 @@ int main(int argc, char* argv[]) {
                             config.cyclicBoundaryRadius, kernels.getContext());
   }
 
-  // 6) Define which openCL kernel to use. Kernel defines calculation process on
-  // the GPU.
-  //
   cl::Kernel* stepKernel;
   // In development: set kernel name in config file.
   // NB! Different kernels might need different input
 
-  /*if (!config.bubbleInteractionsOn) {
-    stepKernel = &kernels.m_particleStepKernel;
-  } else if ((config.bubbleInteractionsOn) && (!config.cyclicBoundaryOn)) {
-    stepKernel = &kernels.m_particleBubbleStepKernel;
-  } else if ((config.bubbleInteractionsOn) && (config.cyclicBoundaryOn)) {
-    stepKernel = &kernels.m_particleBubbleBoundaryStepKernel;
-  } else {
-    std::cerr << "Kernel for current configuration is not available"
-              << std::endl;
-    std::terminate();
-  }*/
   stepKernel = &kernels.m_kernel;
 
   // 7) Initialize bubble object
