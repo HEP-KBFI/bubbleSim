@@ -5,9 +5,9 @@
     },
     "simulation": {
         "seed": 1,
-        "max_steps": 1500,
+        "max_steps": 10000,
         "dt": 0.001,
-        "max_time": 1.5,
+        "max_time": 15,
         "cyclic_boundary_on": true,
         "cyclic_boundary_radius": 500
     },

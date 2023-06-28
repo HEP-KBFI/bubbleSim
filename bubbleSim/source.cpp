@@ -307,10 +307,11 @@ int main(int argc, char* argv[]) {
 
   // auto streamEndTime = high_resolution_clock::now();
   // auto streamStartTime = high_resolution_clock::now();
-  for (int i = 1; (simulation.getTime() <= config.maxTime); i++) {
-    if (config.m_maxSteps > 0 && simulation.getStep() > config.m_maxSteps) {
-      break;
-    }
+  for (int i = 1;
+       (simulation.getTime() <= config.maxTime) &&
+       (config.m_maxSteps > 0 && simulation.getStep() < config.m_maxSteps);
+       i++) {
+
     if (b_collisionDevelopment) {
       simulation.step(particles, cells, rn_generator, i, *stepKernel,
                       kernels.m_cellAssignmentKernel, kernels.m_rotationKernel,
