@@ -16,81 +16,90 @@
     <Filter Include="Kernels">
       <UniqueIdentifier>{ad3d76ba-6f94-404f-bc5d-04c6fe891d8f}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\Objects">
-      <UniqueIdentifier>{ead60fb0-b85b-4979-a0a9-ef637c5cf283}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Header Files\Objects">
-      <UniqueIdentifier>{0187af86-67e0-4ada-9316-2c50a6d1db91}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source Files\Generators">
       <UniqueIdentifier>{70c9ae99-7764-4421-ad94-5ac76b6b096b}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\Streamers">
-      <UniqueIdentifier>{a5c559dd-9d80-4aef-a16b-8988be73efcd}</UniqueIdentifier>
+    <Filter Include="Physics">
+      <UniqueIdentifier>{065cebb1-beb8-4e96-9821-6f828b7743fa}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files\Streamers">
-      <UniqueIdentifier>{729ee2fd-1b8b-46ac-87ea-9dccda36f30d}</UniqueIdentifier>
+    <Filter Include="Physics\Bubble">
+      <UniqueIdentifier>{8271bb38-eced-4c45-837f-66505dc396ac}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Physics\Dynamics">
+      <UniqueIdentifier>{25677fb9-0349-4027-b7fb-4c5eac0b861c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Physics\Particles">
+      <UniqueIdentifier>{6c4c2689-9937-4d27-8cef-7ffb46d3e1fa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Stream">
+      <UniqueIdentifier>{fc07c3d0-554a-4313-8c45-36b30388084b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Config">
+      <UniqueIdentifier>{e2bc3991-b791-4914-8ca2-bb079843d4d7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OpenCL">
+      <UniqueIdentifier>{d00f1d28-f39c-485c-bc09-b2ad361e7fee}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="simulation.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="source.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="base.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="opencl_kernels.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="bubble.h">
-      <Filter>Header Files\Objects</Filter>
-    </ClInclude>
-    <ClInclude Include="particle.h">
-      <Filter>Header Files\Objects</Filter>
-    </ClInclude>
-    <ClInclude Include="objects.h">
-      <Filter>Header Files\Objects</Filter>
-    </ClInclude>
     <ClInclude Include="random_number.hpp">
       <Filter>Source Files\Generators</Filter>
-    </ClInclude>
-    <ClInclude Include="config_reader.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="collision.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="datastreamer.h">
-      <Filter>Header Files\Streamers</Filter>
     </ClInclude>
     <ClInclude Include="timestep.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="objects.h">
+      <Filter>Physics</Filter>
+    </ClInclude>
+    <ClInclude Include="bubble.h">
+      <Filter>Physics\Bubble</Filter>
+    </ClInclude>
+    <ClInclude Include="collision.h">
+      <Filter>Physics\Dynamics</Filter>
+    </ClInclude>
+    <ClInclude Include="particle.h">
+      <Filter>Physics\Particles</Filter>
+    </ClInclude>
+    <ClInclude Include="datastreamer.h">
+      <Filter>Stream</Filter>
+    </ClInclude>
+    <ClInclude Include="config_reader.hpp">
+      <Filter>Config</Filter>
+    </ClInclude>
+    <ClInclude Include="opencl_kernels.h">
+      <Filter>OpenCL</Filter>
+    </ClInclude>
+    <ClInclude Include="simulation.h">
+      <Filter>Physics\Dynamics</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="simulation.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="source.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="opencl_kernels.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="bubble.cpp">
-      <Filter>Source Files\Objects</Filter>
-    </ClCompile>
-    <ClCompile Include="particle.cpp">
-      <Filter>Source Files\Objects</Filter>
+      <Filter>Physics\Bubble</Filter>
     </ClCompile>
     <ClCompile Include="collision.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Physics\Dynamics</Filter>
+    </ClCompile>
+    <ClCompile Include="particle.cpp">
+      <Filter>Physics\Particles</Filter>
     </ClCompile>
     <ClCompile Include="datastreamer.cpp">
-      <Filter>Source Files\Streamers</Filter>
+      <Filter>Stream</Filter>
+    </ClCompile>
+    <ClCompile Include="opencl_kernels.cpp">
+      <Filter>OpenCL</Filter>
+    </ClCompile>
+    <ClCompile Include="simulation.cpp">
+      <Filter>Physics\Dynamics</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
