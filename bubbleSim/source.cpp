@@ -132,7 +132,7 @@ int main(int argc, char* argv[]) {
   numType genreatedParticleEnergy;
   if (b_collisionDevelopment) {
     genreatedParticleEnergy = particleGenerator1.generateNParticlesInBox(
-        std::sqrt(3) * config.bubbleInitialRadius, (u_int)particles.getParticleCountTotal(),
+        config.bubbleInitialRadius, (u_int)particles.getParticleCountTotal(),
         rn_generator, particles.getParticles());
   } else {
     genreatedParticleEnergy = particleGenerator1.generateNParticlesInSphere(
@@ -197,15 +197,11 @@ int main(int argc, char* argv[]) {
     simulation.set_particle_interaction_buffers(particles, cells,
                                                 kernels.m_cellAssignmentKernel,
                                                 kernels.m_rotationKernel);
-
-    simulation.set_particle_step_buffers(particles, cells,
-                                         kernels.m_particleStepKernel);
     simulation.set_particle_bounce_buffers(particles, cells,
                                            kernels.m_particleBounceKernel);
-
+  } else {
+    simulation.set_particle_step_buffers(particles, bubble, *stepKernel);
   }
-
-  simulation.set_particle_step_buffers(particles, bubble, *stepKernel);
 
   // Copy data to the GPU
   particles.writeAllBuffersToKernel(kernels.getCommandQueue());

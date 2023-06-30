@@ -88,13 +88,18 @@ void CollisionCellCollection::recalculate_cells(
    */
   for (size_t i = 1; i < m_cellCount; i++) {
     m_collisionCells[i].particle_count = (int)frames[i][4];
-    if (frames[i][4] > 1) {
-      /* 
+    if (frames[i][4] != 2) {
+      m_collisionCells[i].particle_count = (int)0;
+      continue;
+    }
+    //if (frames[i][4] > 1) {
+    else{
+    /* 
       * If T ^ N / (9 * prod(E_i)) <= RNG then skip rotation
       * T - temperature, prod(E_i) is product of particles' energies in a cell, N is number of particles in a cell
       */ 
       if (t_rng.generate_number() >=
-          std::pow(0.01, frames[i][4]) / (9 * frames[i][5])) {
+          std::pow(0.01, 1) / (3 * std::sqrt(frames[i][5]))) {
         m_collisionCells[i].particle_count = (int)0;
         continue;
       }

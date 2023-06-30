@@ -1,6 +1,6 @@
 {
 	"kernel":{
-        "name": "particle_bubble_step_cyclic"
+        "name": "particle_step"
     },
 	"simulation": {
 		"seed": 1,
