@@ -28,6 +28,7 @@ typedef struct Bubble {
 
 // In development
 typedef struct CollisionCell {
+  double gamma;
   double vX;
   double vY;
   double vZ;
@@ -43,7 +44,6 @@ typedef struct CollisionCell {
   double p_z;
   
   double v2; // v2 = Sum: v_i^2 
-  double gamma;
   double mass;  
   unsigned int particle_count;
 } CollisionCell;
@@ -913,7 +913,7 @@ __kernel void particles_with_false_bubble_step_reflect(
 }
 
 
-__kernel void assign_cell_index_to_particle(
+__kernel void assign_particle_to_collision_cell(
 	__global Particle *t_particles,
 	__global const unsigned int *maxCellIndex,
 	__global const double *cellLength,
@@ -1000,11 +1000,10 @@ __kernel void label_particles_position_by_mass(
 	t_particles[gid].b_inBubble = t_particles[gid].m == mass_in[0];
 }
 
-__kernel void transform_momentum(
+__kernel void rotate_momentum(
 	__global Particle *t_particles,
 	__global CollisionCell *t_cells,	
 	__global unsigned int *number_of_cells
-	
 	){
 		unsigned int gid = get_global_id(0);
 		Particle particle = t_particles[gid];
@@ -1017,8 +1016,6 @@ __kernel void transform_momentum(
 			double one_minus_cos_theta = 1 - cos_theta;
 			double sin_theta = sin(cell.theta);
 			double p0, p1, p2, p3;
-			
-			
 			
 			if ((cell.particle_count > 1) && (cell.mass != 0)){
 				// Lorentz boost
@@ -1096,7 +1093,7 @@ __kernel void transform_momentum(
 		}
 	}
 
-__kernel void particle_bounce(
+__kernel void particle_boundary_check(
 	__global Particle *t_particles,
 	__global double *boundaryDistanceFromCenter // [x_delta]
 	){

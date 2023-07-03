@@ -7,7 +7,7 @@ class ConfigReader {
  public:
   std::string kernelName;
   int m_seed;
-  int m_maxSteps;
+  u_int m_maxSteps;
   numType dt;
   numType maxTime;
   bool cyclicBoundaryOn;

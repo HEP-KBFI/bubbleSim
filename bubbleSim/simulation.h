@@ -51,7 +51,7 @@ class Simulation {
     }
   };
 
-  int getStep() { return m_step; }
+  unsigned int getStep() { return m_step; }
 
   void step(PhaseBubble& bubble, numType t_dP);
   /*
@@ -100,11 +100,12 @@ class Simulation {
   }
 
  private:
-  // Sim time paramters:
-  // Cumulative time
   int m_seed;
+
+  // Simulation time state
   numType m_time = 0.;
-  size_t m_step = 0;
+  u_int m_step = 0;
+
   // One step time length
   numType m_dt;
   numType m_step_dt;

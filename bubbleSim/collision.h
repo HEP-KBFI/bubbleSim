@@ -2,23 +2,25 @@
 #include "base.h"
 #include "objects.h"
 typedef struct CollisionCell {
-  cl_numType v_x;
-  cl_numType v_y;
-  cl_numType v_z;
+    // Lorentz transformation 
+  cl_numType gamma;
+  cl_numType vX;
+  cl_numType vY;
+  cl_numType vZ;
 
+  // Rotation matrix
   cl_numType x;
   cl_numType y;
   cl_numType z;
-
   cl_numType theta;
 
-  cl_numType p_E;
-  cl_numType p_x;
-  cl_numType p_y;
-  cl_numType p_z;
+  // Average 4-momentum values
+  cl_numType pE;
+  cl_numType pX;
+  cl_numType pY;
+  cl_numType pZ;
 
   cl_numType v2;
-  cl_numType gamma;
   cl_numType total_mass;
   cl_uint particle_count;
 } CollisionCell;
@@ -29,6 +31,8 @@ class CollisionCellCollection {
                           bool t_doubleCellCount, cl::Context& cl_context);
 
   std::array<numType, 3>& getShiftVector() { return m_shiftVector; }
+
+  u_int getCellCount() { return m_cellCount; }
 
   void recalculate_cells(std::vector<Particle>& t_particles,
                          RandomNumberGenerator& t_rng);
