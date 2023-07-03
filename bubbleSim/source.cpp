@@ -196,7 +196,7 @@ int main(int argc, char* argv[]) {
   if (b_collisionDevelopment) {
     simulation.set_particle_interaction_buffers(particles, cells,
                                                 kernels.m_cellAssignmentKernel,
-                                                kernels.m_rotationKernel);
+                                                kernels.m_rotationKernel);  
     simulation.set_particle_bounce_buffers(particles, cells,
                                            kernels.m_particleBounceKernel);
   } else {

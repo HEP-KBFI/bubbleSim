@@ -1017,8 +1017,6 @@ __kernel void rotate_momentum(
 			double sin_theta = sin(cell.theta);
 			double p0, p1, p2, p3;
 			
-			
-			
 			if ((cell.particle_count > 1) && (cell.mass != 0)){
 				// Lorentz boost
 				

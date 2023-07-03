@@ -249,7 +249,7 @@ void Simulation::step(ParticleCollection& particles,
     cl_queue.enqueueNDRangeKernel(
         t_rotationKernel, cl::NullRange,
         cl::NDRange(particles.getParticleCountTotal()));
-
+    //particles.readParticlesBuffer(cl_queue);
     // Update simulation time
     m_time += m_dt;
     m_step += 1;
