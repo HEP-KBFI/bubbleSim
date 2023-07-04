@@ -7,7 +7,7 @@ OpenCLLoader::OpenCLLoader(std::string kernelPath) {
   createProgram(m_context, m_deviceUsed, kernelPath);
 
 
-  std::string particleBubbleStepKernelName = "particle_bubble_step";
+  std::string particleBubbleStepKernelName = "particle_step_with_bubble";
   createKernel(m_program, m_particleBubbleStepKernel,
                particleBubbleStepKernelName.c_str());  // cl::Kernel
 
@@ -17,17 +17,13 @@ OpenCLLoader::OpenCLLoader(std::string kernelPath) {
   std::string cellAssignKernelName = "assign_particle_to_collision_cell";
   createKernel(m_program, m_cellAssignmentKernel, cellAssignKernelName.c_str());
 
-  std::string particleStepKernelName = "particle_step";
+  std::string particleStepKernelName = "particle_step_linear";
   createKernel(m_program, m_particleStepKernel, particleStepKernelName.c_str());
 
   std::string particleBounceKernelName = "particle_boundary_check";
   createKernel(m_program, m_particleBounceKernel,
                particleBounceKernelName.c_str());
 
-  std::string particleBubbleBoundaryStepKernelName =
-      "particle_bubble_step_cyclic";
-  createKernel(m_program, m_particleBubbleBoundaryStepKernel,
-               particleBubbleBoundaryStepKernelName.c_str());
 
   createQueue(m_context, m_deviceUsed);
 }
@@ -47,14 +43,17 @@ OpenCLLoader::OpenCLLoader(std::string kernelPath, std::string kernelName) {
   createKernel(m_program, m_particleBounceKernel,
                particleBounceKernelName.c_str());
 
+  std::string particleStepKernelName = "particle_step_linear";
+  createKernel(m_program, m_particleStepKernel, particleStepKernelName.c_str());
+
   createKernel(m_program, m_kernel, kernelName.c_str());  // cl::Kernel
 
-  std::string particleBubbleStepKernelName = "particle_bubble_step";
+  std::string particleBubbleStepKernelName = "particle_step_with_bubble";
   createKernel(m_program, m_particleBubbleStepKernel,
                particleBubbleStepKernelName.c_str());  // cl::Kernel
 
   std::string particleBubbleBoundaryStepKernelName =
-      "particle_bubble_step_cyclic";
+      "particle_boundary_check";
   createKernel(m_program, m_particleBubbleBoundaryStepKernel,
                particleBubbleBoundaryStepKernelName.c_str());
 

@@ -137,6 +137,40 @@ void ParticleGenerator::generatePointInSphere(
 
 numType ParticleGenerator::generateNParticlesInBox(
     numType t_sideHalf, u_int t_N, RandomNumberGenerator& t_generator,
+    std::vector<numType>& t_particle_X, std::vector<numType>& t_particle_Y,
+    std::vector<numType>& t_particle_Z, std::vector<numType>& t_particle_pX,
+    std::vector<numType>& t_particle_pY, std::vector<numType>& t_particle_pZ,
+    std::vector<numType>& t_particle_E, std::vector<numType>& t_particle_M) {
+  numType totalEnergy = 0.;
+
+  numType x, y, z;
+  numType p_x, p_y, p_z;
+  numType E;
+  numType m2 = std::pow(m_mass, (numType)2.);
+  numType pValue;
+
+  for (u_int i = 0; i < t_N; i++) {
+    // Generates 3D space coordinates and pushes to m_X vector
+    generatePointInBox(x, y, z, t_sideHalf, t_generator);
+
+    // Generates 3D space coordinates and pushes to m_P vector
+    generateParticleMomentum(p_x, p_y, p_z, pValue, t_generator);
+    E = std::sqrt(m2 + pow(pValue, (numType)2.));
+    totalEnergy += E;
+    t_particle_X.push_back(x);
+    t_particle_Y.push_back(y);
+    t_particle_Z.push_back(z);
+    t_particle_pX.push_back(p_x);
+    t_particle_pY.push_back(p_y);
+    t_particle_pZ.push_back(p_z);
+    t_particle_E.push_back(E);
+    t_particle_M.push_back(m_mass);
+  }
+  return totalEnergy;
+}
+
+numType ParticleGenerator::generateNParticlesInBox(
+    numType t_sideHalf, u_int t_N, RandomNumberGenerator& t_generator,
     std::vector<Particle>& t_particles) {
   numType totalEnergy = 0.;
 
@@ -155,6 +189,42 @@ numType ParticleGenerator::generateNParticlesInBox(
     E = std::sqrt(m2 + pow(pValue, (numType)2.));
     totalEnergy += E;
     t_particles.push_back(Particle{x, y, z, p_x, p_y, p_z, E, m_mass});
+  }
+  return totalEnergy;
+}
+
+numType ParticleGenerator::generateNParticlesInBox(
+    numType t_xSideHalf, numType t_ySideHalf, numType t_zSideHalf, u_int t_N,
+    RandomNumberGenerator& t_generator, std::vector<numType>& t_particle_X,
+    std::vector<numType>& t_particle_Y, std::vector<numType>& t_particle_Z,
+    std::vector<numType>& t_particle_pX, std::vector<numType>& t_particle_pY,
+    std::vector<numType>& t_particle_pZ, std::vector<numType>& t_particle_E,
+    std::vector<numType>& t_particle_M) {
+  numType totalEnergy = 0.;
+
+  numType x, y, z;
+  numType p_x, p_y, p_z;
+  numType E;
+  numType m2 = std::pow(m_mass, (numType)2.);
+  numType pValue;
+
+  for (u_int i = 0; i < t_N; i++) {
+    // Generates 3D space coordinates and pushes to m_X vector
+    generatePointInBox(x, y, z, t_xSideHalf, t_ySideHalf, t_zSideHalf,
+                       t_generator);
+    // Generates 3D space coordinates and pushes to m_P vector
+    generateParticleMomentum(p_x, p_y, p_z, pValue, t_generator);
+
+    E = std::sqrt(m2 + pow(pValue, 2));
+    totalEnergy += E;
+    t_particle_X.push_back(x);
+    t_particle_Y.push_back(y);
+    t_particle_Z.push_back(z);
+    t_particle_pX.push_back(p_x);
+    t_particle_pY.push_back(p_y);
+    t_particle_pZ.push_back(p_z);
+    t_particle_E.push_back(E);
+    t_particle_M.push_back(m_mass);
   }
   return totalEnergy;
 }
@@ -186,6 +256,43 @@ numType ParticleGenerator::generateNParticlesInBox(
 
 numType ParticleGenerator::generateNParticlesInBox(
     numType t_radiusIn, numType t_sideHalf, u_int t_N,
+    RandomNumberGenerator& t_generator, std::vector<numType>& t_particle_X,
+    std::vector<numType>& t_particle_Y, std::vector<numType>& t_particle_Z,
+    std::vector<numType>& t_particle_pX, std::vector<numType>& t_particle_pY,
+    std::vector<numType>& t_particle_pZ, std::vector<numType>& t_particle_E,
+    std::vector<numType>& t_particle_M) {
+  numType totalEnergy = 0.;
+
+  numType x, y, z;
+  numType p_x, p_y, p_z;
+  numType E;
+  numType m2 = std::pow(m_mass, (numType)2.);
+  numType pValue;
+  numType radius;
+  for (u_int i = 0; i < t_N; i++) {
+    // Generates 3D space coordinates and pushes to m_X vector
+    do {
+      generatePointInBox(x, y, z, t_sideHalf, t_generator);
+      radius = std::sqrt(std::fma(x, x, fma(y, y, z * z)));
+    } while (radius < t_radiusIn);
+    // Generates 3D space coordinates and pushes to m_P vector
+    generateParticleMomentum(p_x, p_y, p_z, pValue, t_generator);
+    E = std::sqrt(m2 + pow(pValue, (numType)2.));
+    totalEnergy += E;
+    t_particle_X.push_back(x);
+    t_particle_Y.push_back(y);
+    t_particle_Z.push_back(z);
+    t_particle_pX.push_back(p_x);
+    t_particle_pY.push_back(p_y);
+    t_particle_pZ.push_back(p_z);
+    t_particle_E.push_back(E);
+    t_particle_M.push_back(m_mass);
+  }
+  return totalEnergy;
+}
+
+numType ParticleGenerator::generateNParticlesInBox(
+    numType t_radiusIn, numType t_sideHalf, u_int t_N,
     RandomNumberGenerator& t_generator, std::vector<Particle>& t_particles) {
   numType totalEnergy = 0.;
 
@@ -206,6 +313,44 @@ numType ParticleGenerator::generateNParticlesInBox(
     E = std::sqrt(m2 + pow(pValue, (numType)2.));
     totalEnergy += E;
     t_particles.push_back(Particle{x, y, z, p_x, p_y, p_z, E, m_mass});
+  }
+  return totalEnergy;
+}
+
+numType ParticleGenerator::generateNParticlesInBox(
+    numType t_radiusIn, numType t_xSideHalf, numType t_ySideHalf,
+    numType t_zSideHalf, u_int t_N, RandomNumberGenerator& t_generator,
+    std::vector<numType>& t_particle_X, std::vector<numType>& t_particle_Y,
+    std::vector<numType>& t_particle_Z, std::vector<numType>& t_particle_pX,
+    std::vector<numType>& t_particle_pY, std::vector<numType>& t_particle_pZ,
+    std::vector<numType>& t_particle_E, std::vector<numType>& t_particle_M) {
+  numType totalEnergy = 0.;
+
+  numType x, y, z;
+  numType p_x, p_y, p_z;
+  numType E;
+  numType m2 = std::pow(m_mass, (numType)2.);
+  numType pValue;
+  numType radius;
+  for (u_int i = 0; i < t_N; i++) {
+    // Generates 3D space coordinates and pushes to m_X vector
+    do {
+      generatePointInBox(x, y, z, t_xSideHalf, t_ySideHalf, t_zSideHalf,
+                         t_generator);
+      radius = std::sqrt(std::fma(x, x, fma(y, y, z * z)));
+    } while (radius < t_radiusIn);
+    // Generates 3D space coordinates and pushes to m_P vector
+    generateParticleMomentum(p_x, p_y, p_z, pValue, t_generator);
+    E = std::sqrt(m2 + pow(pValue, (numType)2.));
+    totalEnergy += E;
+    t_particle_X.push_back(x);
+    t_particle_Y.push_back(y);
+    t_particle_Z.push_back(z);
+    t_particle_pX.push_back(p_x);
+    t_particle_pY.push_back(p_y);
+    t_particle_pZ.push_back(p_z);
+    t_particle_E.push_back(E);
+    t_particle_M.push_back(m_mass);
   }
   return totalEnergy;
 }
@@ -240,6 +385,43 @@ numType ParticleGenerator::generateNParticlesInBox(
 
 numType ParticleGenerator::generateNParticlesInSphere(
     numType t_radiusMax, u_int t_N, RandomNumberGenerator& t_generator,
+    std::vector<numType>& t_particle_X, std::vector<numType>& t_particle_Y,
+    std::vector<numType>& t_particle_Z, std::vector<numType>& t_particle_pX,
+    std::vector<numType>& t_particle_pY, std::vector<numType>& t_particle_pZ,
+    std::vector<numType>& t_particle_E, std::vector<numType>& t_particle_M) {
+  numType totalEnergy = 0.;
+  numType x, y, z;
+  numType p_x, p_y, p_z;
+  numType E;
+  numType m2 = std::pow(m_mass, (numType)2.);
+  numType pValue;
+  numType radius;
+
+  for (u_int i = 0; i < t_N; i++) {
+    // Generates 3D space coordinates and pushes to m_X vector
+    do {
+      generatePointInSphere(x, y, z, t_radiusMax, t_generator);
+      radius = std::sqrt(std::fma(x, x, fma(y, y, z * z)));
+    } while (radius > t_radiusMax);
+
+    // Generates 3D space coordinates and pushes to m_P vector
+    generateParticleMomentum(p_x, p_y, p_z, pValue, t_generator);
+    E = std::sqrt(m2 + pow(pValue, (numType)2.));
+    totalEnergy += E;
+    t_particle_X.push_back(x);
+    t_particle_Y.push_back(y);
+    t_particle_Z.push_back(z);
+    t_particle_pX.push_back(p_x);
+    t_particle_pY.push_back(p_y);
+    t_particle_pZ.push_back(p_z);
+    t_particle_E.push_back(E);
+    t_particle_M.push_back(m_mass);
+  }
+  return totalEnergy;
+}
+
+numType ParticleGenerator::generateNParticlesInSphere(
+    numType t_radiusMax, u_int t_N, RandomNumberGenerator& t_generator,
     std::vector<Particle>& t_particles) {
   numType totalEnergy = 0.;
   numType x, y, z;
@@ -261,6 +443,44 @@ numType ParticleGenerator::generateNParticlesInSphere(
     E = std::sqrt(m2 + pow(pValue, (numType)2.));
     totalEnergy += E;
     t_particles.push_back(Particle{x, y, z, p_x, p_y, p_z, E, m_mass});
+  }
+  return totalEnergy;
+}
+
+numType ParticleGenerator::generateNParticlesInSphere(
+    numType t_radiusMin, numType t_radiusMax, u_int t_N,
+    RandomNumberGenerator& t_generator, std::vector<numType>& t_particle_X,
+    std::vector<numType>& t_particle_Y, std::vector<numType>& t_particle_Z,
+    std::vector<numType>& t_particle_pX, std::vector<numType>& t_particle_pY,
+    std::vector<numType>& t_particle_pZ, std::vector<numType>& t_particle_E,
+    std::vector<numType>& t_particle_M) {
+  numType totalEnergy = 0.;
+  numType x, y, z;
+  numType p_x, p_y, p_z;
+  numType E;
+  numType m2 = std::pow(m_mass, (numType)2.);
+  numType pValue;
+  numType radius;
+
+  for (u_int i = 0; i < t_N; i++) {
+    // Generates 3D space coordinates and pushes to m_X vector
+    do {
+      generatePointInSphere(x, y, z, t_radiusMax, t_generator);
+      radius = std::sqrt(std::fma(x, x, fma(y, y, z * z)));
+    } while ((t_radiusMin > radius) || (radius > t_radiusMax));
+
+    // Generates 3D space coordinates and pushes to m_P vector
+    generateParticleMomentum(p_x, p_y, p_z, pValue, t_generator);
+    E = std::sqrt(m2 + pow(pValue, (numType)2.));
+    totalEnergy += E;
+    t_particle_X.push_back(x);
+    t_particle_Y.push_back(y);
+    t_particle_Z.push_back(z);
+    t_particle_pX.push_back(p_x);
+    t_particle_pY.push_back(p_y);
+    t_particle_pZ.push_back(p_z);
+    t_particle_E.push_back(E);
+    t_particle_M.push_back(m_mass);
   }
   return totalEnergy;
 }
@@ -301,33 +521,33 @@ ParticleCollection::ParticleCollection(
   int openCLerrNum;
   // Masses
   if (t_bubbleIsTrueVacuum) {
-    m_massIn = t_massTrue;
-    m_massOut = t_massFalse;
+    m_mass_in = t_massTrue;
+    m_mass_out = t_massFalse;
     m_temperatureIn = t_temperatureTrue;
     m_temperatureOut = t_temperatureFalse;
     m_particleCountIn = t_particleCountTrue;
     m_particleCountOut = t_particleCountFalse;
   } else {
-    m_massIn = t_massFalse;
-    m_massOut = t_massTrue;
+    m_mass_in = t_massFalse;
+    m_mass_out = t_massTrue;
     m_temperatureIn = t_temperatureFalse;
     m_temperatureOut = t_temperatureTrue;
     m_particleCountIn = t_particleCountFalse;
     m_particleCountOut = t_particleCountTrue;
   }
-  m_massDelta2 = std::abs(std::pow(t_massTrue, (numType)2.) -
+  m_delta_mass_squared = std::abs(std::pow(t_massTrue, (numType)2.) -
                           std::pow(t_massFalse, (numType)2.));
 
-  m_massInBuffer =
+  m_mass_in_buffer =
       cl::Buffer(cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                 sizeof(numType), &m_massIn, &openCLerrNum);
+                 sizeof(numType), &m_mass_in, &openCLerrNum);
 
-  m_massOutBuffer =
+  m_mass_out_buffer =
       cl::Buffer(cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                 sizeof(numType), &m_massOut, &openCLerrNum);
-  m_massDelta2Buffer =
+                 sizeof(numType), &m_mass_out, &openCLerrNum);
+  m_delta_mass_squared_buffer =
       cl::Buffer(cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                 sizeof(numType), &m_massDelta2, &openCLerrNum);
+                 sizeof(numType), &m_delta_mass_squared, &openCLerrNum);
 
   // Temperatures
   m_massTrue = t_massTrue;
@@ -347,74 +567,131 @@ ParticleCollection::ParticleCollection(
 
   m_coupling = t_coupling;
 
-  m_particles.reserve(m_particleCountTotal);
-  m_particlesBuffer =
+  m_particle_X.reserve(m_particleCountTotal);
+  m_particle_Y.reserve(m_particleCountTotal);
+  m_particle_Z.reserve(m_particleCountTotal);
+  m_particle_pX.reserve(m_particleCountTotal);
+  m_particle_pY.reserve(m_particleCountTotal);
+  m_particle_pZ.reserve(m_particleCountTotal);
+  m_particle_E.reserve(m_particleCountTotal);
+  m_particle_M.reserve(m_particleCountTotal);
+
+  m_particle_X_buffer =
       cl::Buffer(cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
-                 m_particleCountTotal * sizeof(Particle), m_particles.data(),
+                 m_particleCountTotal * sizeof(numType), m_particle_X.data(),
+                 &openCLerrNum);
+  m_particle_Y_buffer =
+      cl::Buffer(cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
+                 m_particleCountTotal * sizeof(numType), m_particle_Y.data(),
+                 &openCLerrNum);
+  m_particle_Z_buffer =
+      cl::Buffer(cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
+                 m_particleCountTotal * sizeof(numType), m_particle_Z.data(),
+                 &openCLerrNum);
+  m_particle_pX_buffer =
+      cl::Buffer(cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
+                 m_particleCountTotal * sizeof(numType), m_particle_pX.data(),
+                 &openCLerrNum);
+  m_particle_pY_buffer =
+      cl::Buffer(cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
+                 m_particleCountTotal * sizeof(numType), m_particle_pY.data(),
+                 &openCLerrNum);
+  m_particle_pZ_buffer =
+      cl::Buffer(cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
+                 m_particleCountTotal * sizeof(numType), m_particle_pZ.data(),
+                 &openCLerrNum);
+  m_particle_E_buffer =
+      cl::Buffer(cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
+                 m_particleCountTotal * sizeof(numType), m_particle_E.data(),
+                 &openCLerrNum);
+  m_particle_M_buffer =
+      cl::Buffer(cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
+                 m_particleCountTotal * sizeof(numType), m_particle_M.data(),
                  &openCLerrNum);
 
   m_dP = std::vector<numType>(m_particleCountTotal, (numType)0.);
-  m_dPBuffer = cl::Buffer(cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
+  m_dP_buffer = cl::Buffer(cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
                           m_particleCountTotal * sizeof(numType), m_dP.data(),
                           &openCLerrNum);
-  // Data reserve
-  m_interactedBubbleFalseState = std::vector<int8_t>(m_particleCountTotal, 0);
-  m_interactedBubbleFalseStateBuffer =
-      cl::Buffer(cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
-                 m_particleCountTotal * sizeof(int8_t),
-                 m_interactedBubbleFalseState.data(), &openCLerrNum);
 
-  m_passedBubbleFalseState = std::vector<int8_t>(m_particleCountTotal, 0);
-  m_passedBubbleFalseStateBuffer =
+  m_particle_bool_collide =
+      std::vector<cl_char>(m_particleCountTotal, (cl_char)0);
+
+  m_particle_bool_collide_buffer =
+      cl::Buffer(cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
+                 m_particleCountTotal * sizeof(cl_char),
+                 m_particle_bool_collide.data(), &openCLerrNum);
+
+  m_particle_bool_in_bubble =
+      std::vector<cl_char>(m_particleCountTotal, (cl_char)0);
+
+  m_particle_bool_in_bubble_buffer =
+      cl::Buffer(cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
+                 m_particleCountTotal * sizeof(cl_char),
+                 m_particle_bool_in_bubble.data(), &openCLerrNum);
+
+  m_particle_collision_cell_index =
+      std::vector<cl_int>(m_particleCountTotal, (cl_int)0);
+
+  m_particle_collision_cell_index_buffer =
+      cl::Buffer(cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
+                 m_particleCountTotal * sizeof(cl_int),
+                 m_particle_collision_cell_index.data(), &openCLerrNum);
+
+  // Data reserve
+  m_interacted_bubble_false_state = std::vector<int8_t>(m_particleCountTotal, 0);
+  m_interacted_bubble_false_state_buffer =
       cl::Buffer(cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
                  m_particleCountTotal * sizeof(int8_t),
-                 m_passedBubbleFalseState.data(), &openCLerrNum);
-  m_interactedBubbleTrueState = std::vector<int8_t>(m_particleCountTotal, 0);
-  m_interactedBubbleTrueStateBuffer =
+                 m_interacted_bubble_false_state.data(), &openCLerrNum);
+
+  m_passed_bubble_false_state = std::vector<int8_t>(m_particleCountTotal, 0);
+  m_passed_bubble_false_state_buffer =
       cl::Buffer(cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
                  m_particleCountTotal * sizeof(int8_t),
-                 m_interactedBubbleTrueState.data(), &openCLerrNum);
+                 m_passed_bubble_false_state.data(), &openCLerrNum);
+  m_interacted_bubble_true_state = std::vector<int8_t>(m_particleCountTotal, 0);
+  m_interacted_bubble_true_state_buffer =
+      cl::Buffer(cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
+                 m_particleCountTotal * sizeof(int8_t),
+                 m_interacted_bubble_true_state.data(), &openCLerrNum);
   // Initial simulation values
   m_initialTotalEnergy = 0.;
 }
 
 /*
- *
  * ParticleCollection functions
- *
  */
-numType ParticleCollection::calculateParticleRadius(u_int i) {
-  // dot(X, X)
-  return std::sqrt(std::fma(m_particles[i].x, m_particles[i].x,
-                            std::fma(m_particles[i].y, m_particles[i].y,
-                                     m_particles[i].z * m_particles[i].z)));
+numType ParticleCollection::calculateParticleRadius(size_t i) {
+  // x_i * x^i
+  return std::sqrt(std::fma(m_particle_X[i], m_particle_X[i],
+                            std::fma(m_particle_Y[i], m_particle_Y[i],
+                                     m_particle_Z[i] * m_particle_Z[i])));
 }
 
-numType ParticleCollection::calculateParticleMomentum(u_int i) {
-  // return std::sqrt(m_P[3 * i] * m_P[3 * i] + m_P[3 * i + 1] * m_P[3 * i + 1]
-  // + m_P[3 * i + 2] * m_P[3 * i + 2]);
-
-  return std::sqrt(std::fma(m_particles[i].pX, m_particles[i].pX,
-                            std::fma(m_particles[i].pY, m_particles[i].pY,
-                                     m_particles[i].pZ * m_particles[i].pZ)));
+numType ParticleCollection::calculateParticleMomentum(size_t i) {
+  // p_i * p^i
+  return std::sqrt(std::fma(m_particle_pX[i], m_particle_pX[i],
+                            std::fma(m_particle_pY[i], m_particle_pY[i],
+                                     m_particle_pZ[i] * m_particle_pZ[i])));
 }
 
-numType ParticleCollection::calculateParticleEnergy(u_int i) {
+numType ParticleCollection::calculateParticleEnergy(size_t i) {
   return std::sqrt(
-      std::fma(m_particles[i].pX, m_particles[i].pX,
-               std::fma(m_particles[i].pY, m_particles[i].pY,
-                        std::fma(m_particles[i].pZ, m_particles[i].pZ,
-                                 m_particles[i].m * m_particles[i].m))));
+      std::fma(m_particle_pX[i], m_particle_pX[i],
+                            std::fma(m_particle_pY[i], m_particle_pY[i],
+                                     std::fma(m_particle_pZ[i], m_particle_pZ[i],
+                                        m_particle_M[i] * m_particle_M[i]))));
 }
 
-numType ParticleCollection::calculateParticleRadialVelocity(u_int i) {
-  return std::fma(m_particles[i].pX, m_particles[i].x,
-                  std::fma(m_particles[i].pY, m_particles[i].y,
-                           m_particles[i].pZ * m_particles[i].z)) /
-         (m_particles[i].E * calculateParticleRadius(i));
+numType ParticleCollection::calculateParticleRadialVelocity(size_t i) {
+  return std::fma(m_particle_pX[i], m_particle_X[i],
+                  std::fma(m_particle_pY[i], m_particle_Y[i],
+                           m_particle_pZ[i] * m_particle_Z[i])) /
+         (m_particle_E[i] * calculateParticleRadius(i));
 }
 
-numType ParticleCollection::calculateParticleTangentialVelocity(u_int i) {
+numType ParticleCollection::calculateParticleTangentialVelocity(size_t i) {
   return std::sqrt((numType)1. -
                    std::pow(calculateParticleRadialVelocity(i), (numType)2.));
 }
@@ -502,7 +779,7 @@ numType ParticleCollection::countParticleEnergyDensity(numType t_radius1,
 numType ParticleCollection::countParticlesEnergy() {
   numType energy = 0.;
   for (int i = 0; i < m_particleCountTotal; i++) {
-    energy += m_particles[i].E;
+    energy += m_particle_E[i];
   }
   return energy;
 }
@@ -511,7 +788,7 @@ numType ParticleCollection::countParticlesEnergy(numType t_radius1) {
   numType energy = 0.;
   for (int i = 0; i < m_particleCountTotal; i++) {
     if (calculateParticleRadius(i) < t_radius1) {
-      energy += m_particles[i].E;
+      energy += m_particle_E[i];
     }
   }
   return energy;
@@ -524,7 +801,7 @@ numType ParticleCollection::countParticlesEnergy(numType t_radius1,
   for (int i = 0; i < m_particleCountTotal; i++) {
     radius = calculateParticleRadius(i);
     if ((radius > t_radius1) && (radius < t_radius2)) {
-      energy += m_particles[i].E;
+      energy += m_particle_E[i];
     }
   }
   return energy;

@@ -1,15 +1,14 @@
-
 {
     "kernel":{
-        "name": "particle_step"
+        "name": "particle_step_linear"
     },
     "simulation": {
         "seed": 1,
-        "max_steps": 10000,
+        "max_steps": 200,
         "dt": 0.001,
-        "max_time": 15,
+        "max_time": 50,
         "cyclic_boundary_on": true,
-        "cyclic_boundary_radius": 500
+        "cyclic_boundary_radius": 1
     },
     "parameters": {
         "alpha": 12.24727746868043,
@@ -20,7 +19,7 @@
     },
     "bubble": {
         "initial_radius": 1,
-        "initial_speed": -0.9300433848366717,
+        "initial_speed": 0,
         "is_true_vacuum": false,
         "interaction_on": true
     },
@@ -29,18 +28,18 @@
         "mass_true": 1,
         "T_false": 0.01,
         "T_true": 0.0,
-        "N_false": 750000,
+        "N_false": 100000,
         "N_true": 0
     },
     "collision": {
         "collision_on": false,
-        "N_cells": 71,
-        "cell_length": 0.03
+        "N_cells": 37,
+        "cell_length": 0.055
     },
     "stream": {
         "stream": true,
-        "stream_time": 0.05,
-        "stream_step": 500,
+        "stream_time": 0.01,
+        "stream_step": 1000,
         "data_save_path": "data",
         "stream_data": true,
         "stream_density_profile": true,

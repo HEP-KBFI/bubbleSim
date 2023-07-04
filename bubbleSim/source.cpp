@@ -1,6 +1,9 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include "source.h"
 
+// Collision is in development
+bool b_COLLISION_DEVELOPMENT_ON = true;
+
 std::string createFileNameFromCurrentDate() {
   static std::random_device rd;
   static std::mt19937 gen(rd());
@@ -75,9 +78,6 @@ int main(int argc, char* argv[]) {
     exit(0);
   }
 
-  // Collision is in development
-  bool b_collisionDevelopment = true;
-
   // Read configs and kernel file
   std::string s_configPath = argv[1];  // "config.json"
   std::string s_kernelPath = argv[2];  // "kernel.cl";
@@ -105,13 +105,13 @@ int main(int argc, char* argv[]) {
 
   // 2) Initialize openCL (kernels, commandQueues)
   OpenCLLoader kernels(s_kernelPath, config.kernelName);
-
   // 4) Generate particles
   ParticleGenerator particleGenerator1;
   // 4.1) Create generator (calculates distribution)
 
-  if (b_collisionDevelopment) {
-    particleGenerator1 = ParticleGenerator(config.particleMassFalse, 3.*config.particleTemperatureFalse);
+  if (b_COLLISION_DEVELOPMENT_ON) {
+    particleGenerator1 = ParticleGenerator(
+        config.particleMassFalse, 3. * config.particleTemperatureFalse);
   } else {
     particleGenerator1 = ParticleGenerator(
         config.particleMassFalse, config.particleTemperatureFalse,
@@ -122,26 +122,31 @@ int main(int argc, char* argv[]) {
   // 4.2) Create arrays for particles which hold the data of the particles
   ParticleCollection particles(
       config.particleMassTrue, config.particleMassFalse,
-      config.particleTemperatureTrue,
-      config.particleTemperatureFalse, config.particleCountTrue,
-      config.particleCountFalse,
+      config.particleTemperatureTrue, config.particleTemperatureFalse,
+      config.particleCountTrue, config.particleCountFalse,
       config.parameterCoupling, config.bubbleIsTrueVacuum,
       kernels.getContext());
 
   // 4.3) Generate particles
   numType genreatedParticleEnergy;
-  if (b_collisionDevelopment) {
+  if (b_COLLISION_DEVELOPMENT_ON) {
     genreatedParticleEnergy = particleGenerator1.generateNParticlesInBox(
         config.bubbleInitialRadius, (u_int)particles.getParticleCountTotal(),
-        rn_generator, particles.getParticles());
+        rn_generator, particles.getParticleX(), particles.getParticleY(),
+        particles.getParticleZ(), particles.getParticlepX(),
+        particles.getParticlepY(), particles.getParticlepZ(),
+        particles.getParticleE(), particles.getParticleM());
   } else {
     genreatedParticleEnergy = particleGenerator1.generateNParticlesInSphere(
         config.bubbleInitialRadius, (u_int)particles.getParticleCountTotal(),
-        rn_generator, particles.getParticles());
+        rn_generator, particles.getParticleX(), particles.getParticleY(),
+        particles.getParticleZ(), particles.getParticlepX(),
+        particles.getParticlepY(), particles.getParticlepZ(),
+        particles.getParticleE(), particles.getParticleM());
   }
   numType total_energy = 0;
   for (unsigned int i = 0; i < config.particleCountFalse; i++) {
-    total_energy += particles.getParticleEnergy(i);
+    total_energy += particles.returnParticleE(i);
   }
 
   particles.add_to_total_initial_energy(genreatedParticleEnergy);
@@ -193,23 +198,27 @@ int main(int argc, char* argv[]) {
   CollisionCellCollection cells(config.collisionCellLength,
                                 config.collisionCellCount, false,
                                 kernels.getContext());
-  if (b_collisionDevelopment) {
-    simulation.set_particle_interaction_buffers(particles, cells,
-                                                kernels.m_cellAssignmentKernel,
-                                                kernels.m_rotationKernel);  
-    simulation.set_particle_bounce_buffers(particles, cells,
-                                           kernels.m_particleBounceKernel);
+  if (b_COLLISION_DEVELOPMENT_ON) {
+    simulation.setBuffersParticleStepLinear(particles, *stepKernel);
+    simulation.setBuffersParticleBoundaryCheck(particles,
+                                               kernels.m_particleBounceKernel);
+    simulation.setBuffersAssignParticleToCollisionCell(
+        particles, cells, kernels.m_cellAssignmentKernel);
+    simulation.setBuffersRotateMomentum(particles, cells,
+                                        kernels.m_rotationKernel);
+
+    cells.writeAllBuffersToKernel(kernels.getCommandQueue());
   } else {
-    simulation.set_particle_step_buffers(particles, bubble, *stepKernel);
+    simulation.setBuffersParticleStepWithBubble(particles, bubble, *stepKernel);
   }
 
   // Copy data to the GPU
-  particles.writeAllBuffersToKernel(kernels.getCommandQueue());
+  particles.writeParticleCoordinatesBuffer(kernels.getCommandQueue());
+  particles.writeParticleEBuffer(kernels.getCommandQueue());
+  particles.writeParticleMomentumsBuffer(kernels.getCommandQueue());
+  particles.writeParticleMBuffer(kernels.getCommandQueue());
   simulation.writeAllBuffersToKernel(kernels.getCommandQueue());
   bubble.writeAllBuffersToKernel(kernels.getCommandQueue());
-  if (b_collisionDevelopment) {
-    cells.writeAllBuffersToKernel(kernels.getCommandQueue());
-  }
 
   // 8) Streaming initialization
   std::string dataFolderName = createFileNameFromCurrentDate();
@@ -293,12 +302,14 @@ int main(int argc, char* argv[]) {
        (simulation.getTime() <= config.maxTime) &&
        (config.m_maxSteps > 0 && simulation.getStep() < config.m_maxSteps);
        i++) {
-
-    if (b_collisionDevelopment) {
+    particles.readParticleXBuffer(kernels.getCommandQueue());
+    std::cout << "x: " << particles.returnParticleX(1) << std::endl;
+    if (b_COLLISION_DEVELOPMENT_ON) {
       simulation.step(particles, cells, rn_generator, i, *stepKernel,
                       kernels.m_cellAssignmentKernel, kernels.m_rotationKernel,
                       kernels.m_particleBounceKernel,
                       kernels.getCommandQueue());
+
     } else {
       if (config.bubbleInteractionsOn) {
         simulation.step(particles, bubble, *stepKernel,

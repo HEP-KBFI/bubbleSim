@@ -1,6 +1,6 @@
 {
 	"kernel":{
-        "name": "particle_step"
+        "name": "particle_step_linear"
     },
 	"simulation": {
 		"seed": 1,

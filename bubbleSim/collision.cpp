@@ -64,11 +64,11 @@ void CollisionCellCollection::generateShiftVector(
       m_cellLength / (numType)2. - t_rng.generate_number() * m_cellLength};
 }
 
-void CollisionCellCollection::recalculate_cells(
-    std::vector<Particle>& t_particles, RandomNumberGenerator& t_rng) {
+void CollisionCellCollection::recalculate_cells(ParticleCollection& t_particles,
+                                                RandomNumberGenerator& t_rng) {
   numType phi, theta;
 
-  /*
+  /* Initialize count vector
    * 0 index: Sum pX
    * 1 index: Sum pY
    * 2 index: Sum pZ
@@ -76,27 +76,32 @@ void CollisionCellCollection::recalculate_cells(
    * 4 index: Particle count in a cell
    * 5 index: Prod(E_i) in a cell
    */
-  std::vector<std::array<cl_numType, 6>> frames(
+  std::vector<std::array<cl_numType, 6>> cell_values(
       m_cellCount, {(cl_numType)0., (cl_numType)0., (cl_numType)0.,
                     (cl_numType)0., (cl_numType)0., (cl_numType)1.});
 
   /*
    * Sum up all momentums, energies and masses for each cell
    */
-  for (Particle& particle : t_particles) {
-    if (particle.idxCollisionCell == 0) continue;
-    frames[particle.idxCollisionCell][0] += particle.pX;
-    frames[particle.idxCollisionCell][1] += particle.pY;
-    frames[particle.idxCollisionCell][2] += particle.pZ;
-    frames[particle.idxCollisionCell][3] += particle.E;
-    frames[particle.idxCollisionCell][4] += 1;
-    frames[particle.idxCollisionCell][5] *= particle.E;
+  int collision_cell_index;
+  
+  for (size_t i = 0; i < t_particles.getParticleCountTotal(); i++) {
+
+    collision_cell_index = t_particles.returnCollisionCellIndex(i);
+    if (collision_cell_index == 0) continue;
+    cell_values[collision_cell_index][0] += t_particles.returnParticlepX(i);
+    cell_values[collision_cell_index][1] += t_particles.returnParticlepY(i);
+    cell_values[collision_cell_index][2] += t_particles.returnParticlepZ(i);
+    cell_values[collision_cell_index][3] += t_particles.returnParticleE(i);
+    cell_values[collision_cell_index][4] += 1;
+    cell_values[collision_cell_index][5] *= t_particles.returnParticleE(i);
   }
+
   /*
    * Calculate velocities for each collision cell
    */
   for (size_t i = 1; i < m_cellCount; i++) {
-    if ((cl_uint)frames[i][4] < 2) {
+    if ((cl_uint)cell_values[i][4] < 2) {
       m_collisionCells[i].particle_count = (cl_uint)0;
       continue;
     }
@@ -107,21 +112,21 @@ void CollisionCellCollection::recalculate_cells(
      */
 
     if (t_rng.generate_number() >=
-        std::pow(0.01, frames[i][4]) / frames[i][5]) {
+        std::pow(0.01, cell_values[i][4]) / cell_values[i][5]) {
       m_collisionCells[i].particle_count = (cl_uint)0;
       continue;
     }
-    m_collisionCells[i].particle_count = (int)frames[i][4];
-    m_collisionCells[i].vX = frames[i][0] / frames[i][3];
-    m_collisionCells[i].vY = frames[i][1] / frames[i][3];
-    m_collisionCells[i].vZ = frames[i][2] / frames[i][3];
+    m_collisionCells[i].particle_count = (int)cell_values[i][4];
+    m_collisionCells[i].vX = cell_values[i][0] / cell_values[i][3];
+    m_collisionCells[i].vY = cell_values[i][1] / cell_values[i][3];
+    m_collisionCells[i].vZ = cell_values[i][2] / cell_values[i][3];
     m_collisionCells[i].total_mass =
-        std::sqrt(std::pow(frames[i][3], 2) - std::pow(frames[i][0], 2) -
-                  std::pow(frames[i][1], 2) - std::pow(frames[i][2], 2));
-    m_collisionCells[i].pX = frames[i][0] / frames[i][4];
-    m_collisionCells[i].pY = frames[i][1] / frames[i][4];
-    m_collisionCells[i].pZ = frames[i][2] / frames[i][4];
-    m_collisionCells[i].pE = frames[i][3] / frames[i][4];
+        std::sqrt(std::pow(cell_values[i][3], 2) - std::pow(cell_values[i][0], 2) -
+                  std::pow(cell_values[i][1], 2) - std::pow(cell_values[i][2], 2));
+    m_collisionCells[i].pX = cell_values[i][0] / cell_values[i][4];
+    m_collisionCells[i].pY = cell_values[i][1] / cell_values[i][4];
+    m_collisionCells[i].pZ = cell_values[i][2] / cell_values[i][4];
+    m_collisionCells[i].pE = cell_values[i][3] / cell_values[i][4];
 
     m_collisionCells[i].v2 =
         std::fma(m_collisionCells[i].vX, m_collisionCells[i].vX,
