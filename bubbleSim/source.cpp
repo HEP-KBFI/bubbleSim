@@ -303,7 +303,14 @@ int main(int argc, char* argv[]) {
        (config.m_maxSteps > 0 && simulation.getStep() < config.m_maxSteps);
        i++) {
     particles.readParticleXBuffer(kernels.getCommandQueue());
-    std::cout << "x: " << particles.returnParticleX(1) << std::endl;
+    particles.readParticlepXBuffer(kernels.getCommandQueue());
+    particles.readParticleCollisionCellIndexBuffer(kernels.getCommandQueue());
+    std::cout << "X: " << particles.returnParticleX(1)
+              << ", Px: " << particles.returnParticlepX(1)
+              << ", Idx: " << particles.returnCollisionCellIndex(1)
+              << std::endl;
+
+
     if (b_COLLISION_DEVELOPMENT_ON) {
       simulation.step(particles, cells, rn_generator, i, *stepKernel,
                       kernels.m_cellAssignmentKernel, kernels.m_rotationKernel,

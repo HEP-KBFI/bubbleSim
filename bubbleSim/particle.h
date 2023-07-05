@@ -478,7 +478,7 @@ class ParticleCollection {
   void writeParticleInBubbelBuffer(cl::CommandQueue & cl_queue) {
     cl_queue.enqueueWriteBuffer(
         m_particle_bool_in_bubble_buffer, CL_TRUE, 0,
-        m_particle_bool_in_bubble.size() * sizeof(int8_t),
+        m_particle_bool_in_bubble.size() * sizeof(cl_char),
         m_particle_bool_in_bubble.data());
   }
 

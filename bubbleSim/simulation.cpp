@@ -497,7 +497,6 @@ void Simulation::step(ParticleCollection& particles,
     particles.readParticleCollisionCellIndexBuffer(cl_queue);
     // Calculate COM and genrate rotation matrix for each cell
     cells.recalculate_cells(particles, generator_collision);
-    std::cout << "Theta (cpu): " << cells.getCollisionCells()[312].theta << std::endl;
 
     // Update collision cell data on GPU
     particles.writeParticleCollisionCellIndexBuffer(cl_queue);
