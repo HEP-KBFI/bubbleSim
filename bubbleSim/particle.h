@@ -485,7 +485,7 @@ class ParticleCollection {
   void writeParticleCollisionCellIndexBuffer(cl::CommandQueue& cl_queue) {
     cl_queue.enqueueWriteBuffer(
         m_particle_collision_cell_index_buffer, CL_TRUE, 0,
-        m_particle_collision_cell_index.size() * sizeof(int8_t),
+        m_particle_collision_cell_index.size() * sizeof(cl_int),
         m_particle_collision_cell_index.data());
   }
 

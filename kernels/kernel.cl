@@ -770,6 +770,9 @@ __kernel void rotate_momentum(__global double *particles_E,
   // If in bubble then cell number is doubled and second half is in bubble
   // cells.
   if (particles_collision_cell_index[gid] != 0) {
+    if (gid==0){
+      printf("Theta (gpu): %.6f\n", t_cells[312].theta);
+    }
     CollisionCell cell = t_cells[particles_collision_cell_index[gid]];
 
     double gamma_minus_one = cell.gamma - 1;

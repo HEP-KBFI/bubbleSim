@@ -116,6 +116,7 @@ void CollisionCellCollection::recalculate_cells(ParticleCollection& t_particles,
       m_collisionCells[i].particle_count = (cl_uint)0;
       continue;
     }
+
     m_collisionCells[i].particle_count = (int)cell_values[i][4];
     m_collisionCells[i].vX = cell_values[i][0] / cell_values[i][3];
     m_collisionCells[i].vY = cell_values[i][1] / cell_values[i][3];
