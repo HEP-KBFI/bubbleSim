@@ -40,8 +40,8 @@ Simulation::Simulation(int t_seed, numType t_max_dt, numType t_boundaryRadius,
  */
 
 // Just linear movement
-void Simulation::setBuffersParticleStepLinear(
-    ParticleCollection& t_particles, cl::Kernel& t_kernel) {
+void Simulation::setBuffersParticleStepLinear(ParticleCollection& t_particles,
+                                              cl::Kernel& t_kernel) {
   int errNum;
   errNum = t_kernel.setArg(0, t_particles.getParticleXBuffer());
   if (errNum != CL_SUCCESS) {
@@ -202,8 +202,7 @@ void Simulation::setBuffersParticleStepWithBubble(
 void Simulation::setBuffersParticleStepWithBubbleInverted(
     ParticleCollection& t_particles, PhaseBubble& t_bubble,
     cl::Kernel& t_kernel) {
-  Simulation::setBuffersParticleStepWithBubble(t_particles, t_bubble,
-                                                    t_kernel);
+  Simulation::setBuffersParticleStepWithBubble(t_particles, t_bubble, t_kernel);
 }
 
 // With a bubble but all particles reflect back from the bubble wall
@@ -328,8 +327,8 @@ void Simulation::setBuffersParticleBoundaryMomentumReflect(
 }
 
 void Simulation::setBuffersRotateMomentum(ParticleCollection& t_particles,
-                                             CollisionCellCollection& t_cells,
-                                             cl::Kernel& t_kernel) {
+                                          CollisionCellCollection& t_cells,
+                                          cl::Kernel& t_kernel) {
   t_kernel.setArg(0, t_particles.getParticleEBuffer());
   t_kernel.setArg(1, t_particles.getParticlepXBuffer());
   t_kernel.setArg(2, t_particles.getParticlepYBuffer());
@@ -451,9 +450,9 @@ void Simulation::step(ParticleCollection& particles, PhaseBubble& bubble,
 
 // Step with bubble kernel and boundary condition
 void Simulation::step(ParticleCollection& particles, PhaseBubble& bubble,
-    cl::Kernel& t_particle_step_kernel,
-    cl::Kernel& t_particle_boundary_check_kernel,
-    cl::CommandQueue& cl_queue) {
+                      cl::Kernel& t_particle_step_kernel,
+                      cl::Kernel& t_particle_boundary_check_kernel,
+                      cl::CommandQueue& cl_queue) {
   Simulation::step(particles, bubble, t_particle_step_kernel, cl_queue);
   cl_queue.enqueueNDRangeKernel(t_particle_boundary_check_kernel, cl::NullRange,
                                 cl::NDRange(particles.getParticleCountTotal()));
@@ -475,6 +474,8 @@ void Simulation::step(ParticleCollection& particles,
                       cl::Kernel& t_particle_boundary_check_kernel,
                       cl::CommandQueue& cl_queue) {
   // Move particles
+  // TODO: Define temperature from config or dynamically.
+  numType temperature = (numType)0.01;
 
   cl_queue.enqueueNDRangeKernel(t_particle_step_kernel, cl::NullRange,
                                 cl::NDRange(particles.getParticleCountTotal()));
@@ -496,7 +497,7 @@ void Simulation::step(ParticleCollection& particles,
     particles.readParticleEBuffer(cl_queue);
     particles.readParticleCollisionCellIndexBuffer(cl_queue);
     // Calculate COM and genrate rotation matrix for each cell
-    cells.recalculate_cells(particles, generator_collision);
+    cells.recalculate_cells(particles, temperature, generator_collision);
 
     // Update collision cell data on GPU
     particles.writeParticleCollisionCellIndexBuffer(cl_queue);
@@ -506,8 +507,8 @@ void Simulation::step(ParticleCollection& particles,
         t_rotate_momentum_kernel, cl::NullRange,
         cl::NDRange(particles.getParticleCountTotal()));
     // particles.readParticlesBuffer(cl_queue);
-    //  Update simulation time
-    m_time += m_dt_current;
-    m_step_count += 1;
   }
+  //  Update simulation time
+  m_time += m_dt_current;
+  m_step_count += 1;
 }

@@ -24,7 +24,7 @@ CollisionCellCollection::CollisionCellCollection(
   }
   m_cellCountBuffer =
       cl::Buffer(cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                 sizeof(unsigned int), &m_cellCount, &openCLerrNum);
+                 sizeof(u_int), &m_cellCount, &openCLerrNum);
 
   m_doubleCellCount = t_doubleCellCount;
   m_meanFreePath = t_meanFreePath;
@@ -32,7 +32,7 @@ CollisionCellCollection::CollisionCellCollection(
   m_cellCountInOneAxis = t_cellCountInOneAxis;
   m_cellCountInOneAxisBuffer =
       cl::Buffer(cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                 sizeof(unsigned int), &m_cellCountInOneAxis, &openCLerrNum);
+                 sizeof(u_int), &m_cellCountInOneAxis, &openCLerrNum);
 
   m_collisionCells.resize(m_cellCount);
   m_collisionCellsBuffer =
@@ -65,6 +65,7 @@ void CollisionCellCollection::generateShiftVector(
 }
 
 void CollisionCellCollection::recalculate_cells(ParticleCollection& t_particles,
+                                                numType t_temperature,
                                                 RandomNumberGenerator& t_rng) {
   numType phi, theta;
 
@@ -84,11 +85,14 @@ void CollisionCellCollection::recalculate_cells(ParticleCollection& t_particles,
    * Sum up all momentums, energies and masses for each cell
    */
   int collision_cell_index;
-  
-  for (size_t i = 0; i < t_particles.getParticleCountTotal(); i++) {
+  // m_particle_collision_cell_index[gid]
 
+  for (size_t i = 0; i < t_particles.getParticleCountTotal(); i++) {
     collision_cell_index = t_particles.returnCollisionCellIndex(i);
-    if (collision_cell_index == 0) continue;
+
+    if (collision_cell_index == 0) {
+      continue;
+    }
     cell_values[collision_cell_index][0] += t_particles.returnParticlepX(i);
     cell_values[collision_cell_index][1] += t_particles.returnParticlepY(i);
     cell_values[collision_cell_index][2] += t_particles.returnParticlepZ(i);
@@ -100,9 +104,14 @@ void CollisionCellCollection::recalculate_cells(ParticleCollection& t_particles,
   /*
    * Calculate velocities for each collision cell
    */
+
+  double no_collision_probability = 0.;
+  double probability = 0;
+
   for (size_t i = 1; i < m_cellCount; i++) {
+    m_collisionCells[i].particle_count = (cl_uint)cell_values[i][4];
     if ((cl_uint)cell_values[i][4] < 2) {
-      m_collisionCells[i].particle_count = (cl_uint)0;
+      m_collisionCells[i].b_collide = 0;
       continue;
     }
     /*
@@ -111,30 +120,29 @@ void CollisionCellCollection::recalculate_cells(ParticleCollection& t_particles,
      * N is number of particles in a cell
      */
 
-    if (t_rng.generate_number() >=
-        std::pow(0.01, cell_values[i][4]) / cell_values[i][5]) {
-      m_collisionCells[i].particle_count = (cl_uint)0;
+    no_collision_probability =
+        std::exp(-(std::pow(cell_values[i][3] / (3 * cell_values[i][4]),
+                            cell_values[i][4]) /
+                       cell_values[i][5])) ;
+    
+    probability = t_rng.generate_number();
+    if (probability <= no_collision_probability) {
+      m_collisionCells[i].b_collide = 0;
       continue;
     }
-
+    m_collisionCells[i].b_collide = 1;
     m_collisionCells[i].particle_count = (int)cell_values[i][4];
     m_collisionCells[i].vX = cell_values[i][0] / cell_values[i][3];
     m_collisionCells[i].vY = cell_values[i][1] / cell_values[i][3];
     m_collisionCells[i].vZ = cell_values[i][2] / cell_values[i][3];
-    m_collisionCells[i].total_mass =
-        std::sqrt(std::pow(cell_values[i][3], 2) - std::pow(cell_values[i][0], 2) -
-                  std::pow(cell_values[i][1], 2) - std::pow(cell_values[i][2], 2));
+    m_collisionCells[i].total_mass = std::sqrt(
+        std::pow(cell_values[i][3], 2) - std::pow(cell_values[i][0], 2) -
+        std::pow(cell_values[i][1], 2) - std::pow(cell_values[i][2], 2));
     m_collisionCells[i].pX = cell_values[i][0] / cell_values[i][4];
     m_collisionCells[i].pY = cell_values[i][1] / cell_values[i][4];
     m_collisionCells[i].pZ = cell_values[i][2] / cell_values[i][4];
     m_collisionCells[i].pE = cell_values[i][3] / cell_values[i][4];
 
-    m_collisionCells[i].v2 =
-        std::fma(m_collisionCells[i].vX, m_collisionCells[i].vX,
-                 std::fma(m_collisionCells[i].vY, m_collisionCells[i].vY,
-                          m_collisionCells[i].vZ * m_collisionCells[i].vZ));
-
-    m_collisionCells[i].gamma = 1 / std::sqrt(1 - m_collisionCells[i].v2);
     phi = std::acos((numType)1. - (numType)2. * t_rng.generate_number());
     theta = (numType)2 * (numType)M_PI * t_rng.generate_number();
 
@@ -147,4 +155,5 @@ void CollisionCellCollection::recalculate_cells(ParticleCollection& t_particles,
     m_collisionCells[i].y = std::sin(phi) * std::sin(theta);
     m_collisionCells[i].z = std::cos(phi);
   }
+  // exit(0);
 }

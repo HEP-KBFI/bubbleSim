@@ -631,11 +631,11 @@ ParticleCollection::ParticleCollection(
                  m_particle_bool_in_bubble.data(), &openCLerrNum);
 
   m_particle_collision_cell_index =
-      std::vector<cl_int>(m_particleCountTotal, (cl_int)0);
+      std::vector<cl_uint>(m_particleCountTotal, (cl_uint)0);
 
   m_particle_collision_cell_index_buffer =
       cl::Buffer(cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
-                 m_particleCountTotal * sizeof(cl_int),
+                 m_particleCountTotal * sizeof(cl_uint),
                  m_particle_collision_cell_index.data(), &openCLerrNum);
 
   // Data reserve

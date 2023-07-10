@@ -18,7 +18,7 @@ typedef struct Particle {
 
   cl_char b_collide = (cl_char)1;
   cl_char b_inBubble = (cl_char)0;
-  cl_int idxCollisionCell = (cl_int)0;
+  cl_uint idxCollisionCell = (cl_uint)0;
 } Particle;
 
 class ParticleGenerator {
@@ -204,8 +204,8 @@ class ParticleCollection {
   std::vector<cl_char> m_particle_bool_in_bubble_copy;
   cl::Buffer m_particle_bool_in_bubble_buffer;
 
-  std::vector<cl_int> m_particle_collision_cell_index;
-  std::vector<cl_int> m_particle_collision_cell_index_copy;
+  std::vector<cl_uint> m_particle_collision_cell_index;
+  std::vector<cl_uint> m_particle_collision_cell_index_copy;
   cl::Buffer m_particle_collision_cell_index_buffer;
 
   std::vector<numType> m_dP;
@@ -485,7 +485,7 @@ class ParticleCollection {
   void writeParticleCollisionCellIndexBuffer(cl::CommandQueue& cl_queue) {
     cl_queue.enqueueWriteBuffer(
         m_particle_collision_cell_index_buffer, CL_TRUE, 0,
-        m_particle_collision_cell_index.size() * sizeof(cl_int),
+        m_particle_collision_cell_index.size() * sizeof(cl_uint),
         m_particle_collision_cell_index.data());
   }
 
@@ -604,7 +604,7 @@ class ParticleCollection {
   void readParticleCollisionCellIndexBuffer(cl::CommandQueue& cl_queue) {
     cl_queue.enqueueReadBuffer(
         m_particle_collision_cell_index_buffer, CL_TRUE, 0,
-        m_particle_collision_cell_index.size() * sizeof(int8_t),
+        m_particle_collision_cell_index.size() * sizeof(cl_uint),
         m_particle_collision_cell_index.data());
   }
 

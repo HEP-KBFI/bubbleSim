@@ -12,7 +12,6 @@ typedef struct Bubble {
 
 // In development
 typedef struct CollisionCell {
-  double gamma;
   double vX;
   double vY;
   double vZ;
@@ -27,7 +26,7 @@ typedef struct CollisionCell {
   double p_y;
   double p_z;
 
-  double v2;  // v2 = Sum: v_i^2
+  char b_collide;
   double mass;
   unsigned int particle_count;
 } CollisionCell;
@@ -760,11 +759,11 @@ __kernel void particles_with_false_bubble_step_reflect(
 */
 
 __kernel void rotate_momentum(__global double *particles_E,
-                                  __global double *particles_pX,
-                                  __global double *particles_pY,
-                                  __global double *particles_pZ,
-                                  __global int *particles_collision_cell_index,
-                                  __global CollisionCell *t_cells) {
+                              __global double *particles_pX,
+                              __global double *particles_pY,
+                              __global double *particles_pZ,
+                              __global unsigned int *particles_collision_cell_index,
+                              __global CollisionCell *t_cells) {
   unsigned int gid = get_global_id(0);
 
   // If in bubble then cell number is doubled and second half is in bubble
@@ -772,8 +771,11 @@ __kernel void rotate_momentum(__global double *particles_E,
   if (particles_collision_cell_index[gid] != 0) {
     CollisionCell cell = t_cells[particles_collision_cell_index[gid]];
 
-    double gamma_minus_one = cell.gamma - 1;
-    double gamma_minus_one_divided_cell_v2 = gamma_minus_one / cell.v2;
+    double v2 = fma(cell.vX, cell.vX, fma(cell.vY, cell.vY, cell.vZ * cell.vZ));
+    double gamma = 1 / sqrt(1 - v2);
+    double gamma_minus_one = gamma - 1;
+
+    double gamma_minus_one_divided_cell_v2 = gamma_minus_one / v2;
 
     double cos_theta = cos(cell.theta);
     double one_minus_cos_theta = 1 - cos_theta;
@@ -785,23 +787,23 @@ __kernel void rotate_momentum(__global double *particles_E,
     double pZ_1 = particles_pZ[gid];
     double pX_2, pY_2, pZ_2;
 
-    if ((cell.particle_count > 1) && (cell.mass != 0)) {
+    if ((cell.particle_count > 1) && (cell.mass != 0) && (cell.b_collide)) {
       // Lorentz transformation (to COM frame)
-      pX_2 = -E * cell.gamma * cell.vX +
+      pX_2 = -E * gamma * cell.vX +
              pX_1 * (1 + cell.vX * cell.vX * gamma_minus_one_divided_cell_v2) +
              pY_1 * cell.vX * cell.vY * gamma_minus_one_divided_cell_v2 +
              pZ_1 * cell.vX * cell.vZ * gamma_minus_one_divided_cell_v2;
 
-      pY_2 = -cell.gamma * E * cell.vY +
+      pY_2 = -gamma * E * cell.vY +
              pY_1 * (1 + cell.vY * cell.vY * gamma_minus_one_divided_cell_v2) +
              pX_1 * cell.vX * cell.vY * gamma_minus_one_divided_cell_v2 +
              pZ_1 * cell.vY * cell.vZ * gamma_minus_one_divided_cell_v2;
 
-      pZ_2 = -cell.gamma * E * cell.vZ +
+      pZ_2 = -gamma * E * cell.vZ +
              pZ_1 * (1 + cell.vZ * cell.vZ * gamma_minus_one_divided_cell_v2) +
              pX_1 * cell.vX * cell.vZ * gamma_minus_one_divided_cell_v2 +
              pY_1 * cell.vY * cell.vZ * gamma_minus_one_divided_cell_v2;
-      E = cell.gamma * (E - pX_1 * cell.vX - pY_1 * cell.vY - pZ_1 * cell.vZ);
+      E = gamma * (E - pX_1 * cell.vX - pY_1 * cell.vY - pZ_1 * cell.vZ);
 
       // Rotate 3-momentum
       pX_1 =
@@ -818,22 +820,22 @@ __kernel void rotate_momentum(__global double *particles_E,
           pZ_2 * (cos_theta + pow(cell.z, 2) * one_minus_cos_theta);
 
       // Lorentz inverse transformation (to initial frame)
-      pX_2 = cell.gamma * E * cell.vX +
+      pX_2 = gamma * E * cell.vX +
              pX_1 * (1 + cell.vX * cell.vX * gamma_minus_one_divided_cell_v2) +
              pY_1 * cell.vX * cell.vY * gamma_minus_one_divided_cell_v2 +
              pZ_1 * cell.vX * cell.vZ * gamma_minus_one_divided_cell_v2;
 
-      pY_2 = cell.gamma * E * cell.vY +
+      pY_2 = gamma * E * cell.vY +
              pY_1 * (1 + cell.vY * cell.vY * gamma_minus_one_divided_cell_v2) +
              pX_1 * cell.vX * cell.vY * gamma_minus_one_divided_cell_v2 +
              pZ_1 * cell.vY * cell.vZ * gamma_minus_one_divided_cell_v2;
 
-      pZ_2 = cell.gamma * E * cell.vZ +
+      pZ_2 = gamma * E * cell.vZ +
              pZ_1 * (1 + cell.vZ * cell.vZ * gamma_minus_one_divided_cell_v2) +
              pX_1 * cell.vX * cell.vZ * gamma_minus_one_divided_cell_v2 +
              pY_1 * cell.vY * cell.vZ * gamma_minus_one_divided_cell_v2;
 
-      E = cell.gamma * (E + pX_1 * cell.vX + pY_1 * cell.vY + pZ_1 * cell.vZ);
+      E = gamma * (E + pX_1 * cell.vX + pY_1 * cell.vY + pZ_1 * cell.vZ);
       particles_E[gid] = E;
       particles_pX[gid] = pX_2;
       particles_pY[gid] = pY_2;
@@ -845,7 +847,7 @@ __kernel void rotate_momentum(__global double *particles_E,
 /*
 ============================================================================
 ============================================================================
-                                                                Labeling
+                               Labeling
 ============================================================================
 ============================================================================
 */
@@ -875,7 +877,7 @@ __kernel void label_particles_position_by_mass(
 
 __kernel void assign_particle_to_collision_cell(
     __global double *particles_X, __global double *particles_Y,
-    __global double *particles_Z, __global int *m_particle_collision_cell_index,
+    __global double *particles_Z, __global unsigned int *m_particle_collision_cell_index,
     __global const unsigned int *maxCellIndex,
     __global const double *cellLength, __global const double *cuboidShift) {
   unsigned int gid = get_global_id(0);
@@ -895,12 +897,13 @@ __kernel void assign_particle_to_collision_cell(
 
   if ((x_index < 0) || (x_index >= maxCellIndex[0])) {
     m_particle_collision_cell_index[gid] = 0;
-
+    //printf("X. %i", x_index);
   } else if ((y_index < 0) || (y_index >= maxCellIndex[0])) {
     m_particle_collision_cell_index[gid] = 0;
-
+    //printf("Y. %i", y_index);
   } else if ((z_index < 0) || (z_index >= maxCellIndex[0])) {
     m_particle_collision_cell_index[gid] = 0;
+    //printf("Z. %i", z_index);
 
   } else {
     m_particle_collision_cell_index[gid] =
@@ -911,7 +914,7 @@ __kernel void assign_particle_to_collision_cell(
 
 __kernel void assign_particle_cell_index_two_phase(
     __global double *particles_X, __global double *particles_Y,
-    __global double *particles_Z, __global int *m_particle_collision_cell_index,
+    __global double *particles_Z, __global unsigned int *m_particle_collision_cell_index,
     __global char *particles_bool_in_bubble, __global const int *maxCellIndex,
     __global const double *cellLength,
     __global const double *cuboidShift  // Random particle location shift
@@ -986,9 +989,9 @@ __kernel void particle_boundary_momentum_reflect(
 }
 
 __kernel void particle_boundary_check(__global double *particles_X,
-                                          __global double *particles_Y,
-                                          __global double *particles_Z,
-                                          __global double *t_boundaryRadius) {
+                                      __global double *particles_Y,
+                                      __global double *particles_Z,
+                                      __global double *t_boundaryRadius) {
   unsigned int gid = get_global_id(0);
 
   double x = particles_X[gid];

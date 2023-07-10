@@ -105,10 +105,11 @@ int main(int argc, char* argv[]) {
 
   // 2) Initialize openCL (kernels, commandQueues)
   OpenCLLoader kernels(s_kernelPath, config.kernelName);
-  // 4) Generate particles
-  ParticleGenerator particleGenerator1;
-  // 4.1) Create generator (calculates distribution)
 
+
+  // 4) Generate particles
+  ParticleGenerator particleGenerator1;  
+  // 4.1) Create generator (calculates distribution)
   if (b_COLLISION_DEVELOPMENT_ON) {
     particleGenerator1 = ParticleGenerator(
         config.particleMassFalse, 3. * config.particleTemperatureFalse);
@@ -298,18 +299,11 @@ int main(int argc, char* argv[]) {
 
   // auto streamEndTime = high_resolution_clock::now();
   // auto streamStartTime = high_resolution_clock::now();
+
   for (int i = 1;
        (simulation.getTime() <= config.maxTime) &&
        (config.m_maxSteps > 0 && simulation.getStep() < config.m_maxSteps);
        i++) {
-    particles.readParticleXBuffer(kernels.getCommandQueue());
-    particles.readParticlepXBuffer(kernels.getCommandQueue());
-    particles.readParticleCollisionCellIndexBuffer(kernels.getCommandQueue());
-    std::cout << "X: " << particles.returnParticleX(1)
-              << ", Px: " << particles.returnParticlepX(1)
-              << ", Idx: " << particles.returnCollisionCellIndex(1)
-              << std::endl;
-
 
     if (b_COLLISION_DEVELOPMENT_ON) {
       simulation.step(particles, cells, rn_generator, i, *stepKernel,

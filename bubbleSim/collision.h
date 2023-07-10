@@ -3,7 +3,6 @@
 #include "objects.h"
 typedef struct CollisionCell {
   // Lorentz transformation
-  cl_numType gamma;
   cl_numType vX;
   cl_numType vY;
   cl_numType vZ;
@@ -20,7 +19,7 @@ typedef struct CollisionCell {
   cl_numType pY;
   cl_numType pZ;
 
-  cl_numType v2;
+  cl_char b_collide;
   cl_numType total_mass;
   cl_uint particle_count;
 } CollisionCell;
@@ -30,7 +29,7 @@ class CollisionCellCollection {
   CollisionCellCollection(numType t_meanFreePath, unsigned int t_cellCount,
                           bool t_doubleCellCount, cl::Context& cl_context);
 
-  void recalculate_cells(ParticleCollection& t_particles,
+  void recalculate_cells(ParticleCollection& t_particles, numType t_temperature,
                          RandomNumberGenerator& t_rng);
 
   void generateShiftVector(RandomNumberGenerator& t_rng);
@@ -86,12 +85,12 @@ class CollisionCellCollection {
 
   void writeCellCountBuffer(cl::CommandQueue& cl_queue) {
     cl_queue.enqueueWriteBuffer(m_cellCountBuffer, CL_TRUE, 0,
-                                sizeof(unsigned int), &m_cellCount);
+                                sizeof(u_int), &m_cellCount);
   };
 
   void writeCellCountInOneAxisBuffer(cl::CommandQueue& cl_queue) {
     cl_queue.enqueueWriteBuffer(m_cellCountInOneAxisBuffer, CL_TRUE, 0,
-                                sizeof(unsigned int), &m_cellCountInOneAxis);
+                                sizeof(u_int), &m_cellCountInOneAxis);
   };
 
   void writeCellLengthBuffer(cl::CommandQueue& cl_queue) {
@@ -134,7 +133,7 @@ class CollisionCellCollection {
 
   void readCellCountInOneAxisBuffer(cl::CommandQueue& cl_queue) {
     cl_queue.enqueueReadBuffer(m_cellCountInOneAxisBuffer, CL_TRUE, 0,
-                               sizeof(unsigned int), &m_cellCountInOneAxis);
+                               sizeof(u_int), &m_cellCountInOneAxis);
   };
 
   void readShiftVectorBuffer(cl::CommandQueue& cl_queue) {
@@ -165,10 +164,10 @@ class CollisionCellCollection {
   numType m_cellLength;
   cl::Buffer m_cellLengthBuffer;
 
-  unsigned int m_cellCountInOneAxis;
+  u_int m_cellCountInOneAxis;
   cl::Buffer m_cellCountInOneAxisBuffer;
 
-  unsigned int m_cellCount;
+  u_int m_cellCount;
   cl::Buffer m_cellCountBuffer;
 
   std::array<numType, 3> m_shiftVector;
