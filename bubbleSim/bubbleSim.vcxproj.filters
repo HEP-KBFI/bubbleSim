@@ -42,12 +42,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="source.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="base.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="random_number.hpp">
       <Filter>Source Files\Generators</Filter>
     </ClInclude>
@@ -77,6 +71,12 @@
     </ClInclude>
     <ClInclude Include="simulation.h">
       <Filter>Physics\Dynamics</Filter>
+    </ClInclude>
+    <ClInclude Include="source.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="base.h">
+      <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -137,10 +137,7 @@ void ParticleGenerator::generatePointInSphere(
 
 numType ParticleGenerator::generateNParticlesInBox(
     numType t_sideHalf, u_int t_N, RandomNumberGenerator& t_generator,
-    std::vector<numType>& t_particle_X, std::vector<numType>& t_particle_Y,
-    std::vector<numType>& t_particle_Z, std::vector<numType>& t_particle_pX,
-    std::vector<numType>& t_particle_pY, std::vector<numType>& t_particle_pZ,
-    std::vector<numType>& t_particle_E, std::vector<numType>& t_particle_M) {
+    ParticleCollection& t_particles) {
   numType totalEnergy = 0.;
 
   numType x, y, z;
@@ -157,49 +154,22 @@ numType ParticleGenerator::generateNParticlesInBox(
     generateParticleMomentum(p_x, p_y, p_z, pValue, t_generator);
     E = std::sqrt(m2 + pow(pValue, (numType)2.));
     totalEnergy += E;
-    t_particle_X.push_back(x);
-    t_particle_Y.push_back(y);
-    t_particle_Z.push_back(z);
-    t_particle_pX.push_back(p_x);
-    t_particle_pY.push_back(p_y);
-    t_particle_pZ.push_back(p_z);
-    t_particle_E.push_back(E);
-    t_particle_M.push_back(m_mass);
+    t_particles.getParticleX().push_back(x);
+    t_particles.getParticleY().push_back(y);
+    t_particles.getParticleZ().push_back(z);
+    t_particles.getParticlepX().push_back(p_x);
+    t_particles.getParticlepY().push_back(p_y);
+    t_particles.getParticlepZ().push_back(p_z);
+    t_particles.getParticleE().push_back(E);
+    t_particles.getParticleM().push_back(m_mass);
   }
   return totalEnergy;
 }
 
-numType ParticleGenerator::generateNParticlesInBox(
-    numType t_sideHalf, u_int t_N, RandomNumberGenerator& t_generator,
-    std::vector<Particle>& t_particles) {
-  numType totalEnergy = 0.;
-
-  numType x, y, z;
-  numType p_x, p_y, p_z;
-  numType E;
-  numType m2 = std::pow(m_mass, (numType)2.);
-  numType pValue;
-
-  for (u_int i = 0; i < t_N; i++) {
-    // Generates 3D space coordinates and pushes to m_X vector
-    generatePointInBox(x, y, z, t_sideHalf, t_generator);
-
-    // Generates 3D space coordinates and pushes to m_P vector
-    generateParticleMomentum(p_x, p_y, p_z, pValue, t_generator);
-    E = std::sqrt(m2 + pow(pValue, (numType)2.));
-    totalEnergy += E;
-    t_particles.push_back(Particle{x, y, z, p_x, p_y, p_z, E, m_mass});
-  }
-  return totalEnergy;
-}
 
 numType ParticleGenerator::generateNParticlesInBox(
     numType t_xSideHalf, numType t_ySideHalf, numType t_zSideHalf, u_int t_N,
-    RandomNumberGenerator& t_generator, std::vector<numType>& t_particle_X,
-    std::vector<numType>& t_particle_Y, std::vector<numType>& t_particle_Z,
-    std::vector<numType>& t_particle_pX, std::vector<numType>& t_particle_pY,
-    std::vector<numType>& t_particle_pZ, std::vector<numType>& t_particle_E,
-    std::vector<numType>& t_particle_M) {
+    RandomNumberGenerator& t_generator, ParticleCollection& t_particles) {
   numType totalEnergy = 0.;
 
   numType x, y, z;
@@ -217,50 +187,21 @@ numType ParticleGenerator::generateNParticlesInBox(
 
     E = std::sqrt(m2 + pow(pValue, 2));
     totalEnergy += E;
-    t_particle_X.push_back(x);
-    t_particle_Y.push_back(y);
-    t_particle_Z.push_back(z);
-    t_particle_pX.push_back(p_x);
-    t_particle_pY.push_back(p_y);
-    t_particle_pZ.push_back(p_z);
-    t_particle_E.push_back(E);
-    t_particle_M.push_back(m_mass);
-  }
-  return totalEnergy;
-}
-
-numType ParticleGenerator::generateNParticlesInBox(
-    numType t_xSideHalf, numType t_ySideHalf, numType t_zSideHalf, u_int t_N,
-    RandomNumberGenerator& t_generator, std::vector<Particle>& t_particles) {
-  numType totalEnergy = 0.;
-
-  numType x, y, z;
-  numType p_x, p_y, p_z;
-  numType E;
-  numType m2 = std::pow(m_mass, (numType)2.);
-  numType pValue;
-
-  for (u_int i = 0; i < t_N; i++) {
-    // Generates 3D space coordinates and pushes to m_X vector
-    generatePointInBox(x, y, z, t_xSideHalf, t_ySideHalf, t_zSideHalf,
-                       t_generator);
-    // Generates 3D space coordinates and pushes to m_P vector
-    generateParticleMomentum(p_x, p_y, p_z, pValue, t_generator);
-
-    E = std::sqrt(m2 + pow(pValue, 2));
-    totalEnergy += E;
-    t_particles.push_back(Particle{x, y, z, p_x, p_y, p_z, E, m_mass});
+    t_particles.getParticleX().push_back(x);
+    t_particles.getParticleY().push_back(y);
+    t_particles.getParticleZ().push_back(z);
+    t_particles.getParticlepX().push_back(p_x);
+    t_particles.getParticlepY().push_back(p_y);
+    t_particles.getParticlepZ().push_back(p_z);
+    t_particles.getParticleE().push_back(E);
+    t_particles.getParticleM().push_back(m_mass);
   }
   return totalEnergy;
 }
 
 numType ParticleGenerator::generateNParticlesInBox(
     numType t_radiusIn, numType t_sideHalf, u_int t_N,
-    RandomNumberGenerator& t_generator, std::vector<numType>& t_particle_X,
-    std::vector<numType>& t_particle_Y, std::vector<numType>& t_particle_Z,
-    std::vector<numType>& t_particle_pX, std::vector<numType>& t_particle_pY,
-    std::vector<numType>& t_particle_pZ, std::vector<numType>& t_particle_E,
-    std::vector<numType>& t_particle_M) {
+    RandomNumberGenerator& t_generator, ParticleCollection& t_particles) {
   numType totalEnergy = 0.;
 
   numType x, y, z;
@@ -279,51 +220,23 @@ numType ParticleGenerator::generateNParticlesInBox(
     generateParticleMomentum(p_x, p_y, p_z, pValue, t_generator);
     E = std::sqrt(m2 + pow(pValue, (numType)2.));
     totalEnergy += E;
-    t_particle_X.push_back(x);
-    t_particle_Y.push_back(y);
-    t_particle_Z.push_back(z);
-    t_particle_pX.push_back(p_x);
-    t_particle_pY.push_back(p_y);
-    t_particle_pZ.push_back(p_z);
-    t_particle_E.push_back(E);
-    t_particle_M.push_back(m_mass);
+    t_particles.getParticleX().push_back(x);
+    t_particles.getParticleY().push_back(y);
+    t_particles.getParticleZ().push_back(z);
+    t_particles.getParticlepX().push_back(p_x);
+    t_particles.getParticlepY().push_back(p_y);
+    t_particles.getParticlepZ().push_back(p_z);
+    t_particles.getParticleE().push_back(E);
+    t_particles.getParticleM().push_back(m_mass);
   }
   return totalEnergy;
 }
 
-numType ParticleGenerator::generateNParticlesInBox(
-    numType t_radiusIn, numType t_sideHalf, u_int t_N,
-    RandomNumberGenerator& t_generator, std::vector<Particle>& t_particles) {
-  numType totalEnergy = 0.;
-
-  numType x, y, z;
-  numType p_x, p_y, p_z;
-  numType E;
-  numType m2 = std::pow(m_mass, (numType)2.);
-  numType pValue;
-  numType radius;
-  for (u_int i = 0; i < t_N; i++) {
-    // Generates 3D space coordinates and pushes to m_X vector
-    do {
-      generatePointInBox(x, y, z, t_sideHalf, t_generator);
-      radius = std::sqrt(std::fma(x, x, fma(y, y, z * z)));
-    } while (radius < t_radiusIn);
-    // Generates 3D space coordinates and pushes to m_P vector
-    generateParticleMomentum(p_x, p_y, p_z, pValue, t_generator);
-    E = std::sqrt(m2 + pow(pValue, (numType)2.));
-    totalEnergy += E;
-    t_particles.push_back(Particle{x, y, z, p_x, p_y, p_z, E, m_mass});
-  }
-  return totalEnergy;
-}
 
 numType ParticleGenerator::generateNParticlesInBox(
     numType t_radiusIn, numType t_xSideHalf, numType t_ySideHalf,
     numType t_zSideHalf, u_int t_N, RandomNumberGenerator& t_generator,
-    std::vector<numType>& t_particle_X, std::vector<numType>& t_particle_Y,
-    std::vector<numType>& t_particle_Z, std::vector<numType>& t_particle_pX,
-    std::vector<numType>& t_particle_pY, std::vector<numType>& t_particle_pZ,
-    std::vector<numType>& t_particle_E, std::vector<numType>& t_particle_M) {
+    ParticleCollection& t_particles) {
   numType totalEnergy = 0.;
 
   numType x, y, z;
@@ -343,52 +256,22 @@ numType ParticleGenerator::generateNParticlesInBox(
     generateParticleMomentum(p_x, p_y, p_z, pValue, t_generator);
     E = std::sqrt(m2 + pow(pValue, (numType)2.));
     totalEnergy += E;
-    t_particle_X.push_back(x);
-    t_particle_Y.push_back(y);
-    t_particle_Z.push_back(z);
-    t_particle_pX.push_back(p_x);
-    t_particle_pY.push_back(p_y);
-    t_particle_pZ.push_back(p_z);
-    t_particle_E.push_back(E);
-    t_particle_M.push_back(m_mass);
+    t_particles.getParticleX().push_back(x);
+    t_particles.getParticleY().push_back(y);
+    t_particles.getParticleZ().push_back(z);
+    t_particles.getParticlepX().push_back(p_x);
+    t_particles.getParticlepY().push_back(p_y);
+    t_particles.getParticlepZ().push_back(p_z);
+    t_particles.getParticleE().push_back(E);
+    t_particles.getParticleM().push_back(m_mass);
   }
   return totalEnergy;
 }
 
-numType ParticleGenerator::generateNParticlesInBox(
-    numType t_radiusIn, numType t_xSideHalf, numType t_ySideHalf,
-    numType t_zSideHalf, u_int t_N, RandomNumberGenerator& t_generator,
-    std::vector<Particle>& t_particles) {
-  numType totalEnergy = 0.;
-
-  numType x, y, z;
-  numType p_x, p_y, p_z;
-  numType E;
-  numType m2 = std::pow(m_mass, (numType)2.);
-  numType pValue;
-  numType radius;
-  for (u_int i = 0; i < t_N; i++) {
-    // Generates 3D space coordinates and pushes to m_X vector
-    do {
-      generatePointInBox(x, y, z, t_xSideHalf, t_ySideHalf, t_zSideHalf,
-                         t_generator);
-      radius = std::sqrt(std::fma(x, x, fma(y, y, z * z)));
-    } while (radius < t_radiusIn);
-    // Generates 3D space coordinates and pushes to m_P vector
-    generateParticleMomentum(p_x, p_y, p_z, pValue, t_generator);
-    E = std::sqrt(m2 + pow(pValue, (numType)2.));
-    totalEnergy += E;
-    t_particles.push_back(Particle{x, y, z, p_x, p_y, p_z, E, m_mass});
-  }
-  return totalEnergy;
-}
 
 numType ParticleGenerator::generateNParticlesInSphere(
     numType t_radiusMax, u_int t_N, RandomNumberGenerator& t_generator,
-    std::vector<numType>& t_particle_X, std::vector<numType>& t_particle_Y,
-    std::vector<numType>& t_particle_Z, std::vector<numType>& t_particle_pX,
-    std::vector<numType>& t_particle_pY, std::vector<numType>& t_particle_pZ,
-    std::vector<numType>& t_particle_E, std::vector<numType>& t_particle_M) {
+    ParticleCollection& t_particles) {
   numType totalEnergy = 0.;
   numType x, y, z;
   numType p_x, p_y, p_z;
@@ -408,52 +291,21 @@ numType ParticleGenerator::generateNParticlesInSphere(
     generateParticleMomentum(p_x, p_y, p_z, pValue, t_generator);
     E = std::sqrt(m2 + pow(pValue, (numType)2.));
     totalEnergy += E;
-    t_particle_X.push_back(x);
-    t_particle_Y.push_back(y);
-    t_particle_Z.push_back(z);
-    t_particle_pX.push_back(p_x);
-    t_particle_pY.push_back(p_y);
-    t_particle_pZ.push_back(p_z);
-    t_particle_E.push_back(E);
-    t_particle_M.push_back(m_mass);
-  }
-  return totalEnergy;
-}
-
-numType ParticleGenerator::generateNParticlesInSphere(
-    numType t_radiusMax, u_int t_N, RandomNumberGenerator& t_generator,
-    std::vector<Particle>& t_particles) {
-  numType totalEnergy = 0.;
-  numType x, y, z;
-  numType p_x, p_y, p_z;
-  numType E;
-  numType m2 = std::pow(m_mass, (numType)2.);
-  numType pValue;
-  numType radius;
-
-  for (u_int i = 0; i < t_N; i++) {
-    // Generates 3D space coordinates and pushes to m_X vector
-    do {
-      generatePointInSphere(x, y, z, t_radiusMax, t_generator);
-      radius = std::sqrt(std::fma(x, x, fma(y, y, z * z)));
-    } while (radius > t_radiusMax);
-
-    // Generates 3D space coordinates and pushes to m_P vector
-    generateParticleMomentum(p_x, p_y, p_z, pValue, t_generator);
-    E = std::sqrt(m2 + pow(pValue, (numType)2.));
-    totalEnergy += E;
-    t_particles.push_back(Particle{x, y, z, p_x, p_y, p_z, E, m_mass});
+    t_particles.getParticleX().push_back(x);
+    t_particles.getParticleY().push_back(y);
+    t_particles.getParticleZ().push_back(z);
+    t_particles.getParticlepX().push_back(p_x);
+    t_particles.getParticlepY().push_back(p_y);
+    t_particles.getParticlepZ().push_back(p_z);
+    t_particles.getParticleE().push_back(E);
+    t_particles.getParticleM().push_back(m_mass);
   }
   return totalEnergy;
 }
 
 numType ParticleGenerator::generateNParticlesInSphere(
     numType t_radiusMin, numType t_radiusMax, u_int t_N,
-    RandomNumberGenerator& t_generator, std::vector<numType>& t_particle_X,
-    std::vector<numType>& t_particle_Y, std::vector<numType>& t_particle_Z,
-    std::vector<numType>& t_particle_pX, std::vector<numType>& t_particle_pY,
-    std::vector<numType>& t_particle_pZ, std::vector<numType>& t_particle_E,
-    std::vector<numType>& t_particle_M) {
+    RandomNumberGenerator& t_generator, ParticleCollection& t_particles) {
   numType totalEnergy = 0.;
   numType x, y, z;
   numType p_x, p_y, p_z;
@@ -473,41 +325,14 @@ numType ParticleGenerator::generateNParticlesInSphere(
     generateParticleMomentum(p_x, p_y, p_z, pValue, t_generator);
     E = std::sqrt(m2 + pow(pValue, (numType)2.));
     totalEnergy += E;
-    t_particle_X.push_back(x);
-    t_particle_Y.push_back(y);
-    t_particle_Z.push_back(z);
-    t_particle_pX.push_back(p_x);
-    t_particle_pY.push_back(p_y);
-    t_particle_pZ.push_back(p_z);
-    t_particle_E.push_back(E);
-    t_particle_M.push_back(m_mass);
-  }
-  return totalEnergy;
-}
-
-numType ParticleGenerator::generateNParticlesInSphere(
-    numType t_radiusMin, numType t_radiusMax, u_int t_N,
-    RandomNumberGenerator& t_generator, std::vector<Particle>& t_particles) {
-  numType totalEnergy = 0.;
-  numType x, y, z;
-  numType p_x, p_y, p_z;
-  numType E;
-  numType m2 = std::pow(m_mass, (numType)2.);
-  numType pValue;
-  numType radius;
-
-  for (u_int i = 0; i < t_N; i++) {
-    // Generates 3D space coordinates and pushes to m_X vector
-    do {
-      generatePointInSphere(x, y, z, t_radiusMax, t_generator);
-      radius = std::sqrt(std::fma(x, x, fma(y, y, z * z)));
-    } while ((t_radiusMin > radius) || (radius > t_radiusMax));
-
-    // Generates 3D space coordinates and pushes to m_P vector
-    generateParticleMomentum(p_x, p_y, p_z, pValue, t_generator);
-    E = std::sqrt(m2 + pow(pValue, (numType)2.));
-    totalEnergy += E;
-    t_particles.push_back(Particle{x, y, z, p_x, p_y, p_z, E, m_mass});
+    t_particles.getParticleX().push_back(x);
+    t_particles.getParticleY().push_back(y);
+    t_particles.getParticleZ().push_back(z);
+    t_particles.getParticlepX().push_back(p_x);
+    t_particles.getParticlepY().push_back(p_y);
+    t_particles.getParticlepZ().push_back(p_z);
+    t_particles.getParticleE().push_back(E);
+    t_particles.getParticleM().push_back(m_mass);
   }
   return totalEnergy;
 }

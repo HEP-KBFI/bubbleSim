@@ -77,9 +77,9 @@ void CollisionCellCollection::recalculate_cells(ParticleCollection& t_particles,
    * 4 index: Particle count in a cell
    * 5 index: Prod(E_i) in a cell
    */
-  std::vector<std::array<cl_numType, 6>> cell_values(
+  std::vector<std::array<cl_numType, 7>> cell_values(
       m_cellCount, {(cl_numType)0., (cl_numType)0., (cl_numType)0.,
-                    (cl_numType)0., (cl_numType)0., (cl_numType)1.});
+                    (cl_numType)0., (cl_numType)0., (cl_numType)1., (cl_numType)0.,});
 
   /*
    * Sum up all momentums, energies and masses for each cell
@@ -99,6 +99,7 @@ void CollisionCellCollection::recalculate_cells(ParticleCollection& t_particles,
     cell_values[collision_cell_index][3] += t_particles.returnParticleE(i);
     cell_values[collision_cell_index][4] += 1;
     cell_values[collision_cell_index][5] *= t_particles.returnParticleE(i);
+    cell_values[collision_cell_index][6] += std::log(t_particles.returnParticleE(i));
   }
 
   /*
@@ -107,6 +108,7 @@ void CollisionCellCollection::recalculate_cells(ParticleCollection& t_particles,
 
   double no_collision_probability = 0.;
   double probability = 0;
+
 
   for (size_t i = 1; i < m_cellCount; i++) {
     m_collisionCells[i].particle_count = (cl_uint)cell_values[i][4];
@@ -120,11 +122,11 @@ void CollisionCellCollection::recalculate_cells(ParticleCollection& t_particles,
      * N is number of particles in a cell
      */
 
-    no_collision_probability =
-        std::exp(-(std::pow(cell_values[i][3] / (3 * cell_values[i][4]),
-                            cell_values[i][4]) /
-                       cell_values[i][5])) ;
-    
+    no_collision_probability = std::exp(
+        -std::exp(cell_values[i][4] *
+                      std::log(cell_values[i][3] / (3 * cell_values[i][4])) -
+                  cell_values[i][6]));
+
     probability = t_rng.generate_number();
     if (probability <= no_collision_probability) {
       m_collisionCells[i].b_collide = 0;

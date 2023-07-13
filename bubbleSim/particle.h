@@ -21,123 +21,6 @@ typedef struct Particle {
   cl_uint idxCollisionCell = (cl_uint)0;
 } Particle;
 
-class ParticleGenerator {
- public:
-  ParticleGenerator() {}
-  // Constructur to generate particles according to Boltzmann distribution
-  ParticleGenerator(numType t_mass, numType t_temperature,
-                    numType t_maxMomentumValue, numType t_dp);
-  // Constructur to generate all particles with same momentum value
-  ParticleGenerator(numType t_mass, numType t_momentum);
-
-  std::array<std::vector<numType>, 2> m_cumulativeProbabilityFunction;
-
-    numType generateNParticlesInBox(
-      numType t_sideHalf, u_int t_N, RandomNumberGenerator& t_generator,
-      std::vector<numType>& t_particle_X, std::vector<numType>& t_particle_Y,
-      std::vector<numType>& t_particle_Z, std::vector<numType>& t_particle_pX,
-      std::vector<numType>& t_particle_pY, std::vector<numType>& t_particle_pZ,
-      std::vector<numType>& t_particle_E, std::vector<numType>& t_particle_M);
-
-  numType generateNParticlesInBox(numType t_sideHalf, u_int t_N,
-                                  RandomNumberGenerator& t_generator,
-                                  std::vector<Particle>& t_particles);
-
-   numType generateNParticlesInBox(
-      numType t_radiusIn, numType t_sideHalf, u_int t_N,
-      RandomNumberGenerator& t_generator, std::vector<numType>& t_particle_X,
-      std::vector<numType>& t_particle_Y, std::vector<numType>& t_particle_Z,
-      std::vector<numType>& t_particle_pX, std::vector<numType>& t_particle_pY,
-      std::vector<numType>& t_particle_pZ, std::vector<numType>& t_particle_E,
-      std::vector<numType>& t_particle_M);
-
-  numType generateNParticlesInBox(numType t_radiusIn, numType t_sideHalf,
-                                  u_int t_N, RandomNumberGenerator& t_generator,
-                                  std::vector<Particle>& t_particles);
-
-
-  numType generateNParticlesInBox(
-      numType t_xSideHalf, numType t_ySideHalf, numType t_zSideHalf, u_int t_N,
-      RandomNumberGenerator& t_generator, std::vector<numType>& t_particle_X,
-      std::vector<numType>& t_particle_Y, std::vector<numType>& t_particle_Z,
-      std::vector<numType>& t_particle_pX, std::vector<numType>& t_particle_pY,
-      std::vector<numType>& t_particle_pZ, std::vector<numType>& t_particle_E,
-      std::vector<numType>& t_particle_M);
-
-  numType generateNParticlesInBox(numType t_xSideHalf, numType t_ySideHalf,
-                                  numType t_zSideHalf, u_int t_N,
-                                  RandomNumberGenerator& t_generator,
-                                  std::vector<Particle>& t_particles);
-
-  numType generateNParticlesInBox(
-      numType t_radiusIn, numType t_xSideHalf, numType t_ySideHalf,
-      numType t_zSideHalf, u_int t_N, RandomNumberGenerator& t_generator,
-      std::vector<numType>& t_particle_X,
-      std::vector<numType>& t_particle_Y, std::vector<numType>& t_particle_Z,
-      std::vector<numType>& t_particle_pX, std::vector<numType>& t_particle_pY,
-      std::vector<numType>& t_particle_pZ, std::vector<numType>& t_particle_E,
-      std::vector<numType>& t_particle_M);
-
-  numType generateNParticlesInBox(numType t_radiusIn, numType t_xSideHalf,
-                                  numType t_ySideHalf, numType t_zSideHalf,
-                                  u_int t_N, RandomNumberGenerator& t_generator,
-                                  std::vector<Particle>& t_particles);
-
-  numType generateNParticlesInSphere(
-      numType t_radiusMax, u_int t_N, RandomNumberGenerator& t_generator,
-      std::vector<numType>& t_particle_X, std::vector<numType>& t_particle_Y,
-      std::vector<numType>& t_particle_Z, std::vector<numType>& t_particle_pX,
-      std::vector<numType>& t_particle_pY, std::vector<numType>& t_particle_pZ,
-      std::vector<numType>& t_particle_E, std::vector<numType>& t_particle_M);
-
-  numType generateNParticlesInSphere(numType t_radiusMax, u_int t_N,
-                                     RandomNumberGenerator& t_generator,
-                                     std::vector<Particle>& t_particles);
-
-  numType generateNParticlesInSphere(
-      numType t_radiusMin, numType t_radiusMax, u_int t_N,
-      RandomNumberGenerator& t_generator,
-      std::vector<numType>& t_particle_X, std::vector<numType>& t_particle_Y,
-      std::vector<numType>& t_particle_Z, std::vector<numType>& t_particle_pX,
-      std::vector<numType>& t_particle_pY, std::vector<numType>& t_particle_pZ,
-      std::vector<numType>& t_particle_E, std::vector<numType>& t_particle_M);
-
-  numType generateNParticlesInSphere(numType t_radiusMin, numType t_radiusMax,
-                                     u_int t_N,
-                                     RandomNumberGenerator& t_generator,
-                                     std::vector<Particle>& t_particles);
-
- private:
-  numType m_mass = 0;
-  // Index [0] = Probability, Index [1] = Momentum value
-
-  numType interp(numType t_xValue, std::vector<numType>& t_xArray,
-                 std::vector<numType>& t_yArray);
-
-  void generateRandomDirection(numType& x, numType& y, numType& z,
-                               numType t_radius,
-                               RandomNumberGenerator& t_generator);
-
-  void generateParticleMomentum(numType& p_x, numType& p_y, numType& p_z,
-                                numType& t_pResult,
-                                RandomNumberGenerator& t_generator);
-
-  void calculateCPD(numType t_temperature, numType t_pMax, numType t_dp);
-  void calculateCPD(numType t_momentum);
-  void generatePointInBox(numType& x, numType& y, numType& z,
-                          numType& t_SideHalf,
-                          RandomNumberGenerator& t_generator);
-
-  void generatePointInSphere(numType& x, numType& y, numType& z,
-                             numType t_maxRadius,
-                             RandomNumberGenerator& t_generator);
-
-  void generatePointInBox(numType& x, numType& y, numType& z,
-                          numType& t_xSideHalf, numType& t_ySideHalf,
-                          numType& t_zSideHalf,
-                          RandomNumberGenerator& t_generator);
-};
-
 
 // TODO: Flags for all processes of array initialization..
 class ParticleCollection {
@@ -224,7 +107,6 @@ class ParticleCollection {
   std::vector<int8_t> m_interacted_bubble_true_state_copy;
   cl::Buffer m_interacted_bubble_true_state_buffer;
 
-
  public:
   /*
    * NB!!! When initializing the vectors and buffers it is important
@@ -241,9 +123,6 @@ class ParticleCollection {
 
   ParticleCollection& operator=(const ParticleCollection& t) { return *this; }
 
-  
-
-  
   u_int returnCollisionCellIndex(size_t particle_i) {
     return (u_int)m_particle_collision_cell_index[particle_i];
   }
@@ -280,20 +159,18 @@ class ParticleCollection {
     return m_particle_M[particle_i];
   }
 
-  numType returnParticledP(size_t particle_i) { return m_dP[particle_i];
-  }
+  numType returnParticledP(size_t particle_i) { return m_dP[particle_i]; }
 
   // TODO: Particle data buffer writing, reading
   // TODO - boolean buffers
 
-
   /*
-  * ================================================================
-  * ================================================================
-  *                           Getters
-  * ================================================================
-  * ================================================================
-  */
+   * ================================================================
+   * ================================================================
+   *                           Getters
+   * ================================================================
+   * ================================================================
+   */
 
   numType getMassIn() { return m_mass_in; }
 
@@ -320,8 +197,7 @@ class ParticleCollection {
   std::vector<numType>& getParticleE() { return m_particle_E; }
   std::vector<numType>& getParticleM() { return m_particle_M; }
 
-
-   std::vector<int8_t>& getInteractedFalse() {
+  std::vector<int8_t>& getInteractedFalse() {
     return m_interacted_bubble_false_state;
   }
 
@@ -332,7 +208,6 @@ class ParticleCollection {
   std::vector<int8_t>& getInteractedTrue() {
     return m_passed_bubble_false_state;
   }
-
 
   cl::Buffer& getParticleXBuffer() { return m_particle_X_buffer; }
   cl::Buffer& getParticleYBuffer() { return m_particle_Y_buffer; }
@@ -356,7 +231,9 @@ class ParticleCollection {
   std::vector<numType>& getdP() { return m_dP; }
   cl::Buffer& getMassInBuffer() { return m_mass_in_buffer; };
   cl::Buffer& getMassOutBuffer() { return m_mass_out_buffer; }
-  cl::Buffer& getDeltaMassSquaredBuffer() { return m_delta_mass_squared_buffer; };
+  cl::Buffer& getDeltaMassSquaredBuffer() {
+    return m_delta_mass_squared_buffer;
+  };
   cl::Buffer& getParticleInBubbleBuffer() {
     return m_particle_bool_in_bubble_buffer;
   }
@@ -475,7 +352,7 @@ class ParticleCollection {
                                 sizeof(numType), &m_delta_mass_squared);
   }
 
-  void writeParticleInBubbelBuffer(cl::CommandQueue & cl_queue) {
+  void writeParticleInBubbelBuffer(cl::CommandQueue& cl_queue) {
     cl_queue.enqueueWriteBuffer(
         m_particle_bool_in_bubble_buffer, CL_TRUE, 0,
         m_particle_bool_in_bubble.size() * sizeof(cl_char),
@@ -499,10 +376,10 @@ class ParticleCollection {
 
   void readParticleXBuffer(cl::CommandQueue& cl_queue) {
     cl_queue.enqueueReadBuffer(m_particle_X_buffer, CL_TRUE, 0,
-                                m_particle_X.size() * sizeof(numType),
-                                m_particle_X.data());
+                               m_particle_X.size() * sizeof(numType),
+                               m_particle_X.data());
   }
-  
+
   void readParticleYBuffer(cl::CommandQueue& cl_queue) {
     cl_queue.enqueueReadBuffer(m_particle_Y_buffer, CL_TRUE, 0,
                                m_particle_Y.size() * sizeof(numType),
@@ -572,7 +449,8 @@ class ParticleCollection {
   }
 
   void readPassedBubbleFalseStateBuffer(cl::CommandQueue& cl_queue) {
-    cl_queue.enqueueReadBuffer(m_passed_bubble_false_state_buffer, CL_TRUE, 0,
+    cl_queue.enqueueReadBuffer(
+        m_passed_bubble_false_state_buffer, CL_TRUE, 0,
         m_passed_bubble_false_state.size() * sizeof(int8_t),
         m_passed_bubble_false_state.data());
   }
@@ -616,7 +494,6 @@ class ParticleCollection {
    * ================================================================
    */
 
-
   void resetInteractedBubbleFalseState() {
     std::fill(m_interacted_bubble_false_state.begin(),
               m_interacted_bubble_false_state.end(), 0);
@@ -624,8 +501,7 @@ class ParticleCollection {
 
   void resetPassedBubbleFalseState() {
     std::fill(m_passed_bubble_false_state.begin(),
-              m_passed_bubble_false_state.end(),
-              0);
+              m_passed_bubble_false_state.end(), 0);
   }
 
   void resetInteractedBubbleTrueState() {
@@ -666,7 +542,6 @@ class ParticleCollection {
    * ================================================================
    * ================================================================
    */
-  
 
   numType getParticleMass(size_t i) { return m_particle_M[i]; }
 
@@ -706,8 +581,6 @@ class ParticleCollection {
   numType countParticlesEnergy(numType t_radius1);
 
   numType countParticlesEnergy(numType t_radius1, numType t_radius2);
-
-  
 
   /*
    * ================================================================
@@ -814,5 +687,74 @@ class ParticleCollection {
               << m_particle_pX[i] << ", " << m_particle_pY[i] << ", "
               << m_particle_pZ[i] << ")" << std::endl;
   }
+};
 
+
+class ParticleGenerator {
+ public:
+  ParticleGenerator() {}
+  // Constructur to generate particles according to Boltzmann distribution
+  ParticleGenerator(numType t_mass, numType t_temperature,
+                    numType t_maxMomentumValue, numType t_dp);
+  // Constructur to generate all particles with same momentum value
+  ParticleGenerator(numType t_mass, numType t_momentum);
+
+  std::array<std::vector<numType>, 2> m_cumulativeProbabilityFunction;
+
+  numType generateNParticlesInBox(numType t_sideHalf, u_int t_N,
+                                  RandomNumberGenerator& t_generator,
+                                  ParticleCollection& t_particles);
+
+  numType generateNParticlesInBox(numType t_radiusIn, numType t_sideHalf,
+                                  u_int t_N, RandomNumberGenerator& t_generator,
+                                  ParticleCollection& t_particles);
+
+  numType generateNParticlesInBox(numType t_xSideHalf, numType t_ySideHalf,
+                                  numType t_zSideHalf, u_int t_N,
+                                  RandomNumberGenerator& t_generator,
+                                  ParticleCollection& t_particles);
+
+  numType generateNParticlesInBox(numType t_radiusIn, numType t_xSideHalf,
+                                  numType t_ySideHalf, numType t_zSideHalf,
+                                  u_int t_N, RandomNumberGenerator& t_generator,
+                                  ParticleCollection& t_particles);
+
+  numType generateNParticlesInSphere(numType t_radiusMax, u_int t_N,
+                                     RandomNumberGenerator& t_generator,
+                                     ParticleCollection& t_particles);
+
+  numType generateNParticlesInSphere(numType t_radiusMin, numType t_radiusMax,
+                                     u_int t_N,
+                                     RandomNumberGenerator& t_generator,
+                                     ParticleCollection& t_particles);
+
+ private:
+  numType m_mass = 0;
+  // Index [0] = Probability, Index [1] = Momentum value
+
+  numType interp(numType t_xValue, std::vector<numType>& t_xArray,
+                 std::vector<numType>& t_yArray);
+
+  void generateRandomDirection(numType& x, numType& y, numType& z,
+                               numType t_radius,
+                               RandomNumberGenerator& t_generator);
+
+  void generateParticleMomentum(numType& p_x, numType& p_y, numType& p_z,
+                                numType& t_pResult,
+                                RandomNumberGenerator& t_generator);
+
+  void calculateCPD(numType t_temperature, numType t_pMax, numType t_dp);
+  void calculateCPD(numType t_momentum);
+  void generatePointInBox(numType& x, numType& y, numType& z,
+                          numType& t_SideHalf,
+                          RandomNumberGenerator& t_generator);
+
+  void generatePointInSphere(numType& x, numType& y, numType& z,
+                             numType t_maxRadius,
+                             RandomNumberGenerator& t_generator);
+
+  void generatePointInBox(numType& x, numType& y, numType& z,
+                          numType& t_xSideHalf, numType& t_ySideHalf,
+                          numType& t_zSideHalf,
+                          RandomNumberGenerator& t_generator);
 };

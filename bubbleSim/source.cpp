@@ -1,8 +1,13 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include "source.h"
 
+using std::chrono::duration;
+using std::chrono::duration_cast;
+using std::chrono::high_resolution_clock;
+using std::chrono::milliseconds;
+
 // Collision is in development
-bool b_COLLISION_DEVELOPMENT_ON = true;
+bool b_COLLISION_DEVELOPMENT_ON = false;
 
 std::string createFileNameFromCurrentDate() {
   static std::random_device rd;
@@ -72,11 +77,39 @@ void appendSimulationInfoFile(std::ofstream& infoStream,
   infoStream << t_postionDifference << "," << t_programRuntime << std::endl;
 }
 
+std::string measureTime(std::chrono::steady_clock::time_point start_time) {
+  auto end_time = high_resolution_clock::now();
+  auto ms_int = std::chrono::duration_cast<std::chrono::milliseconds>(
+      end_time - start_time);
+  int seconds = (int)(ms_int.count() / 1000) % 60;
+  int minutes = ((int)(ms_int.count() / (1000 * 60)) % 60);
+  int hours = ((int)(ms_int.count() / (1000 * 60 * 60)) % 24);
+
+  std::string lapsed_time = "";
+  if (hours < 10) {
+    lapsed_time += "0" + std::to_string(hours) + ":";
+  } else {
+    lapsed_time += std::to_string(hours) + ":";
+  }
+  if (minutes < 10) {
+    lapsed_time += "0" + std::to_string(minutes) + ":";
+  } else {
+    lapsed_time += std::to_string(minutes) + ":";
+  }
+  if (seconds < 10) {
+    lapsed_time += "0" + std::to_string(seconds);
+  } else {
+    lapsed_time += std::to_string(seconds);
+  }
+  return lapsed_time;
+}
+
 int main(int argc, char* argv[]) {
   if (argc != 3) {
     std::cerr << "Usage: bubbleSim.exe config.json kernel.cl" << std::endl;
     exit(0);
   }
+  auto program_start_time = high_resolution_clock::now();
 
   // Read configs and kernel file
   std::string s_configPath = argv[1];  // "config.json"
@@ -85,11 +118,6 @@ int main(int argc, char* argv[]) {
   std::cout << "Config path: " << s_configPath << std::endl;
   std::cout << "Kernel path: " << s_kernelPath << std::endl;
 
-  using std::chrono::duration;
-  using std::chrono::duration_cast;
-  using std::chrono::high_resolution_clock;
-  using std::chrono::milliseconds;
-  auto programStartTime = high_resolution_clock::now();
   ConfigReader config(s_configPath);
   /*
           ===============  ===============
@@ -106,9 +134,8 @@ int main(int argc, char* argv[]) {
   // 2) Initialize openCL (kernels, commandQueues)
   OpenCLLoader kernels(s_kernelPath, config.kernelName);
 
-
   // 4) Generate particles
-  ParticleGenerator particleGenerator1;  
+  ParticleGenerator particleGenerator1;
   // 4.1) Create generator (calculates distribution)
   if (b_COLLISION_DEVELOPMENT_ON) {
     particleGenerator1 = ParticleGenerator(
@@ -133,17 +160,11 @@ int main(int argc, char* argv[]) {
   if (b_COLLISION_DEVELOPMENT_ON) {
     genreatedParticleEnergy = particleGenerator1.generateNParticlesInBox(
         config.bubbleInitialRadius, (u_int)particles.getParticleCountTotal(),
-        rn_generator, particles.getParticleX(), particles.getParticleY(),
-        particles.getParticleZ(), particles.getParticlepX(),
-        particles.getParticlepY(), particles.getParticlepZ(),
-        particles.getParticleE(), particles.getParticleM());
+        rn_generator, particles);
   } else {
     genreatedParticleEnergy = particleGenerator1.generateNParticlesInSphere(
-        config.bubbleInitialRadius, (u_int)particles.getParticleCountTotal(),
-        rn_generator, particles.getParticleX(), particles.getParticleY(),
-        particles.getParticleZ(), particles.getParticlepX(),
-        particles.getParticlepY(), particles.getParticlepZ(),
-        particles.getParticleE(), particles.getParticleM());
+        config.bubbleInitialRadius, 2 * config.bubbleInitialRadius,
+        (u_int)particles.getParticleCountTotal(), rn_generator, particles);
   }
   numType total_energy = 0;
   for (unsigned int i = 0; i < config.particleCountFalse; i++) {
@@ -295,6 +316,7 @@ int main(int argc, char* argv[]) {
             << ", dP: " << simulation.get_dP() / simulation.get_dt_currentStep()
             << ", E: "
             << simulation.getTotalEnergy() / simulation.getInitialTotalEnergy()
+            << ", Runtime: " << measureTime(program_start_time)
             << std::endl;
 
   // auto streamEndTime = high_resolution_clock::now();
@@ -304,7 +326,6 @@ int main(int argc, char* argv[]) {
        (simulation.getTime() <= config.maxTime) &&
        (config.m_maxSteps > 0 && simulation.getStep() < config.m_maxSteps);
        i++) {
-
     if (b_COLLISION_DEVELOPMENT_ON) {
       simulation.step(particles, cells, rn_generator, i, *stepKernel,
                       kernels.m_cellAssignmentKernel, kernels.m_rotationKernel,
@@ -348,6 +369,7 @@ int main(int argc, char* argv[]) {
                 << ", E: "
                 << simulation.getTotalEnergy() /
                        simulation.getInitialTotalEnergy()
+                << ", Runtime: " << measureTime(program_start_time)
                 << std::endl;
 
       /*std::cout << "Time taken (steps): "
@@ -387,14 +409,12 @@ int main(int argc, char* argv[]) {
   // Measure runtime
   auto programEndTime = high_resolution_clock::now();
   auto ms_int = std::chrono::duration_cast<std::chrono::milliseconds>(
-      programEndTime - programStartTime);
-  int seconds = (int)(ms_int.count() / 1000) % 60;
-  int minutes = ((int)(ms_int.count() / (1000 * 60)) % 60);
-  int hours = ((int)(ms_int.count() / (1000 * 60 * 60)) % 24);
+      programEndTime - program_start_time);
 
   appendSimulationInfoFile(infoStream, 0, (int)ms_int.count());
 
   std::cout << std::endl
-            << "Program run: " << hours << "h " << minutes << "m " << seconds
-            << "s " << std::endl;
+            << "Program run: " << measureTime(program_start_time) << std::endl;
 }
+
+// std::cout << std::resetiosflags( std::cout.flags() );
