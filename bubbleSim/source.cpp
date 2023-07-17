@@ -77,29 +77,7 @@ void appendSimulationInfoFile(std::ofstream& infoStream,
   infoStream << t_postionDifference << "," << t_programRuntime << std::endl;
 }
 
-std::string measureTime(std::chrono::milliseconds time_delta) {
-  int seconds = (int)(time_delta.count() / 1000) % 60;
-  int minutes = ((int)(time_delta.count() / (1000 * 60)) % 60);
-  int hours = ((int)(time_delta.count() / (1000 * 60 * 60)) % 24);
 
-  std::string lapsed_time = "";
-  if (hours < 10) {
-    lapsed_time += "0" + std::to_string(hours) + ":";
-  } else {
-    lapsed_time += std::to_string(hours) + ":";
-  }
-  if (minutes < 10) {
-    lapsed_time += "0" + std::to_string(minutes) + ":";
-  } else {
-    lapsed_time += std::to_string(minutes) + ":";
-  }
-  if (seconds < 10) {
-    lapsed_time += "0" + std::to_string(seconds);
-  } else {
-    lapsed_time += std::to_string(seconds);
-  }
-  return lapsed_time;
-}
 
 int main(int argc, char* argv[]) {
   if (argc != 3) {
@@ -322,11 +300,7 @@ int main(int argc, char* argv[]) {
                    simulation.getInitialCompactnes()
             << ", dP: " << simulation.get_dP() / simulation.get_dt_currentStep()
             << ", E: "
-            << simulation.getTotalEnergy() / simulation.getInitialTotalEnergy()
-            << ", Runtime: "
-            << measureTime(
-                   std::chrono::duration_cast<std::chrono::milliseconds>(
-                       program_second_time - program_start_time))
+            << simulation.getTotalEnergy() / simulation.getInitialTotalEnergy() 
             << std::endl;
 
   // auto streamEndTime = high_resolution_clock::now();
@@ -385,9 +359,6 @@ int main(int argc, char* argv[]) {
           << ", dP: " << simulation.get_dP() / simulation.get_dt_currentStep()
           << ", E: "
           << simulation.getTotalEnergy() / simulation.getInitialTotalEnergy()
-          << ", Runtime: "
-          << measureTime(std::chrono::duration_cast<std::chrono::milliseconds>(
-                 program_second_time - program_start_time))
           << std::endl;
 
       /*std::cout << "Time taken (steps): "
@@ -430,14 +401,6 @@ int main(int argc, char* argv[]) {
       programEndTime - program_start_time);
 
   appendSimulationInfoFile(infoStream, 0, (int)ms_int.count());
-  program_second_time = high_resolution_clock::now();
-
-  std::cout << std::endl
-            << "Program run: "
-            << measureTime(
-                   std::chrono::duration_cast<std::chrono::milliseconds>(
-                       program_second_time - program_start_time))
-            << std::endl;
 }
 
 // std::cout << std::resetiosflags( std::cout.flags() );
