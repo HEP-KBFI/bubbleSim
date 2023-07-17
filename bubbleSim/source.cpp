@@ -77,13 +77,10 @@ void appendSimulationInfoFile(std::ofstream& infoStream,
   infoStream << t_postionDifference << "," << t_programRuntime << std::endl;
 }
 
-std::string measureTime(std::chrono::steady_clock::time_point start_time) {
-  auto end_time = high_resolution_clock::now();
-  auto ms_int = std::chrono::duration_cast<std::chrono::milliseconds>(
-      end_time - start_time);
-  int seconds = (int)(ms_int.count() / 1000) % 60;
-  int minutes = ((int)(ms_int.count() / (1000 * 60)) % 60);
-  int hours = ((int)(ms_int.count() / (1000 * 60 * 60)) % 24);
+std::string measureTime(std::chrono::milliseconds time_delta) {
+  int seconds = (int)(time_delta.count() / 1000) % 60;
+  int minutes = ((int)(time_delta.count() / (1000 * 60)) % 60);
+  int hours = ((int)(time_delta.count() / (1000 * 60 * 60)) % 24);
 
   std::string lapsed_time = "";
   if (hours < 10) {
@@ -110,6 +107,7 @@ int main(int argc, char* argv[]) {
     exit(0);
   }
   auto program_start_time = high_resolution_clock::now();
+  //auto program_second_time = high_resolution_clock::now();
 
   // Read configs and kernel file
   std::string s_configPath = argv[1];  // "config.json"
@@ -315,6 +313,7 @@ int main(int argc, char* argv[]) {
   int stepsSinceLastStream = 0;
   std::cout << "=============== Simulation ===============" << std::endl;
   std::cout << std::setprecision(6) << std::fixed << std::showpoint;
+  auto program_second_time = high_resolution_clock::now();
   std::cout << "Step: " << simulation.getStep()
             << ", Time: " << simulation.getTime()
             << ", R: " << bubble.getRadius() << ", V: " << bubble.getSpeed()
@@ -324,7 +323,10 @@ int main(int argc, char* argv[]) {
             << ", dP: " << simulation.get_dP() / simulation.get_dt_currentStep()
             << ", E: "
             << simulation.getTotalEnergy() / simulation.getInitialTotalEnergy()
-            << ", Runtime: " << measureTime(program_start_time)
+            << ", Runtime: "
+            << measureTime(
+                   std::chrono::duration_cast<std::chrono::milliseconds>(
+                       program_second_time - program_start_time))
             << std::endl;
 
   // auto streamEndTime = high_resolution_clock::now();
@@ -372,20 +374,21 @@ int main(int argc, char* argv[]) {
       // streamEndTime = high_resolution_clock::now();
 
       std::cout << std::setprecision(6) << std::fixed << std::showpoint;
+      program_second_time = high_resolution_clock::now();
 
-      std::cout << "Step: " << simulation.getStep()
-                << ", Time: " << simulation.getTime()
-                << ", R: " << bubble.getRadius() << ", V: " << bubble.getSpeed()
-                << ", C/C0: "
-                << (simulation.getTotalEnergy() / bubble.getRadius()) /
-                       simulation.getInitialCompactnes()
-                << ", dP: "
-                << simulation.get_dP() / simulation.get_dt_currentStep()
-                << ", E: "
-                << simulation.getTotalEnergy() /
-                       simulation.getInitialTotalEnergy()
-                << ", Runtime: " << measureTime(program_start_time)
-                << std::endl;
+      std::cout
+          << "Step: " << simulation.getStep()
+          << ", Time: " << simulation.getTime() << ", R: " << bubble.getRadius()
+          << ", V: " << bubble.getSpeed() << ", C/C0: "
+          << (simulation.getTotalEnergy() / bubble.getRadius()) /
+                 simulation.getInitialCompactnes()
+          << ", dP: " << simulation.get_dP() / simulation.get_dt_currentStep()
+          << ", E: "
+          << simulation.getTotalEnergy() / simulation.getInitialTotalEnergy()
+          << ", Runtime: "
+          << measureTime(std::chrono::duration_cast<std::chrono::milliseconds>(
+                 program_second_time - program_start_time))
+          << std::endl;
 
       /*std::cout << "Time taken (steps): "
                 << std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -427,9 +430,14 @@ int main(int argc, char* argv[]) {
       programEndTime - program_start_time);
 
   appendSimulationInfoFile(infoStream, 0, (int)ms_int.count());
+  program_second_time = high_resolution_clock::now();
 
   std::cout << std::endl
-            << "Program run: " << measureTime(program_start_time) << std::endl;
+            << "Program run: "
+            << measureTime(
+                   std::chrono::duration_cast<std::chrono::milliseconds>(
+                       program_second_time - program_start_time))
+            << std::endl;
 }
 
 // std::cout << std::resetiosflags( std::cout.flags() );

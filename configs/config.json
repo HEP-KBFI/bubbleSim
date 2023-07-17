@@ -8,7 +8,7 @@
         "dt": 0.01,
         "max_time": 50,
         "cyclic_boundary_on": true,
-        "cyclic_boundary_radius": 3
+        "cyclic_boundary_radius": 50
     },
     "parameters": {
         "alpha": 12.24727746868043,
