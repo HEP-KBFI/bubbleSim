@@ -77,32 +77,34 @@ class Simulation {
    * Step with calculated dP value
    */
 
-  void step(ParticleCollection& particles, PhaseBubble& bubble,
+  void stepParticleBubble(ParticleCollection& particles, PhaseBubble& bubble,
             cl::Kernel& t_bubbleInteractionKernel, cl::CommandQueue& cl_queue);
 
-  void step(ParticleCollection& particles, CollisionCellCollection& cells,
-            RandomNumberGenerator& generator_collision, int i,
-            cl::Kernel& t_particleStepKernel,
-            cl::Kernel& t_cellAssignmentKernel, cl::Kernel& t_rotationKernel,
-            cl::Kernel& t_particleBounceKernel, cl::CommandQueue& cl_queue);
-
-  void step(ParticleCollection& particles, PhaseBubble& bubble,
+  void stepParticleBubbleBoundary(ParticleCollection& particles, PhaseBubble& bubble,
             cl::Kernel& t_particle_step_kernel,
             cl::Kernel& t_particle_boundary_check_kernel,
             cl::CommandQueue& cl_queue);
-
-  void step(ParticleCollection& particles, PhaseBubble& bubble,
-            CollisionCellCollection& cells, RandomNumberGenerator& t_rng,
-            cl::Kernel& t_particle_step_kernel,
-            cl::Kernel& t_particle_boundary_check_kernel,
-            cl::Kernel& t_assign_particle_to_collision_cell_kernel,
-            cl::Kernel& t_rotate_momentum_kernel, cl::CommandQueue& cl_queue);
 
   void collide(ParticleCollection& particles, CollisionCellCollection& cells,
                RandomNumberGenerator& generator_collision,
                cl::Kernel& t_assign_particle_to_collision_cell_kernel,
                cl::Kernel& t_rotate_momentum_kernel,
                cl::CommandQueue& cl_queue);
+
+  void stepParticleCollisionBoundary(
+      ParticleCollection& particles, CollisionCellCollection& cells,
+      RandomNumberGenerator& t_rng, cl::Kernel& t_particle_step_kernel,
+      cl::Kernel& t_particle_boundary_check_kernel,
+      cl::Kernel& t_assign_particle_to_collision_cell_kernel,
+      cl::Kernel& t_rotate_momentum_kernel, cl::CommandQueue& cl_queue);
+
+  void stepParticleBubbleCollisionBoundary(
+      ParticleCollection& particles, PhaseBubble& bubble, CollisionCellCollection& cells,
+      RandomNumberGenerator& t_rng, cl::Kernel& t_particle_step_kernel,
+      cl::Kernel& t_particle_boundary_check_kernel,
+      cl::Kernel& t_assign_particle_to_collision_cell_kernel,
+      cl::Kernel& t_rotate_momentum_kernel, cl::CommandQueue& cl_queue);
+
 
   /*
    * ================================================================
