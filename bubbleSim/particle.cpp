@@ -1,18 +1,12 @@
 #include "particle.h"
 
-ParticleGenerator::ParticleGenerator(numType t_mass, numType t_temperature,
-                                     numType t_maxMomentumValue, numType t_dp) {
+ParticleGenerator::ParticleGenerator(numType t_mass) {
   m_mass = t_mass;
-  calculateCPD(t_temperature, t_maxMomentumValue, t_dp);
+  m_CPD_initialized = true;
 }
 
-ParticleGenerator::ParticleGenerator(numType t_mass, numType t_momentum) {
-  m_mass = t_mass;
-  calculateCPD(t_momentum);
-}
-
-void ParticleGenerator::calculateCPD(numType t_temperature, numType t_pMax,
-                                     numType t_dp) {
+void ParticleGenerator::calculateCPDBoltzmann(numType t_temperature,
+                                              numType t_pMax, numType t_dp) {
   size_t vectorSize = (size_t)(t_pMax / t_dp);
 
   m_cumulativeProbabilityFunction[0].clear();
@@ -47,16 +41,67 @@ void ParticleGenerator::calculateCPD(numType t_temperature, numType t_pMax,
   }
 }
 
-void ParticleGenerator::calculateCPD(numType t_momentumValue) {
+void ParticleGenerator::calculateCPDDelta(numType t_momentumValue) {
+  m_CPD_initialized = true;
   m_cumulativeProbabilityFunction[0].clear();
-  m_cumulativeProbabilityFunction[0].reserve(2);
-  m_cumulativeProbabilityFunction[0].push_back(0);
-  m_cumulativeProbabilityFunction[0].push_back(1);
+  m_cumulativeProbabilityFunction[0] =
+      std::vector<numType>{(numType)0., (numType)1.};
 
   m_cumulativeProbabilityFunction[1].clear();
-  m_cumulativeProbabilityFunction[1].reserve(2);
-  m_cumulativeProbabilityFunction[1].push_back(t_momentumValue);
-  m_cumulativeProbabilityFunction[1].push_back(t_momentumValue);
+  m_cumulativeProbabilityFunction[1] =
+      std::vector<numType>{t_momentumValue, t_momentumValue};
+}
+
+void ParticleGenerator::calculateCPDBeta(numType t_shift, numType t_scale,
+                                         numType t_alpha, numType t_beta,
+                                         numType t_dp) { /*
+By default Beta function is limited between 0-1.
+1) leftShift -> Shift Starting point from 0 -> leftShift
+2) t_pMax -> Defined in set [0, 1] to [0, width]
+*/
+  if (t_alpha <= 0) {
+    std::cerr << "Error. alpha<=0" << std::endl;
+    std::exit(0);
+  }
+  if (t_beta <= 0) {
+    std::cerr << "Error. beta<=0" << std::endl;
+    std::exit(0);
+  }
+  size_t vectorSize = (size_t)(t_scale / t_dp);
+  m_cumulativeProbabilityFunction[0].clear();
+  m_cumulativeProbabilityFunction[1].clear();
+
+  m_cumulativeProbabilityFunction[0].reserve(vectorSize);
+  m_cumulativeProbabilityFunction[1].reserve(vectorSize);
+
+  numType lastCPFValue = 0.;
+  numType lastMomentumValue = t_shift;
+
+  m_cumulativeProbabilityFunction[0].push_back(lastCPFValue);
+  m_cumulativeProbabilityFunction[1].push_back(lastMomentumValue);
+
+  for (size_t i = 1; i < vectorSize; i++) {
+    // Integral of: dp * p^2 * exp(-sqrt(p^2+m^2)/T)
+    if (((lastMomentumValue - t_shift) / t_scale <= 0.) ||
+        ((lastMomentumValue - t_shift) / t_scale) >= 1.) {
+      m_cumulativeProbabilityFunction[0].push_back(0);
+      m_cumulativeProbabilityFunction[1].push_back(lastMomentumValue + t_dp);
+    } else {
+      m_cumulativeProbabilityFunction[0].push_back(
+          lastCPFValue +
+          t_dp *
+              std::pow((lastMomentumValue - t_shift) / t_scale, t_alpha - 1.) *
+              std::pow(1 - (lastMomentumValue - t_shift) / t_scale,
+                       t_beta - 1.));
+      m_cumulativeProbabilityFunction[1].push_back(lastMomentumValue + t_dp);
+    }
+    lastCPFValue = m_cumulativeProbabilityFunction[0][i];
+    lastMomentumValue = m_cumulativeProbabilityFunction[1][i];
+  }
+  for (size_t i = 0; i < vectorSize; i++) {
+    m_cumulativeProbabilityFunction[0][i] =
+        m_cumulativeProbabilityFunction[0][i] / lastCPFValue;
+  }
 }
 
 numType ParticleGenerator::interp(numType t_xValue,
@@ -87,8 +132,9 @@ numType ParticleGenerator::interp(numType t_xValue,
 void ParticleGenerator::generateRandomDirection(
     numType& x, numType& y, numType& z, numType t_radius,
     RandomNumberGenerator& t_generator) {
-  numType phi = std::acos(
-      (numType)1. - (numType)2. * t_generator.generate_number());  // inclination
+  numType phi =
+      std::acos((numType)1. -
+                (numType)2. * t_generator.generate_number());  // inclination
   numType theta = (numType)2. * (numType)M_PI * t_generator.generate_number();
   x = t_radius * std::sin(phi) * std::cos(theta);  // x
   y = t_radius * std::sin(phi) * std::sin(theta);  // y
@@ -138,6 +184,11 @@ void ParticleGenerator::generatePointInSphere(
 numType ParticleGenerator::generateNParticlesInBox(
     numType t_sideHalf, u_int t_N, RandomNumberGenerator& t_generator,
     ParticleCollection& t_particles) {
+  if (!m_CPD_initialized) {
+    std::cerr << "CPD not initialized. Can't generate particles." << std::endl;
+    std::exit(0);
+  }
+
   numType totalEnergy = 0.;
 
   numType x, y, z;
@@ -166,10 +217,14 @@ numType ParticleGenerator::generateNParticlesInBox(
   return totalEnergy;
 }
 
-
 numType ParticleGenerator::generateNParticlesInBox(
     numType t_xSideHalf, numType t_ySideHalf, numType t_zSideHalf, u_int t_N,
     RandomNumberGenerator& t_generator, ParticleCollection& t_particles) {
+  if (!m_CPD_initialized) {
+    std::cerr << "CPD not initialized. Can't generate particles." << std::endl;
+    std::exit(0);
+  }
+
   numType totalEnergy = 0.;
 
   numType x, y, z;
@@ -202,6 +257,11 @@ numType ParticleGenerator::generateNParticlesInBox(
 numType ParticleGenerator::generateNParticlesInBox(
     numType t_radiusIn, numType t_sideHalf, u_int t_N,
     RandomNumberGenerator& t_generator, ParticleCollection& t_particles) {
+  if (!m_CPD_initialized) {
+    std::cerr << "CPD not initialized. Can't generate particles." << std::endl;
+    std::exit(0);
+  }
+
   numType totalEnergy = 0.;
 
   numType x, y, z;
@@ -232,11 +292,14 @@ numType ParticleGenerator::generateNParticlesInBox(
   return totalEnergy;
 }
 
-
 numType ParticleGenerator::generateNParticlesInBox(
     numType t_radiusIn, numType t_xSideHalf, numType t_ySideHalf,
     numType t_zSideHalf, u_int t_N, RandomNumberGenerator& t_generator,
     ParticleCollection& t_particles) {
+  if (!m_CPD_initialized) {
+    std::cerr << "CPD not initialized. Can't generate particles." << std::endl;
+    std::exit(0);
+  }
   numType totalEnergy = 0.;
 
   numType x, y, z;
@@ -268,10 +331,13 @@ numType ParticleGenerator::generateNParticlesInBox(
   return totalEnergy;
 }
 
-
 numType ParticleGenerator::generateNParticlesInSphere(
     numType t_radiusMax, u_int t_N, RandomNumberGenerator& t_generator,
     ParticleCollection& t_particles) {
+  if (!m_CPD_initialized) {
+    std::cerr << "CPD not initialized. Can't generate particles." << std::endl;
+    std::exit(0);
+  }
   numType totalEnergy = 0.;
   numType x, y, z;
   numType p_x, p_y, p_z;
@@ -306,6 +372,10 @@ numType ParticleGenerator::generateNParticlesInSphere(
 numType ParticleGenerator::generateNParticlesInSphere(
     numType t_radiusMin, numType t_radiusMax, u_int t_N,
     RandomNumberGenerator& t_generator, ParticleCollection& t_particles) {
+  if (!m_CPD_initialized) {
+    std::cerr << "CPD not initialized. Can't generate particles." << std::endl;
+    std::exit(0);
+  }
   numType totalEnergy = 0.;
   numType x, y, z;
   numType p_x, p_y, p_z;
@@ -361,7 +431,7 @@ ParticleCollection::ParticleCollection(
     m_particleCountOut = t_particleCountTrue;
   }
   m_delta_mass_squared = std::abs(std::pow(t_massTrue, (numType)2.) -
-                          std::pow(t_massFalse, (numType)2.));
+                                  std::pow(t_massFalse, (numType)2.));
 
   m_mass_in_buffer =
       cl::Buffer(cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
@@ -436,8 +506,8 @@ ParticleCollection::ParticleCollection(
 
   m_dP = std::vector<numType>(m_particleCountTotal, (numType)0.);
   m_dP_buffer = cl::Buffer(cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
-                          m_particleCountTotal * sizeof(numType), m_dP.data(),
-                          &openCLerrNum);
+                           m_particleCountTotal * sizeof(numType), m_dP.data(),
+                           &openCLerrNum);
 
   m_particle_bool_collide =
       std::vector<cl_char>(m_particleCountTotal, (cl_char)0);
@@ -464,7 +534,8 @@ ParticleCollection::ParticleCollection(
                  m_particle_collision_cell_index.data(), &openCLerrNum);
 
   // Data reserve
-  m_interacted_bubble_false_state = std::vector<int8_t>(m_particleCountTotal, 0);
+  m_interacted_bubble_false_state =
+      std::vector<int8_t>(m_particleCountTotal, 0);
   m_interacted_bubble_false_state_buffer =
       cl::Buffer(cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
                  m_particleCountTotal * sizeof(int8_t),
@@ -504,9 +575,9 @@ numType ParticleCollection::calculateParticleMomentum(size_t i) {
 numType ParticleCollection::calculateParticleEnergy(size_t i) {
   return std::sqrt(
       std::fma(m_particle_pX[i], m_particle_pX[i],
-                            std::fma(m_particle_pY[i], m_particle_pY[i],
-                                     std::fma(m_particle_pZ[i], m_particle_pZ[i],
-                                        m_particle_M[i] * m_particle_M[i]))));
+               std::fma(m_particle_pY[i], m_particle_pY[i],
+                        std::fma(m_particle_pZ[i], m_particle_pZ[i],
+                                 m_particle_M[i] * m_particle_M[i]))));
 }
 
 numType ParticleCollection::calculateParticleRadialVelocity(size_t i) {
@@ -573,7 +644,8 @@ numType ParticleCollection::countParticleNumberDensity(numType t_radius1) {
 numType ParticleCollection::countParticleNumberDensity(numType t_radius1,
                                                        numType t_radius2) {
   u_int counter = 0;
-  numType volume = (numType)4. *
+  numType volume =
+      (numType)4. *
       ((pow(t_radius2, (numType)3.) - pow(t_radius1, (numType)3.)) *
        (numType)M_PI) /
       (numType)3.;

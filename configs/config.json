@@ -1,6 +1,6 @@
 {
     "kernel":{
-        "name": "particle_step_with_bubble"
+        "name": "particle_step_linear"
     },
     "simulation": {
         "seed": 1,
@@ -21,7 +21,7 @@
         "initial_radius": 1,
         "initial_speed": 0.5,
         "is_true_vacuum": true,
-        "interaction_on": true
+        "interaction_on": false
     },
     "particles": {
         "mass_false": 0,

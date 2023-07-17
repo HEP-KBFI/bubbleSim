@@ -3,24 +3,7 @@
 #include "bubble.h"
 #include "config_reader.hpp"
 #include "random_number.hpp"
-
-typedef struct Particle {
-  cl_numType x;
-  cl_numType y;
-  cl_numType z;
-
-  cl_numType pX;
-  cl_numType pY;
-  cl_numType pZ;
-
-  cl_numType E;
-  cl_numType m;
-
-  cl_char b_collide = (cl_char)1;
-  cl_char b_inBubble = (cl_char)0;
-  cl_uint idxCollisionCell = (cl_uint)0;
-} Particle;
-
+#include "cmath"
 
 // TODO: Flags for all processes of array initialization..
 class ParticleCollection {
@@ -684,12 +667,11 @@ class ParticleGenerator {
  public:
   ParticleGenerator() {}
   // Constructur to generate particles according to Boltzmann distribution
-  ParticleGenerator(numType t_mass, numType t_temperature,
-                    numType t_maxMomentumValue, numType t_dp);
-  // Constructur to generate all particles with same momentum value
-  ParticleGenerator(numType t_mass, numType t_momentum);
+  ParticleGenerator(numType t_mass);
 
   std::array<std::vector<numType>, 2> m_cumulativeProbabilityFunction;
+
+  bool checkCPDInitialization() { return m_CPD_initialized; }
 
   numType generateNParticlesInBox(numType t_sideHalf, u_int t_N,
                                   RandomNumberGenerator& t_generator,
@@ -717,8 +699,15 @@ class ParticleGenerator {
                                      u_int t_N,
                                      RandomNumberGenerator& t_generator,
                                      ParticleCollection& t_particles);
+  void calculateCPDBoltzmann(numType t_temperature, numType t_pMax,
+                             numType t_dp);
+  void calculateCPDDelta(numType t_momentum);
+
+  void calculateCPDBeta(numType t_leftShift, numType t_pMax, numType t_alpha,
+                        numType t_beta, numType t_dp);
 
  private:
+  bool m_CPD_initialized = false;
   numType m_mass = 0;
   // Index [0] = Probability, Index [1] = Momentum value
 
@@ -733,8 +722,6 @@ class ParticleGenerator {
                                 numType& t_pResult,
                                 RandomNumberGenerator& t_generator);
 
-  void calculateCPD(numType t_temperature, numType t_pMax, numType t_dp);
-  void calculateCPD(numType t_momentum);
   void generatePointInBox(numType& x, numType& y, numType& z,
                           numType& t_SideHalf,
                           RandomNumberGenerator& t_generator);

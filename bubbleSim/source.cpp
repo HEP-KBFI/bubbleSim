@@ -111,16 +111,15 @@ int main(int argc, char* argv[]) {
   ParticleGenerator particleGenerator2;
   // 4.1) Create generator (calculates distribution)
 
-  particleGenerator1 = ParticleGenerator(
-      config.particleMassFalse, config.particleTemperatureFalse,
-      30 * config.particleTemperatureFalse,
+  particleGenerator1 = ParticleGenerator(config.particleMassFalse);
+
+  particleGenerator1.calculateCPDBoltzmann(
+      config.particleTemperatureFalse, 30 * config.particleTemperatureFalse,
       1e-5 * config.particleTemperatureFalse);
 
-  particleGenerator2 = ParticleGenerator(
-      config.particleMassFalse, config.particleTemperatureFalse * 5,
-      30 * config.particleTemperatureFalse * 5,
-      1e-5 * config.particleTemperatureFalse * 5);
-
+  particleGenerator2 = ParticleGenerator(config.particleMassFalse);
+  particleGenerator2.calculateCPDBeta(
+      2.5, 1., 2., 2., 0.00001);
   // 4.2) Create arrays for particles which hold the data of the particles
   ParticleCollection particles(
       config.particleMassTrue, config.particleMassFalse,
@@ -133,12 +132,14 @@ int main(int argc, char* argv[]) {
   numType genreatedParticleEnergy;
 
   genreatedParticleEnergy = particleGenerator1.generateNParticlesInSphere(
-      config.bubbleInitialRadius, 4 * config.bubbleInitialRadius,
-      (u_int)(particles.getParticleCountTotal() * 0.75), rn_generator,
+      1.,
+      (u_int)(particles.getParticleCountTotal() * 0.85), rn_generator,
       particles);
   genreatedParticleEnergy += particleGenerator2.generateNParticlesInSphere(
-      config.bubbleInitialRadius, 4 * config.bubbleInitialRadius,
-      (u_int)(particles.getParticleCountTotal() * 0.25), rn_generator,
+      1.,
+      (u_int)(particles.getParticleCountTotal() -
+              particles.getParticleE().size()),
+      rn_generator,
       particles);
 
   numType total_energy = 0;
@@ -153,7 +154,6 @@ int main(int argc, char* argv[]) {
 
   // 5) Initialize simulation object: controls one simulation step
   Simulation simulation;
-
 
   if (!config.cyclicBoundaryOn) {
     simulation = Simulation(config.m_seed, config.dt, kernels.getContext());
@@ -189,7 +189,7 @@ int main(int argc, char* argv[]) {
 
   // Add all energy together in simulation for later use
   simulation.addInitialTotalEnergy(particles.getInitialTotalEnergy());
-  simulation.addInitialTotalEnergy(bubble.calculateEnergy());
+  //simulation.addInitialTotalEnergy(bubble.calculateEnergy());
   simulation.setInitialCompactness(simulation.getInitialTotalEnergy() /
                                    bubble.getInitialRadius());
 
@@ -198,8 +198,13 @@ int main(int argc, char* argv[]) {
                                 config.collision_cell_count, false,
                                 kernels.getContext());
 
-  simulation.setBuffersParticleStepWithBubble(particles, bubble, *stepKernel);
 
+  if (config.bubbleInteractionsOn) {
+    simulation.setBuffersParticleStepWithBubble(particles, bubble, *stepKernel);
+
+  } else {
+    simulation.setBuffersParticleStepLinear(particles, *stepKernel);
+  }
   if (config.collision_on) {
     simulation.setBuffersParticleBoundaryCheck(particles,
                                                kernels.m_particleBounceKernel);
@@ -295,7 +300,6 @@ int main(int argc, char* argv[]) {
 
   // auto streamEndTime = high_resolution_clock::now();
   // auto streamStartTime = high_resolution_clock::now();
-
   for (int i = 1;
        (simulation.getTime() <= config.maxTime) &&
        (config.m_maxSteps > 0 && simulation.getStep() < config.m_maxSteps);
@@ -384,7 +388,8 @@ int main(int argc, char* argv[]) {
                 << bubble.getSpeed() << ")" << std::endl;
       break;
     }
-    if ((bubble.getRadius() >= config.cyclicBoundaryRadius) && (config.cyclicBoundaryOn)) {
+    if ((bubble.getRadius() >= config.cyclicBoundaryRadius) &&
+        (config.cyclicBoundaryOn)) {
       std::cerr
           << "Ending simulation. Bubble radius >= simulation boundary radius."
           << std::endl;
