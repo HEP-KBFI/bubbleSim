@@ -202,11 +202,11 @@ class ParticleCollection {
   }
 
   std::vector<int8_t>& getPassedFalse() {
-    return m_interacted_bubble_false_state;
+    return m_passed_bubble_false_state;
   }
 
   std::vector<int8_t>& getInteractedTrue() {
-    return m_passed_bubble_false_state;
+    return m_interacted_bubble_true_state;
   }
 
   cl::Buffer& getParticleXBuffer() { return m_particle_X_buffer; }
@@ -672,15 +672,6 @@ class ParticleCollection {
    * ================================================================
    */
 
-  void printParticleInfo(size_t i) {
-    std::printf("X: (%.7f, %.7f, %.7f), P: (%.7f, %.7f, %.7f, %.7f), m: %.7f\n",
-                m_particle_X[i], m_particle_Y[i], m_particle_Z[i],
-                m_particle_E[i], m_particle_pX[i], m_particle_pY[i],
-                m_particle_pZ[i], m_particle_M[i]);
-  }
-
-  void print_info(ConfigReader t_config, PhaseBubble& t_bubble);
-
   void print_particle_info(unsigned int i) {
     std::cout << "(" << m_particle_X[i] << ", " << m_particle_Y[i] << ", "
               << m_particle_Z[i] << ") (" << m_particle_E[i] << ", "
@@ -688,7 +679,6 @@ class ParticleCollection {
               << m_particle_pZ[i] << ")" << std::endl;
   }
 };
-
 
 class ParticleGenerator {
  public:

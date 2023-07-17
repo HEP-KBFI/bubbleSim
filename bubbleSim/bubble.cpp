@@ -20,8 +20,8 @@ PhaseBubble::PhaseBubble(numType t_initialRadius, numType t_initialSpeed,
   numType gamma =
       1.0 / std::exp((std::log1p((-t_initialSpeed * t_initialSpeed)) * 0.5));
   numType gammaXspeed = t_initialSpeed * gamma;
-  m_bubble = Bubble{t_initialRadius, radius2,     radius2, t_initialSpeed,
-                    gamma,           gammaXspeed, gamma};
+  m_bubble = Bubble{t_initialRadius, radius2, t_initialSpeed,
+                    gamma,           gammaXspeed};
   m_bubble_copy = m_bubble;
   m_bubbleBuffer =
       cl::Buffer(cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
@@ -49,11 +49,6 @@ numType PhaseBubble::calculateVolume() {
 
 numType PhaseBubble::calculateEnergy() {
   return calculateArea() * m_sigma * m_bubble.gamma - calculateVolume() * m_dV;
-}
-numType PhaseBubble::calculateRadiusAfterStep2(numType dt) {
-  m_bubble.radiusAfterStep2 =
-      pow(std::fma(m_bubble.speed, dt, m_bubble.radius), 2);
-  return m_bubble.radiusAfterStep2;
 }
 
 void PhaseBubble::evolveWall(numType dt, numType dP) {

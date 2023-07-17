@@ -4,41 +4,41 @@
     },
     "simulation": {
         "seed": 1,
-        "max_steps": 2000,
-        "dt": 0.0001,
+        "max_steps": 20000,
+        "dt": 0.01,
         "max_time": 50,
         "cyclic_boundary_on": true,
-        "cyclic_boundary_radius": 50
+        "cyclic_boundary_radius": 3
     },
     "parameters": {
         "alpha": 12.24727746868043,
         "eta": 1000,
         "upsilon": 0.4,
         "coupling": 0.0,
-        "dV": 0.24
+        "dV": 1600000
     },
     "bubble": {
         "initial_radius": 1,
-        "initial_speed": 0,
+        "initial_speed": 0.5,
         "is_true_vacuum": true,
         "interaction_on": true
     },
     "particles": {
         "mass_false": 0,
         "mass_true": 1,
-        "T_false": 0.00001,
+        "T_false": 0.5,
         "T_true": 0.0,
-        "N_false": 100000,
+        "N_false": 750000,
         "N_true": 0
     },
     "collision": {
-        "collision_on": false,
-        "N_cells": 27,
-        "cell_length": 0.0741
+        "collision_on": true,
+        "N_cells": 101,
+        "cell_length": 0.0298
     },
     "stream": {
         "stream": true,
-        "stream_time": 0.001,
+        "stream_time": 0.01,
         "stream_step": 10000,
         "data_save_path": "data",
         "stream_data": true,
@@ -59,7 +59,7 @@
         "max_value_energy": 11,
         "max_value_radial_velocity": 11,
         "max_value_tangential_velocity": 11,
-        "max_value_momentumIn": 11.5,
-        "max_value_momentumOut": 11.5
+        "max_value_momentumIn": 15,
+        "max_value_momentumOut": 15
     }
 }

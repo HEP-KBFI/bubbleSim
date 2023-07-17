@@ -375,42 +375,36 @@ void Simulation::setBuffersLabelParticleInBubbleMass(
  */
 
 // Step with bubble kernel
+/*
+ * Simple bubble step algorithm with bubble
+ *
+ * // TODO: Energy summation on the GPU
+ * // TODO: dP summation on the GPU
+ * // TODO: Simulation revert option
+ */
 void Simulation::step(ParticleCollection& particles, PhaseBubble& bubble,
                       cl::Kernel& t_particle_step_kernel,
                       cl::CommandQueue& cl_queue) {
-  // 1) Update timestep
-  // numType bubbleStartSpeed = bubble.getSpeed();
   m_timestepAdapter.calculateNewTimeStep(bubble);
   m_dt_current = m_timestepAdapter.getTimestep();
-
-  // Move timestep to GPU
   writedtBuffer(cl_queue);
-  // 2) Update data on GPU
-  bubble.calculateRadiusAfterStep2(m_dt_current);
-  bubble.writeBubbleBuffer(cl_queue);
 
-  // 3) Run kernel (move particles on GPU)
   cl_queue.enqueueNDRangeKernel(t_particle_step_kernel, cl::NullRange,
                                 cl::NDRange(particles.getParticleCountTotal()));
-  // 4 Read particle data from GPU after the step
 
-  // TODO: Energy summation on the GPU
-  // TODO: dP summation on the GPU
   particles.readParticleEBuffer(cl_queue);
   particles.readdPBuffer(cl_queue);
 
-  // Calculate particle energy change -> pressure on the wall
   m_dP = 0.;
   numType currentTotalEnergy = 0.;
   for (size_t i = 0; i < particles.getParticleCountTotal(); i++) {
     m_dP += particles.returnParticledP(i);
     currentTotalEnergy += particles.returnParticleE(i);
   }
-  // Convert energy change to pressure
-  m_dP = -m_dP / bubble.calculateArea();
 
-  // 5) Evolve bubble
+  m_dP = -m_dP / bubble.calculateArea();
   bubble.evolveWall(m_dt_current, m_dP);
+  bubble.writeBubbleBuffer(cl_queue);
   currentTotalEnergy += bubble.calculateEnergy();
 
   /* In development: adaptive timestep ; step revert
@@ -438,7 +432,6 @@ void Simulation::step(ParticleCollection& particles, PhaseBubble& bubble,
   }
   */
 
-  // Update simulation info
   m_totalEnergy = currentTotalEnergy;
   m_time += m_dt_current;
   m_step_count += 1;
@@ -475,12 +468,9 @@ void Simulation::step(ParticleCollection& particles,
                       cl::CommandQueue& cl_queue) {
   // Move particles
   // TODO: Define temperature from config or dynamically.
-  numType temperature = (numType)0.01;
 
   cl_queue.enqueueNDRangeKernel(t_particle_step_kernel, cl::NullRange,
                                 cl::NDRange(particles.getParticleCountTotal()));
-  particles.readParticleXBuffer(cl_queue);
-
   cl_queue.enqueueNDRangeKernel(t_particle_boundary_check_kernel, cl::NullRange,
                                 cl::NDRange(particles.getParticleCountTotal()));
   if (i % 1 == 0) {
@@ -497,7 +487,7 @@ void Simulation::step(ParticleCollection& particles,
     particles.readParticleEBuffer(cl_queue);
     particles.readParticleCollisionCellIndexBuffer(cl_queue);
     // Calculate COM and genrate rotation matrix for each cell
-    cells.recalculate_cells(particles, temperature, generator_collision);
+    cells.recalculate_cells(particles, generator_collision);
 
     // Update collision cell data on GPU
     particles.writeParticleCollisionCellIndexBuffer(cl_queue);
@@ -509,6 +499,76 @@ void Simulation::step(ParticleCollection& particles,
     // particles.readParticlesBuffer(cl_queue);
   }
   //  Update simulation time
+  m_time += m_dt_current;
+  m_step_count += 1;
+}
+
+void Simulation::collide(ParticleCollection& particles,
+                         CollisionCellCollection& cells,
+                         RandomNumberGenerator& t_rng,
+                         cl::Kernel& t_assign_particle_to_collision_cell_kernel,
+                         cl::Kernel& t_rotate_momentum_kernel,
+                         cl::CommandQueue& cl_queue) {
+  cells.generateShiftVector(t_rng);
+  cells.writeShiftVectorBuffer(cl_queue);
+  // Assign particles to collision cells
+  cl_queue.enqueueNDRangeKernel(t_assign_particle_to_collision_cell_kernel,
+                                cl::NullRange,
+                                cl::NDRange(particles.getParticleCountTotal()));
+  // Update particle data on CPU
+  particles.readParticleCoordinatesBuffer(cl_queue);
+  particles.readParticleMomentumsBuffer(cl_queue);
+  particles.readParticleEBuffer(cl_queue);
+  particles.readParticleCollisionCellIndexBuffer(cl_queue);
+  // Calculate COM and genrate rotation matrix for each cell
+  cells.recalculate_cells(particles, t_rng);
+
+  // Update collision cell data on GPU
+  particles.writeParticleCollisionCellIndexBuffer(cl_queue);
+  cells.writeCollisionCellBuffer(cl_queue);
+  // Rotate momentum
+  cl_queue.enqueueNDRangeKernel(t_rotate_momentum_kernel, cl::NullRange,
+                                cl::NDRange(particles.getParticleCountTotal()));
+}
+
+void Simulation::step(ParticleCollection& particles, PhaseBubble& bubble,
+                      CollisionCellCollection& cells,
+                      RandomNumberGenerator& t_rng,
+                      cl::Kernel& t_particle_step_kernel,
+                      cl::Kernel& t_particle_boundary_check_kernel,
+                      cl::Kernel& t_assign_particle_to_collision_cell_kernel,
+                      cl::Kernel& t_rotate_momentum_kernel,
+                      cl::CommandQueue& cl_queue) {
+  m_timestepAdapter.calculateNewTimeStep(bubble);
+  m_dt_current = m_timestepAdapter.getTimestep();
+  writedtBuffer(cl_queue);
+
+  cl_queue.enqueueNDRangeKernel(t_particle_step_kernel, cl::NullRange,
+                                cl::NDRange(particles.getParticleCountTotal()));
+  cl_queue.enqueueNDRangeKernel(t_particle_boundary_check_kernel, cl::NullRange,
+                                cl::NDRange(particles.getParticleCountTotal()));
+  if (true) {
+    collide(particles, cells, t_rng, t_assign_particle_to_collision_cell_kernel,
+            t_rotate_momentum_kernel, cl_queue);
+  }
+
+  particles.readParticleEBuffer(cl_queue);
+  particles.readdPBuffer(cl_queue);
+
+  m_dP = 0.;
+  numType currentTotalEnergy = 0.;
+  for (size_t i = 0; i < particles.getParticleCountTotal(); i++) {
+    m_dP += particles.returnParticledP(i);
+    currentTotalEnergy += particles.returnParticleE(i);
+  }
+
+  m_dP = -m_dP / bubble.calculateArea();
+
+  bubble.evolveWall(m_dt_current, m_dP);
+  bubble.writeBubbleBuffer(cl_queue);
+  currentTotalEnergy += bubble.calculateEnergy();
+
+  m_totalEnergy = currentTotalEnergy;
   m_time += m_dt_current;
   m_step_count += 1;
 }

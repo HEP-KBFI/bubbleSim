@@ -4,7 +4,6 @@
 typedef struct Bubble {
   double radius;
   double radius2;           // Squared
-  double radiusAfterStep2;  // (radius + speed * dt)^2
   double speed;
   double gamma;
   double gammaXspeed;  // gamma * speed
@@ -216,12 +215,12 @@ __kernel void particle_step_with_bubble(
     // Particle starts inside the bubble
     if (X2 < bubble.radius2) {
       // Particle stays inside the bubble
-      if (X_dt2 < bubble.radiusAfterStep2) {
+      if (X_dt2 < pow(bubble.radius + bubble.speed*dt, 2.)) {
         x = x_Vdt;
         y = y_Vdt;
         z = z_Vdt;
         t_dP[gid] = 0.;
-      } 
+      }
       // Particle can get out
       else {
         double nX, nY, nZ;
@@ -241,7 +240,7 @@ __kernel void particle_step_with_bubble(
           t_dP[gid] = bubble.gamma * np * 2.;
           E = calculateParticleEnergy(pX, pY, pZ, M_in);
           t_interactedFalse[gid] += 1;
-        } 
+        }
         // Particle penetrates the bubble wall
         else {
           particles_M[gid] = M_out;
@@ -261,16 +260,16 @@ __kernel void particle_step_with_bubble(
         y = moveLinear(y, vY, dt - time_to_wall);
         z = moveLinear(z, vZ, dt - time_to_wall);
       }
-    } 
+    }
     // Particle starts outside
     else {
       // Particle stays outsided
-      if (X_dt2 > bubble.radiusAfterStep2) {
+      if (X_dt2 > pow(bubble.radius + bubble.speed*dt, 2.)) {
         x = moveLinear(x, vX, dt);
         y = moveLinear(y, vY, dt);
         z = moveLinear(z, vZ, dt);
         t_dP[gid] = 0.;
-      } 
+      }
       // Particle penetrates the bubble wall
       else {
         double nX, nY, nZ;
@@ -302,7 +301,7 @@ __kernel void particle_step_with_bubble(
     // Particle starts outside the bubble
     if (X2 > bubble.radius2) {
       // Particle stays outside
-      if (X_dt2 > bubble.radiusAfterStep2) {
+      if (X_dt2 > pow(bubble.radius + bubble.speed*dt, 2.)) {
         x = x_Vdt;
         y = y_Vdt;
         z = z_Vdt;
@@ -352,11 +351,11 @@ __kernel void particle_step_with_bubble(
         y = moveLinear(y, vY, dt - time_to_wall);
         z = moveLinear(z, vZ, dt - time_to_wall);
       }
-    } 
+    }
     // Particle starts inside the bubble
     else {
       // Particle stays inside
-      if (X_dt2 < bubble.radiusAfterStep2) {
+      if (X_dt2 < pow(bubble.radius + bubble.speed*dt, 2.)) {
         x = x_Vdt;
         y = y_Vdt;
         z = z_Vdt;
@@ -372,9 +371,6 @@ __kernel void particle_step_with_bubble(
         z = moveLinear(z, vZ, time_to_wall);
         X2 = calculateDistanceSquaredFromCenter(x, y, z);
         calculateNormal(&nX, &nY, &nZ, x, y, z, bubble, X2);
-        nX = -nX;
-        nY = -nY;
-        nZ = -nZ;
         np = bubble.speed * bubble.gamma * E - nX * pX - nY * pY - nZ * pZ;
         particles_M[gid] = M_out;
         pX = fma(np * (1. - sqrt(1. + Delta_M2 / pow(np, 2.))), nX, pX);
@@ -456,7 +452,7 @@ __kernel void particle_step_with_bubble_inverted(
 
   if (M_in < M_out) {
     if (X2 < bubble.radius2) {
-      if (X_dt2 < bubble.radiusAfterStep2) {
+      if (X_dt2 < pow(bubble.radius + bubble.speed*dt, 2.)) {
         x = x_Vdt;
         y = y_Vdt;
         z = z_Vdt;
@@ -511,7 +507,7 @@ __kernel void particle_step_with_bubble_inverted(
         z = moveLinear(z, vZ, dt - time_to_wall);
       }
     } else {
-      if (X_dt2 > bubble.radiusAfterStep2) {
+      if (X_dt2 > pow(bubble.radius + bubble.speed*dt, 2.)) {
         x = moveLinear(x, vX, dt);
         y = moveLinear(y, vY, dt);
         z = moveLinear(z, vZ, dt);
@@ -556,7 +552,7 @@ __kernel void particle_step_with_bubble_inverted(
     }
   } else {
     if (X2 > bubble.radius2) {
-      if (X_dt2 > bubble.radiusAfterStep2) {
+      if (X_dt2 > pow(bubble.radius + bubble.speed*dt, 2.)) {
         x = x_Vdt;
         y = y_Vdt;
         z = z_Vdt;
@@ -607,7 +603,7 @@ __kernel void particle_step_with_bubble_inverted(
         z = moveLinear(z, vZ, dt - time_to_wall);
       }
     } else {
-      if (X_dt2 < bubble.radiusAfterStep2) {
+      if (X_dt2 < pow(bubble.radius + bubble.speed*dt, 2.)) {
         x = moveLinear(x, vX, dt);
         y = moveLinear(y, vY, dt);
         z = moveLinear(z, vZ, dt);
@@ -708,7 +704,7 @@ __kernel void particles_with_false_bubble_step_reflect(
 
   if (((X2 < bubble.radius2) && (M_in < M_out))) {
     // move particles that stay in
-    if ((X_dt2 < bubble.radiusAfterStep2) && (M_in < M_out)) {
+    if ((X_dt2 < pow(bubble.radius + bubble.speed*dt, 2.)) && (M_in < M_out)) {
       x = x_Vdt;
       y = y_Vdt;
       z = z_Vdt;

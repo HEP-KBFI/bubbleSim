@@ -30,29 +30,29 @@ class Simulation {
    * ================================================================
    */
   void setBuffersParticleStepLinear(ParticleCollection& t_particles,
-                                        cl::Kernel& t_kernel);
+                                    cl::Kernel& t_kernel);
 
-  void setBuffersParticleStepWithBubble(
-      ParticleCollection& t_particles, PhaseBubble& t_bubble,
-      cl::Kernel& t_bubbleInteractionKernel);
+  void setBuffersParticleStepWithBubble(ParticleCollection& t_particles,
+                                        PhaseBubble& t_bubble,
+                                        cl::Kernel& t_bubbleInteractionKernel);
 
-  void setBuffersParticleStepWithBubbleInverted(
-      ParticleCollection& t_particles, PhaseBubble& t_bubble,
-      cl::Kernel& t_kernel);
+  void setBuffersParticleStepWithBubbleInverted(ParticleCollection& t_particles,
+                                                PhaseBubble& t_bubble,
+                                                cl::Kernel& t_kernel);
 
   void setBuffersParticleStepWithBubbleOnlyReflect(
       ParticleCollection& t_particles, PhaseBubble& t_bubble,
       cl::Kernel& t_kernel);
 
   void setBuffersParticleBoundaryCheck(ParticleCollection& t_particles,
-                                           cl::Kernel& t_kernel);
+                                       cl::Kernel& t_kernel);
 
   void setBuffersParticleBoundaryMomentumReflect(
       ParticleCollection& t_particles, cl::Kernel& t_kernel);
 
   void setBuffersRotateMomentum(ParticleCollection& t_particles,
-                                   CollisionCellCollection& cells,
-                                   cl::Kernel& t_kernel);
+                                CollisionCellCollection& cells,
+                                cl::Kernel& t_kernel);
 
   void setBuffersAssignParticleToCollisionCell(
       ParticleCollection& t_particles, CollisionCellCollection& cells,
@@ -62,8 +62,8 @@ class Simulation {
       ParticleCollection& t_particles, PhaseBubble& t_bubble,
       cl::Kernel& t_kernel);
 
-  void setBuffersLabelParticleInBubbleMass(
-      ParticleCollection& t_particles, cl::Kernel& t_kernel);
+  void setBuffersLabelParticleInBubbleMass(ParticleCollection& t_particles,
+                                           cl::Kernel& t_kernel);
   /*
    * ================================================================
    * ================================================================
@@ -87,9 +87,23 @@ class Simulation {
             cl::Kernel& t_particleBounceKernel, cl::CommandQueue& cl_queue);
 
   void step(ParticleCollection& particles, PhaseBubble& bubble,
-                        cl::Kernel& t_particle_step_kernel,
-                        cl::Kernel& t_particle_boundary_check_kernel,
-                        cl::CommandQueue& cl_queue);
+            cl::Kernel& t_particle_step_kernel,
+            cl::Kernel& t_particle_boundary_check_kernel,
+            cl::CommandQueue& cl_queue);
+
+  void step(ParticleCollection& particles, PhaseBubble& bubble,
+            CollisionCellCollection& cells, RandomNumberGenerator& t_rng,
+            cl::Kernel& t_particle_step_kernel,
+            cl::Kernel& t_particle_boundary_check_kernel,
+            cl::Kernel& t_assign_particle_to_collision_cell_kernel,
+            cl::Kernel& t_rotate_momentum_kernel, cl::CommandQueue& cl_queue);
+
+  void collide(ParticleCollection& particles, CollisionCellCollection& cells,
+               RandomNumberGenerator& generator_collision,
+               cl::Kernel& t_assign_particle_to_collision_cell_kernel,
+               cl::Kernel& t_rotate_momentum_kernel,
+               cl::CommandQueue& cl_queue);
+
   /*
    * ================================================================
    * ================================================================

@@ -217,8 +217,8 @@ int main(int argc, char* argv[]) {
                                    bubble.getInitialRadius());
 
   // In development: collision
-  CollisionCellCollection cells(config.collisionCellLength,
-                                config.collisionCellCount, false,
+  CollisionCellCollection cells(config.collision_cell_length,
+                                config.collision_cell_count, false,
                                 kernels.getContext());
   if (b_COLLISION_DEVELOPMENT_ON) {
     simulation.setBuffersParticleStepLinear(particles, *stepKernel);
@@ -232,6 +232,16 @@ int main(int argc, char* argv[]) {
     cells.writeAllBuffersToKernel(kernels.getCommandQueue());
   } else {
     simulation.setBuffersParticleStepWithBubble(particles, bubble, *stepKernel);
+  }
+
+  if (config.collision_on) {
+    simulation.setBuffersParticleBoundaryCheck(particles,
+                                               kernels.m_particleBounceKernel);
+    simulation.setBuffersAssignParticleToCollisionCell(
+        particles, cells, kernels.m_cellAssignmentKernel);
+    simulation.setBuffersRotateMomentum(particles, cells,
+                                        kernels.m_rotationKernel);
+    cells.writeAllBuffersToKernel(kernels.getCommandQueue());
   }
 
   // Copy data to the GPU
@@ -284,8 +294,6 @@ int main(int argc, char* argv[]) {
   std::cout << std::endl;
   config.print_info();
   std::cout << std::endl;
-  particles.print_info(config, bubble);
-  std::cout << std::endl;
   bubble.print_info(config);
   std::cout << std::endl;
   // 9) Streams
@@ -334,8 +342,15 @@ int main(int argc, char* argv[]) {
 
     } else {
       if (config.bubbleInteractionsOn) {
-        simulation.step(particles, bubble, *stepKernel,
-                        kernels.getCommandQueue());
+        if (config.collision_on) {
+          simulation.step(particles, bubble, cells, rn_generator, *stepKernel,
+                          kernels.m_particleBounceKernel,
+                          kernels.m_cellAssignmentKernel,
+                          kernels.m_rotationKernel, kernels.getCommandQueue());
+        } else {
+          simulation.step(particles, bubble, *stepKernel,
+                          kernels.getCommandQueue());
+        }
       } else {
         simulation.step(bubble, 0);
       }
