@@ -7,7 +7,7 @@ class ConfigReader {
  public:
   std::string kernelName;
   int m_seed;
-  int m_maxSteps;
+  u_int m_maxSteps;
   numType dt;
   numType maxTime;
   bool cyclicBoundaryOn;
@@ -31,10 +31,10 @@ class ConfigReader {
   /*
    * Collision parameters
    */
-  bool collisionCellOn;
+  bool collision_on;
   numType parameterCoupling;
-  unsigned int collisionCellCount;
-  numType collisionCellLength;
+  unsigned int collision_cell_count;
+  numType collision_cell_length;
   /*
    * Bubble parameters
    */
@@ -109,9 +109,9 @@ class ConfigReader {
     /*
      * Collisions
      */
-    collisionCellOn = config["collision"]["collision_on"];
-    collisionCellCount = config["collision"]["N_cells"];
-    collisionCellLength = config["collision"]["cell_length"];
+    collision_on = config["collision"]["collision_on"];
+    collision_cell_count = config["collision"]["N_cells"];
+    collision_cell_length = config["collision"]["cell_length"];
     /*
      * Bubble parameters
      */

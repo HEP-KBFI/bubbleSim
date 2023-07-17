@@ -39,6 +39,7 @@ class DataStreamer {
   void initStream_TangentialVelocity(size_t t_binsCount,
                                      numType t_maxRadiusValue);
   void initStream_radialMomentum(size_t t_binsCount, numType t_maxRadiusValue);
+  void initStream_Momentum(size_t t_binsCount, numType t_maxMomentumValue);
 
   void stream(Simulation& simulation, ParticleCollection& particleCollection,
               PhaseBubble& bubble, cl::CommandQueue& cl_queue);
@@ -74,7 +75,7 @@ class DataStreamer {
                                 numType t_maxRadiusValue,
                                 ParticleCollection& particleCollection,
                                 cl::CommandQueue& cl_queue);
-  void StreamRadialMomentumProfile(
+  void streamRadialMomentumProfile(
       std::ofstream& t_stream, size_t t_binsCountRadius,
       size_t t_binsCountMomentum, numType t_minRadiusValue,
       numType t_maxRadiusValue, numType t_minMomentumValue,
@@ -85,6 +86,9 @@ class DataStreamer {
   std::filesystem::path m_filePath;
 
   std::ofstream m_stream_Data;
+  std::ofstream m_stream_MomentumX;
+  std::ofstream m_stream_MomentumY;
+  std::ofstream m_stream_MomentumZ;
   std::ofstream m_stream_MomentumIn;
   std::ofstream m_stream_MomentumOut;
 
@@ -98,6 +102,7 @@ class DataStreamer {
   // General data about simulation state
   bool m_initialized_Data = false;
   // Momentum profiles in and outside the bubble
+  bool m_initialized_Momentum = false;
   bool m_initialized_MomentumIn = false;
   bool m_initialized_MomentumOut = false;
   // Energy and number desnity profiles
@@ -108,6 +113,7 @@ class DataStreamer {
   bool m_initialized_TangentialVelocity = false;
   bool m_initialized_RadialMomentum = false;
 
+  size_t m_binsCount_Momentum;
   size_t m_binsCount_MomentumIn;
   size_t m_binsCount_MomentumOut;
   size_t m_binsCount_Density;
@@ -115,6 +121,7 @@ class DataStreamer {
   size_t m_binsCount_RadialVelocity;
   size_t m_binsCount_TangentialVelocity;
 
+  numType m_maxMomentum_Momentum;
   numType m_maxMomentum_MomentumIn;
   numType m_maxMomentum_MomentumOut;
   numType m_maxRadius_Density;
@@ -122,6 +129,7 @@ class DataStreamer {
   numType m_maxRadius_RadialVelocity;
   numType m_maxRadius_TangentialVelocity;
 
+  numType m_dp_Momentum;
   numType m_dp_MomentumIn;
   numType m_dp_MomentumOut;
   numType m_dr_Density;

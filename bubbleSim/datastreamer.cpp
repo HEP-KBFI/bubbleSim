@@ -26,6 +26,33 @@ void DataStreamer::initStream_Data() {
                 << std::endl;
 }
 
+void DataStreamer::initStream_Momentum(size_t t_binsCount,
+                                       numType t_maxMomentumValue) {
+  m_initialized_Momentum = true;
+  m_binsCount_Momentum = t_binsCount;
+  m_maxMomentum_Momentum = t_maxMomentumValue;
+  m_dp_Momentum = t_maxMomentumValue / t_binsCount;
+
+  m_stream_MomentumX.open(m_filePath / "pX.csv", std::ios::out);
+  m_stream_MomentumY.open(m_filePath / "pY.csv", std::ios::out);
+  m_stream_MomentumZ.open(m_filePath / "pZ.csv", std::ios::out);
+
+  m_stream_MomentumX << t_binsCount << "," << t_maxMomentumValue << "\n";
+  m_stream_MomentumY << t_binsCount << "," << t_maxMomentumValue << "\n";
+  m_stream_MomentumZ << t_binsCount << "," << t_maxMomentumValue << "\n";
+  for (size_t i = 1; i <= t_binsCount; i++) {
+    if (i == t_binsCount) {
+      m_stream_MomentumX << i << std::endl;
+      m_stream_MomentumY << i << std::endl;
+      m_stream_MomentumZ << i << std::endl;
+    } else {
+      m_stream_MomentumX << i << ",";
+      m_stream_MomentumY << i << ",";
+      m_stream_MomentumZ << i << ",";
+    }
+  }
+}
+
 void DataStreamer::initStream_MomentumIn(size_t t_binsCount,
                                          numType t_maxMomentumValue) {
   m_initialized_MomentumIn = true;
@@ -149,8 +176,6 @@ void DataStreamer::stream(Simulation& simulation,
 
   std::cout << std::setprecision(8) << std::fixed << std::showpoint;
 
-  particleCollection.readParticlesBuffer(cl_queue);
-
   /*
    * Read particle buffers to get if particle interacted with the bubble or not
    * Don't read bubble buffer as it is not updated. Use PhaseBubble object.
@@ -170,6 +195,9 @@ void DataStreamer::stream(Simulation& simulation,
   numType totalEnergy;
 
   // Save momentum data
+  std::vector<u_int> bins_MomentumX;
+  std::vector<u_int> bins_MomentumY;
+  std::vector<u_int> bins_MomentumZ;
   std::vector<u_int> bins_MomentumIn;
   std::vector<u_int> bins_MomentumOut;
 
@@ -183,7 +211,18 @@ void DataStreamer::stream(Simulation& simulation,
   std::vector<u_int> bins_RadialVelocityCount;
   std::vector<u_int> bins_TangentialVelocityCount;
 
+  // Read data from buffer:
+  particleCollection.readParticleCoordinatesBuffer(cl_queue);
+  particleCollection.readParticleMomentumsBuffer(cl_queue);
+  particleCollection.readParticleEBuffer(cl_queue);
+
+
   // Initialize variables
+  if (m_initialized_Momentum) {
+    bins_MomentumX.resize(m_binsCount_Momentum, 0);
+    bins_MomentumY.resize(m_binsCount_Momentum, 0);
+    bins_MomentumZ.resize(m_binsCount_Momentum, 0);
+  }
   if (m_initialized_MomentumIn) {
     bins_MomentumIn.resize(m_binsCount_MomentumIn, 0);
   }
@@ -222,19 +261,36 @@ void DataStreamer::stream(Simulation& simulation,
     particleRadius = particleCollection.calculateParticleRadius(i);
     particleMomentum = particleCollection.calculateParticleMomentum(i);
 
+    if (m_initialized_Momentum) {
+      bins_MomentumX[std::clamp(
+          (int)(abs(particleCollection.returnParticlepX(i) / m_dp_Momentum)),
+          0, (int)m_binsCount_Momentum - 1)] += 1;
+      bins_MomentumY[std::clamp(
+          (int)(abs(particleCollection.returnParticlepY(i) / m_dp_Momentum)),
+          0, (int)m_binsCount_Momentum - 1)] += 1;
+      bins_MomentumZ[std::clamp(
+          (int)(abs(particleCollection.returnParticlepZ(i) / m_dp_Momentum)),
+          0, (int)m_binsCount_Momentum - 1)] += 1;
+    }
     if (m_initialized_Density && (particleRadius < m_maxRadius_Density)) {
       bins_Density[(int)(particleRadius / m_dr_Density)] += 1;
     }
     if (m_initialized_EnergyDensity &&
         (particleRadius < m_maxRadius_EnergyDensity)) {
       bins_EnergyDensity[(int)(particleRadius / m_dr_EnergyDensity)] +=
-          particleCollection.getParticleEnergy(i);
+          particleCollection.returnParticleE(i);
     }
     if (m_initialized_RadialVelocity &&
         (particleRadius < m_maxRadius_RadialVelocity)) {
       // Average A(N) = [A(N-1) * (N-1) + a(N) ]/N
       particleRadialVelocity =
-          particleCollection.calculateParticleRadialVelocity(i);
+          (particleCollection.returnParticleX(i) *
+               particleCollection.returnParticlepX(i) +
+           particleCollection.returnParticleY(i) *
+               particleCollection.returnParticlepY(i) +
+           particleCollection.returnParticleY(i) *
+               particleCollection.returnParticlepY(i)) /
+          (particleCollection.returnParticleE(i) * particleRadius);
       bins_RadialVelocity[(int)(particleRadius / m_dr_RadialVelocity)] =
           (bins_RadialVelocity[(int)(particleRadius / m_dr_RadialVelocity)] *
                bins_RadialVelocityCount[(int)(particleRadius /
@@ -249,8 +305,12 @@ void DataStreamer::stream(Simulation& simulation,
     }
     if (m_initialized_TangentialVelocity &&
         (particleRadius < m_maxRadius_TangentialVelocity)) {
-      particleTangentialVelocity =
-          particleCollection.calculateParticleTangentialVelocity(i);
+      if (m_initialized_RadialVelocity) {
+        particleTangentialVelocity = std::sqrt(1 - particleRadialVelocity);
+      } else {
+        particleTangentialVelocity =
+            particleCollection.calculateParticleTangentialVelocity(i);
+      }
       bins_TangentialVelocity[(int)(particleRadius / m_dr_TangentialVelocity)] =
           (bins_TangentialVelocity[(int)(particleRadius /
                                          m_dr_TangentialVelocity)] *
@@ -275,13 +335,13 @@ void DataStreamer::stream(Simulation& simulation,
     if (m_initialized_Data) {
       if (particleRadius <= bubble.getRadius()) {
         particleInCount += 1;
-        particleInEnergy += particleCollection.getParticleEnergy(i);
+        particleInEnergy += particleCollection.returnParticleE(i);
       }
       particleInteractedFalseCount +=
           particleCollection.getInteractedFalse()[i];
       particlePassedFalseCount += particleCollection.getPassedFalse()[i];
       particleInteractedTrueCount += particleCollection.getInteractedTrue()[i];
-      particleTotalEnergy += particleCollection.getParticleEnergy(i);
+      particleTotalEnergy += particleCollection.returnParticleE(i);
     }
   }
 
@@ -351,6 +411,16 @@ void DataStreamer::stream(Simulation& simulation,
     }
     m_stream_TangentialVelocity
         << bins_TangentialVelocity[m_binsCount_TangentialVelocity - 1] << "\n";
+  }
+  if (m_initialized_Momentum) {
+    for (size_t i = 0; i < m_binsCount_Momentum - 1; i++) {
+      m_stream_MomentumX << bins_MomentumX[i] << ",";
+      m_stream_MomentumY << bins_MomentumY[i] << ",";
+      m_stream_MomentumZ << bins_MomentumZ[i] << ",";
+    }
+    m_stream_MomentumX << bins_MomentumX[m_binsCount_Momentum - 1] << "\n";
+    m_stream_MomentumY << bins_MomentumY[m_binsCount_Momentum - 1] << "\n";
+    m_stream_MomentumZ << bins_MomentumZ[m_binsCount_Momentum - 1] << "\n";
   }
   /*auto programEndTime = std::chrono::high_resolution_clock::now();
   std::cout << "Time taken (stream): "
@@ -430,7 +500,7 @@ void DataStreamer::streamNumberDensity(std::ofstream& t_stream,
                                        ParticleCollection& particleCollection,
                                        cl::CommandQueue& cl_queue) {
   std::cout << std::setprecision(8) << std::fixed << std::showpoint;
-  particleCollection.readParticlesBuffer(cl_queue);
+  particleCollection.readParticleCoordinatesBuffer(cl_queue);
 
   numType dr = (t_maxRadiusValue - t_minRadiusValue) / t_binsCount;
   std::vector<u_int> bins(t_binsCount);
@@ -442,8 +512,8 @@ void DataStreamer::streamNumberDensity(std::ofstream& t_stream,
   }
   t_stream << t_binsCount * dr << "\n";
 
-  for (Particle& p : particleCollection.getParticles()) {
-    particleRadius = std::sqrt(p.x * p.x + p.y * p.y + p.z * p.z);
+  for (size_t i = 0; i < particleCollection.getParticleCountTotal(); i++) {
+    particleRadius = particleCollection.calculateParticleRadius(i);
     if ((particleRadius >= t_minRadiusValue) &&
         (particleRadius < t_maxRadiusValue)) {
       bins[(int)((particleRadius - t_minRadiusValue) / dr)] += 1;
@@ -461,7 +531,9 @@ void DataStreamer::streamEnergyDensity(std::ofstream& t_stream,
                                        numType t_maxRadiusValue,
                                        ParticleCollection& particleCollection,
                                        cl::CommandQueue& cl_queue) {
-  particleCollection.readParticlesBuffer(cl_queue);
+  particleCollection.readParticleCoordinatesBuffer(cl_queue);
+  particleCollection.readParticleEBuffer(cl_queue);
+
   std::cout << std::setprecision(8) << std::fixed << std::showpoint;
   numType dr = (t_maxRadiusValue - t_minRadiusValue) / t_binsCount;
   std::vector<numType> bins(t_binsCount, 0.);
@@ -472,11 +544,11 @@ void DataStreamer::streamEnergyDensity(std::ofstream& t_stream,
     t_stream << (i + 1) * dr << ",";
   }
   t_stream << t_binsCount * dr << "\n";
-  for (Particle& p : particleCollection.getParticles()) {
-    particleRadius = std::sqrt(p.x * p.x + p.y * p.y + p.z * p.z);
+  for (size_t i = 0; i < particleCollection.getParticleCountTotal(); i++) {
+    particleRadius = particleCollection.calculateParticleRadius(i);
     if ((particleRadius >= t_minRadiusValue) &&
         (particleRadius < t_maxRadiusValue)) {
-      bins[(int)((particleRadius - t_minRadiusValue) / dr)] += p.E;
+      bins[(int)((particleRadius - t_minRadiusValue) / dr)] += particleCollection.returnParticleE(i);
     }
   }
   for (size_t i = 0; i < t_binsCount - 1; i++) {
@@ -492,7 +564,9 @@ void DataStreamer::streamRadialVelocity(std::ofstream& t_stream,
                                         ParticleCollection& particleCollection,
                                         cl::CommandQueue& cl_queue) {
   std::cout << std::setprecision(8) << std::fixed << std::showpoint;
-  particleCollection.readParticlesBuffer(cl_queue);
+  particleCollection.readParticleCoordinatesBuffer(cl_queue);
+  particleCollection.readParticleMomentumsBuffer(cl_queue);
+  particleCollection.readParticleEBuffer(cl_queue);
 
   numType dr = (t_maxRadiusValue - t_minRadiusValue) / t_binsCount;
   std::vector<u_int> bins(t_binsCount);
@@ -531,7 +605,9 @@ void DataStreamer::streamTangentialVelocity(
     std::ofstream& t_stream, size_t t_binsCount, numType t_minRadiusValue,
     numType t_maxRadiusValue, ParticleCollection& particleCollection,
     cl::CommandQueue& cl_queue) {
-  particleCollection.readParticlesBuffer(cl_queue);
+  particleCollection.readParticleCoordinatesBuffer(cl_queue);
+  particleCollection.readParticleMomentumsBuffer(cl_queue);
+  particleCollection.readParticleEBuffer(cl_queue);
   std::cout << std::setprecision(8) << std::fixed << std::showpoint;
   numType dr = (t_maxRadiusValue - t_minRadiusValue) / t_binsCount;
   std::vector<u_int> bins(t_binsCount);
@@ -568,13 +644,15 @@ void DataStreamer::streamTangentialVelocity(
   t_stream << average_velocity[t_binsCount - 1] << "\n";
 }
 
-void DataStreamer::StreamRadialMomentumProfile(
+void DataStreamer::streamRadialMomentumProfile(
     std::ofstream& t_stream, size_t t_binsCountRadius,
     size_t t_binsCountMomentum, numType t_minRadiusValue,
     numType t_maxRadiusValue, numType t_minMomentumValue,
     numType t_maxMomentumValue, ParticleCollection& particleCollection,
     cl::CommandQueue& cl_queue) {
-  particleCollection.readParticlesBuffer(cl_queue);
+  particleCollection.readParticleCoordinatesBuffer(cl_queue);
+  particleCollection.readParticleMomentumsBuffer(cl_queue);
+  particleCollection.readParticleEBuffer(cl_queue);
   std::cout << std::setprecision(8) << std::fixed << std::showpoint;
   numType particleRadius;
   numType particleMomentum;
