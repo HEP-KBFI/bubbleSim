@@ -256,14 +256,14 @@ int main(int argc, char* argv[]) {
                                       config.maxValueEnergy);
   }
   if (config.streamMomentumInOn) {
-    streamer.initStream_MomentumIn(config.binsCountMomentumIn,
-                                   config.maxValueMomentumIn);
+    streamer.initStream_MomentumIn(config.binsCountMomentumIn, config.minValueMomentumIn,
+                                   config.maxValueMomentumIn, true);
   }
   if (config.streamMomentumOutOn) {
-    streamer.initStream_MomentumOut(config.binsCountMomentumOut,
-                                    config.maxValueMomentumOut);
+    streamer.initStream_MomentumOut(config.binsCountMomentumOut, config.minValueMomentumOut,
+                                    config.maxValueMomentumOut, true);
   }
-  streamer.stream(simulation, particles, bubble, kernels.getCommandQueue());
+  streamer.stream(simulation, particles, bubble, true, kernels.getCommandQueue());
 
   /*
    * =============== Display text ===============
@@ -353,7 +353,7 @@ int main(int argc, char* argv[]) {
     }*/
     if (i % N_steps_tau == 0) {
       std::cout << i << std::endl;
-      streamer.stream(simulation, particles, bubble, kernels.getCommandQueue());
+      streamer.stream(simulation, particles, bubble, true, kernels.getCommandQueue());
     }
 
     //if (simTimeSinceLastStream >= config.streamTime) {
@@ -414,7 +414,7 @@ int main(int argc, char* argv[]) {
   */
 
   // Stream last state
-  streamer.stream(simulation, particles, bubble, kernels.getCommandQueue());
+  streamer.stream(simulation, particles, bubble, true, kernels.getCommandQueue());
 
   // Measure runtime
   auto programEndTime = high_resolution_clock::now();

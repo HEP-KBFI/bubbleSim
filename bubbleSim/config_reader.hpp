@@ -63,6 +63,8 @@ class ConfigReader {
   int binsCountTangentialVelocity;
   int binsCountMomentumIn;
   int binsCountMomentumOut;
+  numType minValueMomentumIn;
+  numType minValueMomentumOut;
   numType maxValueDensity;
   numType maxValueEnergy;
   numType maxValueRadialVelocity;
@@ -144,6 +146,9 @@ class ConfigReader {
         config["stream"]["bins_count_tangential_velocity"];
     binsCountMomentumIn = config["stream"]["bins_count_momentumIn"];
     binsCountMomentumOut = config["stream"]["bins_count_momentumOut"];
+    // Minimum unit value for profile (radius, momentum, etc.)
+    minValueMomentumIn = config["stream"]["min_value_momentumIn"];
+    minValueMomentumOut = config["stream"]["min_value_momentumOut"];
     // Maximum unit value for profile (radius, momentum, etc.)
     maxValueDensity = config["stream"]["max_value_density"];
     maxValueEnergy = config["stream"]["max_value_energy"];

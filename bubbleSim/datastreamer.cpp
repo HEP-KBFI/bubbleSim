@@ -54,14 +54,30 @@ void DataStreamer::initStream_Momentum(size_t t_binsCount,
 }
 
 void DataStreamer::initStream_MomentumIn(size_t t_binsCount,
-                                         numType t_maxMomentumValue) {
+                                         numType t_minMomentumValue,
+                                         numType t_maxMomentumValue,
+                                         bool t_log_scale_on) {
+  if ((t_log_scale_on) && (t_minMomentumValue <= 0)) {
+    std::cout << "Log scale is on. Minimum momentum value must be > 0.";
+    std::exit(0);
+  }
+
   m_initialized_MomentumIn = true;
   m_binsCount_MomentumIn = t_binsCount;
+  m_minMomentum_MomentumIn = t_minMomentumValue;
   m_maxMomentum_MomentumIn = t_maxMomentumValue;
-  m_dp_MomentumIn = t_maxMomentumValue / t_binsCount;
+  if (t_log_scale_on) {
+    m_dp_MomentumIn =
+        (std::log10(t_maxMomentumValue) - std::log10(t_minMomentumValue)) /
+        t_binsCount;
+
+  } else {
+    m_dp_MomentumIn = t_maxMomentumValue / t_binsCount;
+  }
 
   m_stream_MomentumIn.open(m_filePath / "pIn.csv", std::ios::out);
-  m_stream_MomentumIn << t_binsCount << "," << t_maxMomentumValue << "\n";
+  m_stream_MomentumIn << t_binsCount << "," << t_minMomentumValue << ","
+                      << t_maxMomentumValue << "\n";
   for (size_t i = 1; i <= t_binsCount; i++) {
     if (i == t_binsCount) {
       m_stream_MomentumIn << i << std::endl;
@@ -72,14 +88,29 @@ void DataStreamer::initStream_MomentumIn(size_t t_binsCount,
 }
 
 void DataStreamer::initStream_MomentumOut(size_t t_binsCount,
-                                          numType t_maxMomentumValue) {
+                                          numType t_minMomentumValue,
+                                          numType t_maxMomentumValue,
+                                          bool t_log_scale_on) {
+  if ((t_log_scale_on) && (t_minMomentumValue <= 0)) {
+    std::cout << "Log scale is on. Minimum momentum value must be > 0.";
+    std::exit(0);
+  }
   m_initialized_MomentumOut = true;
   m_binsCount_MomentumOut = t_binsCount;
+  m_minMomentum_MomentumOut = t_minMomentumValue;
   m_maxMomentum_MomentumOut = t_maxMomentumValue;
-  m_dp_MomentumOut = t_maxMomentumValue / t_binsCount;
+  if (t_log_scale_on) {
+    m_dp_MomentumOut =
+        (std::log10(t_maxMomentumValue) - std::log10(t_minMomentumValue)) /
+        t_binsCount;
+
+  } else {
+    m_dp_MomentumOut = t_maxMomentumValue / t_binsCount;
+  }
 
   m_stream_MomentumOut.open(m_filePath / "pOut.csv", std::ios::out);
-  m_stream_MomentumOut << t_binsCount << "," << t_maxMomentumValue << "\n";
+  m_stream_MomentumOut << t_binsCount << "," << t_minMomentumValue << ","
+                       << t_maxMomentumValue << "\n";
   for (size_t i = 1; i <= t_binsCount; i++) {
     if (i == t_binsCount) {
       m_stream_MomentumOut << i << std::endl;
@@ -165,7 +196,8 @@ void DataStreamer::initStream_TangentialVelocity(size_t t_binsCount,
 
 void DataStreamer::stream(Simulation& simulation,
                           ParticleCollection& particleCollection,
-                          PhaseBubble& bubble, cl::CommandQueue& cl_queue) {
+                          PhaseBubble& bubble, bool t_log_scale_on,
+                          cl::CommandQueue& cl_queue) {
   // auto programStartTime = std::chrono::high_resolution_clock::now();
   /*
    * Do only initialized streams.
@@ -216,7 +248,6 @@ void DataStreamer::stream(Simulation& simulation,
   particleCollection.readParticleMomentumsBuffer(cl_queue);
   particleCollection.readParticleEBuffer(cl_queue);
 
-
   // Initialize variables
   if (m_initialized_Momentum) {
     bins_MomentumX.resize(m_binsCount_Momentum, 0);
@@ -256,21 +287,20 @@ void DataStreamer::stream(Simulation& simulation,
   numType particleMomentum;
   numType particleRadialVelocity;
   numType particleTangentialVelocity;
-
   for (u_int i = 0; i < particleCollection.getParticleCountTotal(); i++) {
     particleRadius = particleCollection.calculateParticleRadius(i);
     particleMomentum = particleCollection.calculateParticleMomentum(i);
 
     if (m_initialized_Momentum) {
       bins_MomentumX[std::clamp(
-          (int)(abs(particleCollection.returnParticlepX(i) / m_dp_Momentum)),
-          0, (int)m_binsCount_Momentum - 1)] += 1;
+          (int)(abs(particleCollection.returnParticlepX(i) / m_dp_Momentum)), 0,
+          (int)m_binsCount_Momentum - 1)] += 1;
       bins_MomentumY[std::clamp(
-          (int)(abs(particleCollection.returnParticlepY(i) / m_dp_Momentum)),
-          0, (int)m_binsCount_Momentum - 1)] += 1;
+          (int)(abs(particleCollection.returnParticlepY(i) / m_dp_Momentum)), 0,
+          (int)m_binsCount_Momentum - 1)] += 1;
       bins_MomentumZ[std::clamp(
-          (int)(abs(particleCollection.returnParticlepZ(i) / m_dp_Momentum)),
-          0, (int)m_binsCount_Momentum - 1)] += 1;
+          (int)(abs(particleCollection.returnParticlepZ(i) / m_dp_Momentum)), 0,
+          (int)m_binsCount_Momentum - 1)] += 1;
     }
     if (m_initialized_Density && (particleRadius < m_maxRadius_Density)) {
       bins_Density[(int)(particleRadius / m_dr_Density)] += 1;
@@ -325,12 +355,27 @@ void DataStreamer::stream(Simulation& simulation,
                                          m_dr_TangentialVelocity)] += 1;
     }
     if (m_initialized_MomentumIn && (particleRadius < bubble.getRadius()) &&
-        (particleMomentum < m_maxMomentum_MomentumIn)) {
-      bins_MomentumIn[(int)(particleMomentum / m_dp_MomentumIn)] += 1;
+        (particleMomentum < m_maxMomentum_MomentumIn) &&
+        (particleMomentum >= m_minMomentum_MomentumIn)) {
+      if (t_log_scale_on) {
+        bins_MomentumIn[(
+            int)(std::log10(particleMomentum / m_minMomentum_MomentumIn) /
+                 m_dp_MomentumIn)] += 1;
+      } else {
+        bins_MomentumIn[(int)(particleMomentum / m_dp_MomentumIn)] += 1;
+      }
     }
     if (m_initialized_MomentumOut && (particleRadius > bubble.getRadius()) &&
-        (particleMomentum < m_maxMomentum_MomentumIn)) {
-      bins_MomentumOut[(int)(particleMomentum / m_dp_MomentumOut)] += 1;
+        (particleMomentum < m_maxMomentum_MomentumOut) &&
+        (particleMomentum >= m_minMomentum_MomentumOut)) {
+      if (t_log_scale_on) {
+        
+        bins_MomentumOut[(
+            int)(std::log10(particleMomentum / m_minMomentum_MomentumOut) /
+                 m_dp_MomentumOut)] += 1;
+      } else {
+        bins_MomentumOut[(int)(particleMomentum / m_dp_MomentumOut)] += 1;
+      }
     }
     if (m_initialized_Data) {
       if (particleRadius <= bubble.getRadius()) {
@@ -548,7 +593,8 @@ void DataStreamer::streamEnergyDensity(std::ofstream& t_stream,
     particleRadius = particleCollection.calculateParticleRadius(i);
     if ((particleRadius >= t_minRadiusValue) &&
         (particleRadius < t_maxRadiusValue)) {
-      bins[(int)((particleRadius - t_minRadiusValue) / dr)] += particleCollection.returnParticleE(i);
+      bins[(int)((particleRadius - t_minRadiusValue) / dr)] +=
+          particleCollection.returnParticleE(i);
     }
   }
   for (size_t i = 0; i < t_binsCount - 1; i++) {
