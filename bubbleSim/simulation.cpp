@@ -459,7 +459,7 @@ void Simulation::step(PhaseBubble& bubble, numType t_dP) {
 }
 
 void Simulation::collide(ParticleCollection& particles,
-                         CollisionCellCollection& cells,
+                         CollisionCellCollection& cells, numType t_dt, numType t_tau,
                          RandomNumberGenerator& t_rng,
                          cl::Kernel& t_assign_particle_to_collision_cell_kernel,
                          cl::Kernel& t_rotate_momentum_kernel,
@@ -476,7 +476,7 @@ void Simulation::collide(ParticleCollection& particles,
   particles.readParticleEBuffer(cl_queue);
   particles.readParticleCollisionCellIndexBuffer(cl_queue);
   // Calculate COM and genrate rotation matrix for each cell
-  cells.recalculate_cells(particles, t_rng);
+  cells.recalculate_cells(particles, t_dt, t_tau, t_rng);
 
   // Update collision cell data on GPU
   particles.writeParticleCollisionCellIndexBuffer(cl_queue);
@@ -502,7 +502,7 @@ void Simulation::stepParticleCollisionBoundary(ParticleCollection& particles,
                                 cl::NDRange(particles.getParticleCountTotal()));
   cl_queue.enqueueNDRangeKernel(t_particle_boundary_check_kernel, cl::NullRange,
                                 cl::NDRange(particles.getParticleCountTotal()));
-  collide(particles, cells, t_rng, t_assign_particle_to_collision_cell_kernel,
+  collide(particles, cells, m_dt_current, getTau(), t_rng, t_assign_particle_to_collision_cell_kernel,
             t_rotate_momentum_kernel, cl_queue);
 
   particles.readParticleEBuffer(cl_queue);
@@ -536,7 +536,8 @@ void Simulation::stepParticleBubbleCollisionBoundary(
   cl_queue.enqueueNDRangeKernel(t_particle_boundary_check_kernel, cl::NullRange,
                                 cl::NDRange(particles.getParticleCountTotal()));
   if (true) {
-    collide(particles, cells, t_rng, t_assign_particle_to_collision_cell_kernel,
+    collide(particles, cells, m_dt_current, getTau(), t_rng,
+            t_assign_particle_to_collision_cell_kernel,
             t_rotate_momentum_kernel, cl_queue);
   }
 

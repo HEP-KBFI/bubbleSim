@@ -29,8 +29,8 @@ class CollisionCellCollection {
   CollisionCellCollection(numType t_meanFreePath, unsigned int t_cellCount,
                           bool t_doubleCellCount, cl::Context& cl_context);
 
-  void recalculate_cells(ParticleCollection& t_particles,
-                         RandomNumberGenerator& t_rng);
+  void recalculate_cells(ParticleCollection& t_particles, numType t_dt,
+                         numType t_tau, RandomNumberGenerator& t_rng);
 
   void generateShiftVector(RandomNumberGenerator& t_rng);
 
@@ -84,8 +84,8 @@ class CollisionCellCollection {
   }
 
   void writeCellCountBuffer(cl::CommandQueue& cl_queue) {
-    cl_queue.enqueueWriteBuffer(m_cellCountBuffer, CL_TRUE, 0,
-                                sizeof(u_int), &m_cellCount);
+    cl_queue.enqueueWriteBuffer(m_cellCountBuffer, CL_TRUE, 0, sizeof(u_int),
+                                &m_cellCount);
   };
 
   void writeCellCountInOneAxisBuffer(cl::CommandQueue& cl_queue) {

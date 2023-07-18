@@ -64,8 +64,8 @@ void CollisionCellCollection::generateShiftVector(
       m_cellLength / (numType)2. - t_rng.generate_number() * m_cellLength};
 }
 
-void CollisionCellCollection::recalculate_cells(ParticleCollection& t_particles,
-                                                RandomNumberGenerator& t_rng) {
+void CollisionCellCollection::recalculate_cells(
+    ParticleCollection& t_particles, numType t_dt, numType t_tau, RandomNumberGenerator& t_rng) {
   numType phi, theta;
 
   /* Initialize count vector
@@ -114,7 +114,8 @@ void CollisionCellCollection::recalculate_cells(ParticleCollection& t_particles,
    */
 
   double no_collision_probability = 0.;
-  double probability = 0;
+  double generated_probability = 0;
+  numType no_collision_probabilit_thermalization = std::exp(-t_dt / t_tau);
 
   for (size_t i = 1; i < m_cellCount; i++) {
     m_collisionCells[i].particle_count = (cl_uint)cell_values[i][4];
@@ -126,6 +127,11 @@ void CollisionCellCollection::recalculate_cells(ParticleCollection& t_particles,
       m_collisionCells[i].b_collide = 0;
       continue;
     }
+    generated_probability = t_rng.generate_number();
+    if (generated_probability <= no_collision_probabilit_thermalization) {
+      continue;
+    }
+
     /*
      * If T ^ N / prod_N(E_i) <= RNG then skip rotation
      * T - temperature, prod(E_i) is product of particles' energies in a cell,
@@ -137,8 +143,8 @@ void CollisionCellCollection::recalculate_cells(ParticleCollection& t_particles,
                       std::log(cell_values[i][3] / (3 * cell_values[i][4])) -
                   cell_values[i][6]));
 
-    probability = t_rng.generate_number();
-    if (probability <= no_collision_probability) {
+    generated_probability = t_rng.generate_number();
+    if (generated_probability <= no_collision_probability) {
       m_collisionCells[i].b_collide = 0;
       continue;
     }

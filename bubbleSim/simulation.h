@@ -86,6 +86,7 @@ class Simulation {
             cl::CommandQueue& cl_queue);
 
   void collide(ParticleCollection& particles, CollisionCellCollection& cells,
+               numType t_dt, numType t_tau,
                RandomNumberGenerator& generator_collision,
                cl::Kernel& t_assign_particle_to_collision_cell_kernel,
                cl::Kernel& t_rotate_momentum_kernel,
@@ -120,10 +121,19 @@ class Simulation {
 
   void set_dt(numType t_dt) {
     if (t_dt <= 0.) {
-      std::cerr << "Set dt value is <= 0." << std::endl;
+      std::cerr << "Given dt value is <= 0." << std::endl;
       std::terminate();
     }
+    m_dt = t_dt;
   };
+
+  void setTau(numType t_tau) {
+    if (t_tau <= 0.) {
+      std::cerr << "Given tau value is <= 0." << std::endl;
+      std::terminate();
+    }
+    m_tau = t_tau;
+  }
 
   /*
    * ================================================================
@@ -144,6 +154,8 @@ class Simulation {
   numType get_dt_currentStep() { return m_dt_current; }
 
   numType get_dP() { return m_dP; }
+
+  numType getTau() { return m_tau; }
 
   bool getCyclicBoundaryOn() { return m_boundaryOn; }
 
@@ -196,6 +208,7 @@ class Simulation {
   numType m_dt;
   numType m_dt_current;
   numType m_dt_max;
+  numType m_tau;
   TimestepAdapter m_timestepAdapter;
   cl::Buffer m_dtBuffer;
 

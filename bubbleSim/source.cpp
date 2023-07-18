@@ -90,6 +90,11 @@ int main(int argc, char* argv[]) {
   std::cout << "Config path: " << s_configPath << std::endl;
   std::cout << "Kernel path: " << s_kernelPath << std::endl;
 
+  numType tau = 0.1;
+  u_int N_steps_tau = 1;
+  numType dt = tau / N_steps_tau;
+  u_int sim_length_in_tau = 200;
+  
   ConfigReader config(s_configPath);
   /*
           ===============  ===============
@@ -156,11 +161,12 @@ int main(int argc, char* argv[]) {
   Simulation simulation;
 
   if (!config.cyclicBoundaryOn) {
-    simulation = Simulation(config.m_seed, config.dt, kernels.getContext());
+    simulation = Simulation(config.m_seed, dt, kernels.getContext());
   } else {
-    simulation = Simulation(config.m_seed, config.dt,
+    simulation = Simulation(config.m_seed, dt,
                             config.cyclicBoundaryRadius, kernels.getContext());
   }
+  simulation.setTau(tau);
 
   cl::Kernel* stepKernel;
   // In development: set kernel name in config file.
@@ -300,10 +306,12 @@ int main(int argc, char* argv[]) {
 
   // auto streamEndTime = high_resolution_clock::now();
   // auto streamStartTime = high_resolution_clock::now();
-  for (int i = 1;
+  /*for (int i = 1;
        (simulation.getTime() <= config.maxTime) &&
        (config.m_maxSteps > 0 && simulation.getStep() < config.m_maxSteps);
-       i++) {
+       i++) 
+  */
+  for (u_int i = 1; i <= N_steps_tau * sim_length_in_tau; i++){
     if (config.bubbleInteractionsOn) {
       if (config.collision_on) {
         simulation.stepParticleBubbleCollisionBoundary(
@@ -331,10 +339,10 @@ int main(int argc, char* argv[]) {
       }
     }
 
-    simTimeSinceLastStream += simulation.get_dt_currentStep();
-    stepsSinceLastStream += 1;
+    /*simTimeSinceLastStream += simulation.get_dt_currentStep();
+    stepsSinceLastStream += 1;*/
 
-    if (config.streamStep > 0) {
+    /*if (config.streamStep > 0) {
       if (stepsSinceLastStream == config.streamStep) {
         if (config.streamOn) {
           streamer.stream(simulation, particles, bubble,
@@ -342,41 +350,45 @@ int main(int argc, char* argv[]) {
           stepsSinceLastStream = 0;
         }
       }
+    }*/
+    if (i % N_steps_tau == 0) {
+      std::cout << i << std::endl;
+      streamer.stream(simulation, particles, bubble, kernels.getCommandQueue());
     }
 
-    if (simTimeSinceLastStream >= config.streamTime) {
-      // streamEndTime = high_resolution_clock::now();
+    //if (simTimeSinceLastStream >= config.streamTime) {
+    //  // streamEndTime = high_resolution_clock::now();
 
-      std::cout << std::setprecision(6) << std::fixed << std::showpoint;
-      program_second_time = high_resolution_clock::now();
+    //  std::cout << std::setprecision(6) << std::fixed << std::showpoint;
+    //  program_second_time = high_resolution_clock::now();
 
-      std::cout << "Step: " << simulation.getStep()
-                << ", Time: " << simulation.getTime()
-                << ", R: " << bubble.getRadius() << ", V: " << bubble.getSpeed()
-                << ", C/C0: "
-                << (simulation.getTotalEnergy() / bubble.getRadius()) /
-                       simulation.getInitialCompactnes()
-                << ", dP: "
-                << simulation.get_dP() / simulation.get_dt_currentStep()
-                << ", E: "
-                << simulation.getTotalEnergy() /
-                       simulation.getInitialTotalEnergy()
-                << std::endl;
+    //  std::cout << "Step: " << simulation.getStep()
+    //            << ", Time: " << simulation.getTime()
+    //            << ", R: " << bubble.getRadius() << ", V: " << bubble.getSpeed()
+    //            << ", C/C0: "
+    //            << (simulation.getTotalEnergy() / bubble.getRadius()) /
+    //                   simulation.getInitialCompactnes()
+    //            << ", dP: "
+    //            << simulation.get_dP() / simulation.get_dt_currentStep()
+    //            << ", E: "
+    //            << simulation.getTotalEnergy() /
+    //                   simulation.getInitialTotalEnergy()
+    //            << std::endl;
 
-      /*std::cout << "Time taken (steps): "
-                << std::chrono::duration_cast<std::chrono::milliseconds>(
-                       streamEndTime - streamStartTime)
-                       .count()
-                << " ms." << std::endl;*/
+    //  /*std::cout << "Time taken (steps): "
+    //            << std::chrono::duration_cast<std::chrono::milliseconds>(
+    //                   streamEndTime - streamStartTime)
+    //                   .count()
+    //            << " ms." << std::endl;*/
 
-      if (config.streamOn) {
-        streamer.stream(simulation, particles, bubble,
-                        kernels.getCommandQueue());
-      }
-      simTimeSinceLastStream = 0.;
-      stepsSinceLastStream = 0;
-      // streamStartTime = high_resolution_clock::now();
-    }
+    //  if (config.streamOn) {
+    //    streamer.stream(simulation, particles, bubble,
+    //                    kernels.getCommandQueue());
+    //  }
+    //  simTimeSinceLastStream = 0.;
+    //  stepsSinceLastStream = 0;
+    //  // streamStartTime = high_resolution_clock::now();
+    //}
 
     if (std::isnan(bubble.getRadius()) || bubble.getRadius() <= 0) {
       std::cerr << "Ending simulaton. Radius is not a number or <= 0. (R_b="
