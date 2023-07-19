@@ -129,6 +129,7 @@ void CollisionCellCollection::recalculate_cells(
     }
     generated_probability = t_rng.generate_number();
     if (generated_probability <= no_collision_probabilit_thermalization) {
+      m_collisionCells[i].b_collide = 0;
       continue;
     }
 

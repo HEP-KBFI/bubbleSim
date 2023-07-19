@@ -33,8 +33,8 @@
     },
     "collision": {
         "collision_on": true,
-        "N_cells": 101,
-        "cell_length": 0.0298
+        "N_cells": 51,
+        "cell_length": 0.059016
     },
     "stream": {
         "stream": true,
@@ -53,15 +53,15 @@
         "bins_count_energy": 500,
         "bins_count_radial_velocity": 500,
         "bins_count_tangential_velocity": 500,
-        "bins_count_momentumIn": 5000,
-        "bins_count_momentumOut": 5000,
+        "bins_count_momentumIn": 200,
+        "bins_count_momentumOut": 200,
         "min_value_momentumIn": 0.0001,
         "min_value_momentumOut": 0.0001,
         "max_value_density": 11,
         "max_value_energy": 11,
         "max_value_radial_velocity": 11,
         "max_value_tangential_velocity": 11,
-        "max_value_momentumIn": 20,
-        "max_value_momentumOut": 20
+        "max_value_momentumIn": 100,
+        "max_value_momentumOut": 100
     }
 }

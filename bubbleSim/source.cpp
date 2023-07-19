@@ -91,9 +91,9 @@ int main(int argc, char* argv[]) {
   std::cout << "Kernel path: " << s_kernelPath << std::endl;
 
   numType tau = 0.1;
-  u_int N_steps_tau = 1;
+  u_int N_steps_tau = 10;
   numType dt = tau / N_steps_tau;
-  u_int sim_length_in_tau = 200;
+  u_int sim_length_in_tau = 100;
   
   ConfigReader config(s_configPath);
   /*
@@ -236,6 +236,8 @@ int main(int argc, char* argv[]) {
       createSimulationFilePath(config.m_dataSavePath, dataFolderName);
   DataStreamer streamer(filePath.string());
 
+  bool log_scale_on = true;
+
   if (config.streamDataOn) {
     streamer.initStream_Data();
   }
@@ -257,13 +259,14 @@ int main(int argc, char* argv[]) {
   }
   if (config.streamMomentumInOn) {
     streamer.initStream_MomentumIn(config.binsCountMomentumIn, config.minValueMomentumIn,
-                                   config.maxValueMomentumIn, true);
+                                   config.maxValueMomentumIn, log_scale_on);
   }
   if (config.streamMomentumOutOn) {
     streamer.initStream_MomentumOut(config.binsCountMomentumOut, config.minValueMomentumOut,
-                                    config.maxValueMomentumOut, true);
+                                    config.maxValueMomentumOut, log_scale_on);
   }
-  streamer.stream(simulation, particles, bubble, true, kernels.getCommandQueue());
+  streamer.stream(simulation, particles, bubble, log_scale_on,
+                  kernels.getCommandQueue());
 
   /*
    * =============== Display text ===============
@@ -353,7 +356,8 @@ int main(int argc, char* argv[]) {
     }*/
     if (i % N_steps_tau == 0) {
       std::cout << i << std::endl;
-      streamer.stream(simulation, particles, bubble, true, kernels.getCommandQueue());
+      streamer.stream(simulation, particles, bubble, log_scale_on,
+                      kernels.getCommandQueue());
     }
 
     //if (simTimeSinceLastStream >= config.streamTime) {
@@ -414,7 +418,8 @@ int main(int argc, char* argv[]) {
   */
 
   // Stream last state
-  streamer.stream(simulation, particles, bubble, true, kernels.getCommandQueue());
+  streamer.stream(simulation, particles, bubble, log_scale_on,
+                  kernels.getCommandQueue());
 
   // Measure runtime
   auto programEndTime = high_resolution_clock::now();
