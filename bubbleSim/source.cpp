@@ -93,7 +93,7 @@ int main(int argc, char* argv[]) {
   numType tau = 0.1;
   u_int N_steps_tau = 10;
   numType dt = tau / N_steps_tau;
-  u_int sim_length_in_tau = 300;
+  u_int sim_length_in_tau = 10;
 
   ConfigReader config(s_configPath);
   /*
