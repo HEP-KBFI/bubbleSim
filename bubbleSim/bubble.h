@@ -5,13 +5,11 @@
 typedef struct Bubble {
   cl_numType radius;
   cl_numType radius2;           // Squared
-  cl_numType radiusAfterStep2;  // (radius + speed * dt)^2
 
   cl_numType speed;
 
   cl_numType gamma;
   cl_numType gammaXspeed;  // gamma * speed
-  cl_numType gamma_dynamic;
 } Bubble;
 
 class PhaseBubble {
@@ -21,7 +19,6 @@ class PhaseBubble {
   numType getGamma() { return m_bubble.gamma; }
   numType getGammaSpeed() { return m_bubble.gammaXspeed; }
   numType getRadius2() { return m_bubble.radius2; }
-  numType getRadiusAfterDt2() { return m_bubble.radiusAfterStep2; }
   numType getdV() { return m_dV; }
   numType getSigma() { return m_sigma; }
   numType getInitialRadius() { return m_initialRadius; }
@@ -32,7 +29,6 @@ class PhaseBubble {
   void evolveWall(numType dt, numType dP);
   numType calculateArea();
   numType calculateVolume();
-  numType calculateRadiusAfterStep2(numType dt);
   numType calculateEnergy();
 
   cl::Buffer& getBubbleBuffer() { return m_bubbleBuffer; }

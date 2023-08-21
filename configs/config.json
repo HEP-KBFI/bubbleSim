@@ -1,50 +1,50 @@
-
 {
     "kernel":{
-        "name": "particle_bubble_step_cyclic"
+        "name": "particle_step_linear"
     },
     "simulation": {
         "seed": 1,
-        "max_steps": 1500,
-        "dt": 0.001,
-        "max_time": 1.5,
+        "dt": 0.01,
+        "max_steps": 20000,
+        "max_time": 50,
         "cyclic_boundary_on": true,
-        "cyclic_boundary_radius": 500
+        "cyclic_boundary_radius": 1.5
     },
     "parameters": {
         "alpha": 12.24727746868043,
-        "eta": 17.3898723,
-        "upsilon": 0.01,
+        "eta": 1000,
+        "upsilon": 0.4,
         "coupling": 0.0,
-        "dV": 21670.590989998676
+        "dV": 1600000
     },
     "bubble": {
         "initial_radius": 1,
-        "initial_speed": -0.9300433848366717,
-        "is_true_vacuum": false,
-        "interaction_on": true
+        "initial_speed": 0.5,
+        "is_true_vacuum": true,
+        "interaction_on": false
     },
     "particles": {
-        "mass_false": 0.1,
-        "mass_true": 0.05576625911018531,
-        "T_false": 0.003206823957539085,
+        "mass_false": 0,
+        "mass_true": 1,
+        "T_false": 0.5,
         "T_true": 0.0,
         "N_false": 750000,
         "N_true": 0
     },
     "collision": {
-        "collision_on": false,
-        "N_cells": 41,
-        "cell_length": 0.5
+        "collision_on": true,
+        "N_cells": 101,
+        "cell_length": 0.0298
     },
     "stream": {
         "stream": true,
         "stream_time": 0.01,
-        "stream_step": 100,
+        "stream_step": 10000,
         "data_save_path": "data",
         "stream_data": true,
         "stream_density_profile": true,
         "steam_energy_profile": true,
+        "stream_momentum": false,
         "stream_momentumIn_profile": true,
         "stream_momentumOut_profile": true,
         "stream_radial_velocity": true,
@@ -53,13 +53,15 @@
         "bins_count_energy": 500,
         "bins_count_radial_velocity": 500,
         "bins_count_tangential_velocity": 500,
-        "bins_count_momentumIn": 500,
-        "bins_count_momentumOut": 500,
-        "max_value_density": 1.1,
-        "max_value_energy": 1.1,
-        "max_value_radial_velocity": 1.1,
-        "max_value_tangential_velocity": 1.1,
-        "max_value_momentumIn": 0.2,
-        "max_value_momentumOut": 0.2
+        "bins_count_momentumIn": 200,
+        "bins_count_momentumOut": 200,
+        "min_value_momentumIn": 0.0001,
+        "min_value_momentumOut": 0.0001,
+        "max_value_density": 11,
+        "max_value_energy": 11,
+        "max_value_radial_velocity": 11,
+        "max_value_tangential_velocity": 11,
+        "max_value_momentumIn": 100,
+        "max_value_momentumOut": 100
     }
 }

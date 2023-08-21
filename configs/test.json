@@ -1,40 +1,40 @@
 {
 	"kernel":{
-        "name": "particle_bubble_step_cyclic"
+        "name": "particle_step_linear"
     },
 	"simulation": {
 		"seed": 1,
-		"dt": 0.1,
-		"max_steps": 100,
-		"max_time": 150,
-		"cyclic_boundary_on": true,
-		"cyclic_boundary_radius": 500
+        "dt": 0.01,
+        "max_steps": 20000,
+        "max_time": 50,
+        "cyclic_boundary_on": true,
+        "cyclic_boundary_radius": 1.5
 	},
 	"parameters": {
-		"alpha": 0.6,
-		"eta": 2.0,
-		"upsilon": 0.0332678594173761,
-		"coupling": 0.0,
-		"dV": 0.0010990260781373697
+		"alpha": 12.24727746868043,
+        "eta": 1000,
+        "upsilon": 0.4,
+        "coupling": 0.0,
+        "dV": 1600000
 	},
 	"bubble": {
-		"initial_radius": 77.5,
-		"initial_speed": -0.6,
-		"is_true_vacuum": false,
-		"interaction_on": true
+		"initial_radius": 1,
+        "initial_speed": 0.5,
+        "is_true_vacuum": true,
+        "interaction_on": false
 	},
 	"particles": {
 		"mass_false": 0,
 		"mass_true": 1,
-		"T_false": 0.0,
+		"T_false": 0.5,
 		"T_true": 0.0,
 		"N_false": 5000,
 		"N_true": 0
 	},
 	"collision": {
-		"collision_on": false,
-		"N_cells": 41,
-		"cell_length": 0.5
+		"collision_on": true,
+        "N_cells": 101,
+        "cell_length": 0.0298
 	},
 	"stream": {
         "stream": false,
@@ -44,6 +44,7 @@
         "stream_data": true,
         "stream_density_profile": true,
         "steam_energy_profile": true,
+		"stream_momentum": false,
         "stream_momentumIn_profile": true,
         "stream_momentumOut_profile": true,
         "stream_radial_velocity": true,
@@ -54,6 +55,8 @@
         "bins_count_tangential_velocity": 500,
         "bins_count_momentumIn": 500,
         "bins_count_momentumOut": 500,
+		"min_value_momentumIn": 0.0001,
+        "min_value_momentumOut": 0.0001,
         "max_value_density": 1.1,
         "max_value_energy": 1.1,
         "max_value_radial_velocity": 1.1,
