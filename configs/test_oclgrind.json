@@ -33,8 +33,8 @@
 	},
 	"collision": {
 		"collision_on": true,
-        "N_cells": 101,
-        "cell_length": 0.0298
+		"N_cells": 41,
+		"cell_length": 0.5
 	},
 	"stream": {
 		"stream": false,
