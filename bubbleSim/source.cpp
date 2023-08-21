@@ -93,8 +93,8 @@ int main(int argc, char* argv[]) {
   numType tau = 0.1;
   u_int N_steps_tau = 10;
   numType dt = tau / N_steps_tau;
-  u_int sim_length_in_tau = 100;
-  
+  u_int sim_length_in_tau = 300;
+
   ConfigReader config(s_configPath);
   /*
           ===============  ===============
@@ -117,14 +117,13 @@ int main(int argc, char* argv[]) {
   // 4.1) Create generator (calculates distribution)
 
   particleGenerator1 = ParticleGenerator(config.particleMassFalse);
-
+  // particleGenerator1.calculateCPDDelta(config.particleTemperatureFalse);
   particleGenerator1.calculateCPDBoltzmann(
       config.particleTemperatureFalse, 30 * config.particleTemperatureFalse,
       1e-5 * config.particleTemperatureFalse);
 
   particleGenerator2 = ParticleGenerator(config.particleMassFalse);
-  particleGenerator2.calculateCPDBeta(
-      2.5, 1., 2., 2., 0.00001);
+  particleGenerator2.calculateCPDBeta(2.5, 1., 2., 2., 0.00001);
   // 4.2) Create arrays for particles which hold the data of the particles
   ParticleCollection particles(
       config.particleMassTrue, config.particleMassFalse,
@@ -136,16 +135,17 @@ int main(int argc, char* argv[]) {
   // 4.3) Generate particles
   numType genreatedParticleEnergy;
 
+  /* genreatedParticleEnergy = particleGenerator1.generateNParticlesInSphere(
+       1., (u_int)(particles.getParticleCountTotal() * 1), rn_generator,
+       particles);*/
   genreatedParticleEnergy = particleGenerator1.generateNParticlesInSphere(
-      1.,
-      (u_int)(particles.getParticleCountTotal() * 0.85), rn_generator,
+      1., (u_int)(particles.getParticleCountTotal() * 0.85), rn_generator,
       particles);
   genreatedParticleEnergy += particleGenerator2.generateNParticlesInSphere(
       1.,
       (u_int)(particles.getParticleCountTotal() -
               particles.getParticleE().size()),
-      rn_generator,
-      particles);
+      rn_generator, particles);
 
   numType total_energy = 0;
   for (unsigned int i = 0; i < config.particleCountFalse; i++) {
@@ -163,8 +163,8 @@ int main(int argc, char* argv[]) {
   if (!config.cyclicBoundaryOn) {
     simulation = Simulation(config.m_seed, dt, kernels.getContext());
   } else {
-    simulation = Simulation(config.m_seed, dt,
-                            config.cyclicBoundaryRadius, kernels.getContext());
+    simulation = Simulation(config.m_seed, dt, config.cyclicBoundaryRadius,
+                            kernels.getContext());
   }
   simulation.setTau(tau);
 
@@ -195,7 +195,7 @@ int main(int argc, char* argv[]) {
 
   // Add all energy together in simulation for later use
   simulation.addInitialTotalEnergy(particles.getInitialTotalEnergy());
-  //simulation.addInitialTotalEnergy(bubble.calculateEnergy());
+  // simulation.addInitialTotalEnergy(bubble.calculateEnergy());
   simulation.setInitialCompactness(simulation.getInitialTotalEnergy() /
                                    bubble.getInitialRadius());
 
@@ -203,7 +203,6 @@ int main(int argc, char* argv[]) {
   CollisionCellCollection cells(config.collision_cell_length,
                                 config.collision_cell_count, false,
                                 kernels.getContext());
-
 
   if (config.bubbleInteractionsOn) {
     simulation.setBuffersParticleStepWithBubble(particles, bubble, *stepKernel);
@@ -258,11 +257,13 @@ int main(int argc, char* argv[]) {
                                       config.maxValueEnergy);
   }
   if (config.streamMomentumInOn) {
-    streamer.initStream_MomentumIn(config.binsCountMomentumIn, config.minValueMomentumIn,
+    streamer.initStream_MomentumIn(config.binsCountMomentumIn,
+                                   config.minValueMomentumIn,
                                    config.maxValueMomentumIn, log_scale_on);
   }
   if (config.streamMomentumOutOn) {
-    streamer.initStream_MomentumOut(config.binsCountMomentumOut, config.minValueMomentumOut,
+    streamer.initStream_MomentumOut(config.binsCountMomentumOut,
+                                    config.minValueMomentumOut,
                                     config.maxValueMomentumOut, log_scale_on);
   }
   streamer.stream(simulation, particles, bubble, log_scale_on,
@@ -312,9 +313,9 @@ int main(int argc, char* argv[]) {
   /*for (int i = 1;
        (simulation.getTime() <= config.maxTime) &&
        (config.m_maxSteps > 0 && simulation.getStep() < config.m_maxSteps);
-       i++) 
+       i++)
   */
-  for (u_int i = 1; i <= N_steps_tau * sim_length_in_tau; i++){
+  for (u_int i = 1; i <= N_steps_tau * sim_length_in_tau; i++) {
     if (config.bubbleInteractionsOn) {
       if (config.collision_on) {
         simulation.stepParticleBubbleCollisionBoundary(
@@ -360,15 +361,16 @@ int main(int argc, char* argv[]) {
                       kernels.getCommandQueue());
     }
 
-    //if (simTimeSinceLastStream >= config.streamTime) {
-    //  // streamEndTime = high_resolution_clock::now();
+    // if (simTimeSinceLastStream >= config.streamTime) {
+    //   // streamEndTime = high_resolution_clock::now();
 
     //  std::cout << std::setprecision(6) << std::fixed << std::showpoint;
     //  program_second_time = high_resolution_clock::now();
 
     //  std::cout << "Step: " << simulation.getStep()
     //            << ", Time: " << simulation.getTime()
-    //            << ", R: " << bubble.getRadius() << ", V: " << bubble.getSpeed()
+    //            << ", R: " << bubble.getRadius() << ", V: " <<
+    //            bubble.getSpeed()
     //            << ", C/C0: "
     //            << (simulation.getTotalEnergy() / bubble.getRadius()) /
     //                   simulation.getInitialCompactnes()
