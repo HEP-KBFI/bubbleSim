@@ -1,6 +1,6 @@
 {
     "kernel":{
-        "name": "particle_step_linear"
+        "name": "particle_step_with_bubble"
     },
     "simulation": {
         "seed": 1,
@@ -8,12 +8,13 @@
         "max_steps": 20000,
         "max_time": 50,
         "cyclic_boundary_on": true,
-        "cyclic_boundary_radius": 1.5
+        "cyclic_boundary_radius": 100
     },
     "parameters": {
         "alpha": 12.24727746868043,
         "eta": 1000,
         "upsilon": 0.4,
+        "tau": 0.1,
         "coupling": 0.0,
         "dV": 1600000
     },
@@ -21,7 +22,7 @@
         "initial_radius": 1,
         "initial_speed": 0.5,
         "is_true_vacuum": true,
-        "interaction_on": false
+        "interaction_on": true
     },
     "particles": {
         "mass_false": 0,

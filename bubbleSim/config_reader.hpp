@@ -18,6 +18,7 @@ class ConfigReader {
   numType parameterAlpha;
   numType parameterEta;
   numType parameterUpsilon;
+  numType parameterTau;
   numType parameter_dV;
   /*
    * Particle parameters
@@ -97,6 +98,7 @@ class ConfigReader {
     parameterAlpha = config["parameters"]["alpha"];
     parameterEta = config["parameters"]["eta"];
     parameterUpsilon = config["parameters"]["upsilon"];
+    parameterTau = config["parameters"]["tau"];
     parameterCoupling = config["parameters"]["coupling"];
     parameter_dV = config["parameters"]["dV"];
     /*

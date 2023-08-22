@@ -90,12 +90,12 @@ int main(int argc, char* argv[]) {
   std::cout << "Config path: " << s_configPath << std::endl;
   std::cout << "Kernel path: " << s_kernelPath << std::endl;
 
-  numType tau = 0.1;
+  ConfigReader config(s_configPath);
+
+  numType tau = config.parameterTau;
   u_int N_steps_tau = 10;
   numType dt = tau / N_steps_tau;
   u_int sim_length_in_tau = 10;
-
-  ConfigReader config(s_configPath);
   /*
           ===============  ===============
   */
@@ -113,7 +113,6 @@ int main(int argc, char* argv[]) {
 
   // 4) Generate particles
   ParticleGenerator particleGenerator1;
-  ParticleGenerator particleGenerator2;
   // 4.1) Create generator (calculates distribution)
 
   particleGenerator1 = ParticleGenerator(config.particleMassFalse);
@@ -122,8 +121,6 @@ int main(int argc, char* argv[]) {
       config.particleTemperatureFalse, 30 * config.particleTemperatureFalse,
       1e-5 * config.particleTemperatureFalse);
 
-  particleGenerator2 = ParticleGenerator(config.particleMassFalse);
-  particleGenerator2.calculateCPDBeta(2.5, 1., 2., 2., 0.00001);
   // 4.2) Create arrays for particles which hold the data of the particles
   ParticleCollection particles(
       config.particleMassTrue, config.particleMassFalse,
@@ -138,35 +135,25 @@ int main(int argc, char* argv[]) {
   /* genreatedParticleEnergy = particleGenerator1.generateNParticlesInSphere(
        1., (u_int)(particles.getParticleCountTotal() * 1), rn_generator,
        particles);*/
+
   genreatedParticleEnergy = particleGenerator1.generateNParticlesInSphere(
-      1., (u_int)(particles.getParticleCountTotal() * 0.85), rn_generator,
+      1., 2., (u_int)(particles.getParticleCountTotal()), rn_generator,
       particles);
-  genreatedParticleEnergy += particleGenerator2.generateNParticlesInSphere(
-      1.,
-      (u_int)(particles.getParticleCountTotal() -
-              particles.getParticleE().size()),
-      rn_generator, particles);
 
-  numType total_energy = 0;
-  for (unsigned int i = 0; i < config.particleCountFalse; i++) {
-    total_energy += particles.returnParticleE(i);
-  }
-
+ 
   particles.add_to_total_initial_energy(genreatedParticleEnergy);
-
   // In development: step revert
   // particles.makeCopy();
 
   // 5) Initialize simulation object: controls one simulation step
   Simulation simulation;
-
   if (!config.cyclicBoundaryOn) {
     simulation = Simulation(config.m_seed, dt, kernels.getContext());
   } else {
     simulation = Simulation(config.m_seed, dt, config.cyclicBoundaryRadius,
                             kernels.getContext());
   }
-  simulation.setTau(tau);
+  simulation.setTau(config.parameterTau);
 
   cl::Kernel* stepKernel;
   // In development: set kernel name in config file.
@@ -195,7 +182,7 @@ int main(int argc, char* argv[]) {
 
   // Add all energy together in simulation for later use
   simulation.addInitialTotalEnergy(particles.getInitialTotalEnergy());
-  // simulation.addInitialTotalEnergy(bubble.calculateEnergy());
+  simulation.addInitialTotalEnergy(bubble.calculateEnergy());
   simulation.setInitialCompactness(simulation.getInitialTotalEnergy() /
                                    bubble.getInitialRadius());
 
@@ -356,9 +343,22 @@ int main(int argc, char* argv[]) {
       }
     }*/
     if (i % N_steps_tau == 0) {
-      std::cout << i << std::endl;
       streamer.stream(simulation, particles, bubble, log_scale_on,
                       kernels.getCommandQueue());
+        std::cout << "Step: " << simulation.getStep()
+                  << ", Time: " << simulation.getTime()
+                  << ", R: " << bubble.getRadius() << ", V: " <<
+                  bubble.getSpeed()
+                  << ", C/C0: "
+                  << (simulation.getTotalEnergy() / bubble.getRadius()) /
+                         simulation.getInitialCompactnes()
+                  << ", dP: "
+                  << simulation.get_dP() / simulation.get_dt_currentStep()
+                  << ", E: "
+                  << simulation.getTotalEnergy() /
+                         simulation.getInitialTotalEnergy()
+                  << std::endl;
+
     }
 
     // if (simTimeSinceLastStream >= config.streamTime) {

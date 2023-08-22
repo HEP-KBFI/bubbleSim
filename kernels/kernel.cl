@@ -168,15 +168,15 @@ __kernel void particle_step_with_bubble(
     __global double *particles_Z, __global double *particles_E,
     __global double *particles_pX, __global double *particles_pY,
     __global double *particles_pZ, __global double *particles_M,
-    __global double *t_dP, __global char *t_interactedFalse,
+    __global double *t_dE, __global char *t_interactedFalse,
     __global char *t_passedFalse, __global char *t_interactedTrue,
     __constant Bubble *t_bubble, __constant double *t_m_in,
     __constant double *t_m_out, __constant double *t_delta_m2,
     __constant double *t_dt) {
   unsigned int gid = get_global_id(0);
   /*
-   * t_dP is a array where each element is "pressure" by particle respective to
-   * it's index. t_dP is not actual pressure but actually energy change ΔE.
+   * t_dE is a array where each element is "pressure" by particle respective to
+   * it's index. t_dE is not actual pressure but actually energy change ΔE/V_b.
    * Afterwards ΔP = ΔE/Area
    */
   // Bubble parameters
@@ -219,7 +219,7 @@ __kernel void particle_step_with_bubble(
         x = x_Vdt;
         y = y_Vdt;
         z = z_Vdt;
-        t_dP[gid] = 0.;
+        t_dE[gid] = 0.;
       }
       // Particle can get out
       else {
@@ -237,7 +237,7 @@ __kernel void particle_step_with_bubble(
           pX = fma(np * 2., nX, pX);
           pY = fma(np * 2., nY, pY);
           pZ = fma(np * 2., nZ, pZ);
-          t_dP[gid] = bubble.gamma * np * 2.;
+          t_dE[gid] = bubble.gamma * np * 2.;
           E = calculateParticleEnergy(pX, pY, pZ, M_in);
           t_interactedFalse[gid] += 1;
         }
@@ -247,7 +247,7 @@ __kernel void particle_step_with_bubble(
           pX = fma(np * (1. - sqrt(1. - Delta_M2 / pow(np, 2.))), nX, pX);
           pY = fma(np * (1. - sqrt(1. - Delta_M2 / pow(np, 2.))), nY, pY);
           pZ = fma(np * (1. - sqrt(1. - Delta_M2 / pow(np, 2.))), nZ, pZ);
-          t_dP[gid] =
+          t_dE[gid] =
               bubble.gamma * np * (1. - sqrt(1. - Delta_M2 / pow(np, 2.)));
           E = calculateParticleEnergy(pX, pY, pZ, M_out);
           t_interactedFalse[gid] += 1;
@@ -268,7 +268,7 @@ __kernel void particle_step_with_bubble(
         x = moveLinear(x, vX, dt);
         y = moveLinear(y, vY, dt);
         z = moveLinear(z, vZ, dt);
-        t_dP[gid] = 0.;
+        t_dE[gid] = 0.;
       }
       // Particle penetrates the bubble wall
       else {
@@ -285,7 +285,7 @@ __kernel void particle_step_with_bubble(
         pX = fma(np * (1. - sqrt(1. + Delta_M2 / pow(np, 2.))), nX, pX);
         pY = fma(np * (1. - sqrt(1. + Delta_M2 / pow(np, 2.))), nY, pY);
         pZ = fma(np * (1. - sqrt(1. + Delta_M2 / pow(np, 2.))), nZ, pZ);
-        t_dP[gid] =
+        t_dE[gid] =
             bubble.gamma * np * (1. - sqrt(1. + Delta_M2 / pow(np, 2.)));
         E = calculateParticleEnergy(pX, pY, pZ, M_in);
         vX = pX / E;
@@ -305,7 +305,7 @@ __kernel void particle_step_with_bubble(
         x = x_Vdt;
         y = y_Vdt;
         z = z_Vdt;
-        t_dP[gid] = 0.;
+        t_dE[gid] = 0.;
       }
       // Particle can get out
       else {
@@ -327,7 +327,7 @@ __kernel void particle_step_with_bubble(
           if (np < 0) {
             printf("gid %i\n", gid);
           }
-          t_dP[gid] = bubble.gamma * np * 2.;
+          t_dE[gid] = bubble.gamma * np * 2.;
           E = calculateParticleEnergy(pX, pY, pZ, M_out);
           np = bubble.speed * bubble.gamma * E - nX * pX - nY * pY - nZ * pZ;
           t_interactedFalse[gid] += 1;
@@ -338,7 +338,7 @@ __kernel void particle_step_with_bubble(
           pX = fma(np * (1. - sqrt(1. - Delta_M2 / pow(np, 2.))), nX, pX);
           pY = fma(np * (1. - sqrt(1. - Delta_M2 / pow(np, 2.))), nY, pY);
           pZ = fma(np * (1. - sqrt(1. - Delta_M2 / pow(np, 2.))), nZ, pZ);
-          t_dP[gid] =
+          t_dE[gid] =
               bubble.gamma * np * (1. - sqrt(1. - Delta_M2 / pow(np, 2.)));
           E = calculateParticleEnergy(pX, pY, pZ, M_in);
           t_interactedFalse[gid] += 1;
@@ -359,7 +359,7 @@ __kernel void particle_step_with_bubble(
         x = x_Vdt;
         y = y_Vdt;
         z = z_Vdt;
-        t_dP[gid] = 0.;
+        t_dE[gid] = 0.;
       }
       // Particle penetrates the bubble wall
       else {
@@ -376,7 +376,7 @@ __kernel void particle_step_with_bubble(
         pX = fma(np * (1. - sqrt(1. + Delta_M2 / pow(np, 2.))), nX, pX);
         pY = fma(np * (1. - sqrt(1. + Delta_M2 / pow(np, 2.))), nY, pY);
         pZ = fma(np * (1. - sqrt(1. + Delta_M2 / pow(np, 2.))), nZ, pZ);
-        t_dP[gid] =
+        t_dE[gid] =
             bubble.gamma * np * (1. - sqrt(1. + Delta_M2 / pow(np, 2.)));
         E = calculateParticleEnergy(pX, pY, pZ, M_out);
         vX = pX / E;
@@ -403,15 +403,15 @@ __kernel void particle_step_with_bubble_inverted(
     __global double *particles_Z, __global double *particles_E,
     __global double *particles_pX, __global double *particles_pY,
     __global double *particles_pZ, __global double *particles_M,
-    __global double *t_dP, __global char *t_interactedFalse,
+    __global double *t_dE, __global char *t_interactedFalse,
     __global char *t_passedFalse, __global char *t_interactedTrue,
     __constant Bubble *t_bubble, __constant double *t_m_in,
     __constant double *t_m_out, __constant double *t_delta_m2,
     __constant double *t_dt) {
   unsigned int gid = get_global_id(0);
   /*
-   * t_dP is a array where each element is "pressure" by particle respective to
-   * it's index. t_dP is not actual pressure but actually energy change ΔE.
+   * t_dE is a array where each element is "pressure" by particle respective to
+   * it's index. t_dE is not actual pressure but actually energy change ΔE.
    * Afterwards ΔP = ΔE/Area
    */
 
@@ -456,7 +456,7 @@ __kernel void particle_step_with_bubble_inverted(
         x = x_Vdt;
         y = y_Vdt;
         z = z_Vdt;
-        t_dP[gid] = 0.;
+        t_dE[gid] = 0.;
       } else {
         double nX, nY, nZ;
         double time_to_wall, np;
@@ -477,7 +477,7 @@ __kernel void particle_step_with_bubble_inverted(
           pY = fma(np * 2., nY, pY);
           pZ = fma(np * 2., nZ, pZ);
           // Calculate applied pressure
-          t_dP[gid] = bubble.gamma * np * 2.;
+          t_dE[gid] = bubble.gamma * np * 2.;
           E = calculateParticleEnergy(pX, pY, pZ, M_in);
 
           // Particle only interacts
@@ -490,7 +490,7 @@ __kernel void particle_step_with_bubble_inverted(
           pY = fma(np * (1. - sqrt(1. - Delta_M2 / pow(np, 2.))), nY, pY);
           pZ = fma(np * (1. - sqrt(1. - Delta_M2 / pow(np, 2.))), nZ, pZ);
           // Calculate applied pressure
-          t_dP[gid] =
+          t_dE[gid] =
               bubble.gamma * np * (1. - sqrt(1. - Delta_M2 / pow(np, 2.)));
           E = calculateParticleEnergy(pX, pY, pZ, M_out);
 
@@ -511,7 +511,7 @@ __kernel void particle_step_with_bubble_inverted(
         x = moveLinear(x, vX, dt);
         y = moveLinear(y, vY, dt);
         z = moveLinear(z, vZ, dt);
-        t_dP[gid] = 0.;
+        t_dE[gid] = 0.;
       } else {
         double nX, nY, nZ;
         double time_to_wall, np;
@@ -534,7 +534,7 @@ __kernel void particle_step_with_bubble_inverted(
         pZ = fma(np * (1. - sqrt(1. + Delta_M2 / pow(np, 2.))), nZ, pZ);
 
         // Calculate applied pressure
-        t_dP[gid] =
+        t_dE[gid] =
             bubble.gamma * np * (1. - sqrt(1. + Delta_M2 / pow(np, 2.)));
         E = calculateParticleEnergy(pX, pY, pZ, M_in);
 
@@ -556,7 +556,7 @@ __kernel void particle_step_with_bubble_inverted(
         x = x_Vdt;
         y = y_Vdt;
         z = z_Vdt;
-        t_dP[gid] = 0.;
+        t_dE[gid] = 0.;
       } else {
         double nX, nY, nZ;
         double time_to_wall, np;
@@ -573,7 +573,7 @@ __kernel void particle_step_with_bubble_inverted(
           pY = fma(np * 2., nY, pY);
           pZ = fma(np * 2., nZ, pZ);
           // Calculate applied pressure
-          t_dP[gid] = bubble.gamma * np * 2.;
+          t_dE[gid] = bubble.gamma * np * 2.;
           E = calculateParticleEnergy(pX, pY, pZ, M_in);
 
           // Particle only interacts
@@ -586,7 +586,7 @@ __kernel void particle_step_with_bubble_inverted(
           pY = fma(np * (1. - sqrt(1. - Delta_M2 / pow(np, 2.))), nY, pY);
           pZ = fma(np * (1. - sqrt(1. - Delta_M2 / pow(np, 2.))), nZ, pZ);
           // Calculate applied pressure
-          t_dP[gid] =
+          t_dE[gid] =
               bubble.gamma * np * (1. - sqrt(1. - Delta_M2 / pow(np, 2.)));
           E = calculateParticleEnergy(pX, pY, pZ, M_out);
 
@@ -607,7 +607,7 @@ __kernel void particle_step_with_bubble_inverted(
         x = moveLinear(x, vX, dt);
         y = moveLinear(y, vY, dt);
         z = moveLinear(z, vZ, dt);
-        t_dP[gid] = 0.;
+        t_dE[gid] = 0.;
       } else {
         double nX, nY, nZ;
         double time_to_wall, np;
@@ -626,7 +626,7 @@ __kernel void particle_step_with_bubble_inverted(
         pZ = fma(np * (1. - sqrt(1. + Delta_M2 / pow(np, 2.))), nZ, pZ);
 
         // Calculate applied pressure
-        t_dP[gid] =
+        t_dE[gid] =
             bubble.gamma * np * (1. - sqrt(1. + Delta_M2 / pow(np, 2.)));
         E = calculateParticleEnergy(pX, pY, pZ, M_in);
         // Update particle velocity and move amount of (dt - timeToWall)
@@ -656,7 +656,7 @@ __kernel void particles_with_false_bubble_step_reflect(
     __global double *particles_X, __global double *particles_Y,
     __global double *particles_Z, __global double *particles_E,
     __global double *particles_pX, __global double *particles_pY,
-    __global double *particles_pZ, __global double *t_dP,
+    __global double *particles_pZ, __global double *t_dE,
     __global char *t_interactedFalse, __global char *t_passedFalse,
     __global char *t_interactedTrue, __constant Bubble *t_bubble,
     __constant double *t_m_in, __constant double *t_m_out,
@@ -708,7 +708,7 @@ __kernel void particles_with_false_bubble_step_reflect(
       x = x_Vdt;
       y = y_Vdt;
       z = z_Vdt;
-      t_dP[gid] = 0.;
+      t_dE[gid] = 0.;
     }
     // reflect particles that would to get out
     else {
@@ -731,7 +731,7 @@ __kernel void particles_with_false_bubble_step_reflect(
       pY = fma(np * 2., nY, pY);
       pZ = fma(np * 2., nZ, pZ);
 
-      t_dP[gid] = bubble.gamma * np * 2.;
+      t_dE[gid] = bubble.gamma * np * 2.;
       // Update particle energy
       E = calculateParticleEnergy(pX, pY, pZ, M_in);
       // Count particle collision with the bubble wall

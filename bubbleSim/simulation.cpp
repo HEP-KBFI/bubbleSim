@@ -527,6 +527,8 @@ void Simulation::stepParticleBubbleCollisionBoundary(
                       cl::Kernel& t_assign_particle_to_collision_cell_kernel,
                       cl::Kernel& t_rotate_momentum_kernel,
                       cl::CommandQueue& cl_queue) {
+
+  numType dE;
   //m_timestepAdapter.calculateNewTimeStep(bubble);
   m_dt_current = m_timestepAdapter.getTimestep();
   writedtBuffer(cl_queue);
@@ -550,13 +552,14 @@ void Simulation::stepParticleBubbleCollisionBoundary(
     m_dP += particles.returnParticledP(i);
     currentTotalEnergy += particles.returnParticleE(i);
   }
+  dE = -m_dP * bubble.getSpeed();
+  bubble.evolveWall2(m_dt_current, dE);
 
-  m_dP = -m_dP / bubble.calculateArea();
+ /* m_dP = -m_dP / bubble.calculateArea();
+  bubble.evolveWall(m_dt_current, m_dP);*/
 
-  bubble.evolveWall(m_dt_current, m_dP);
   bubble.writeBubbleBuffer(cl_queue);
   currentTotalEnergy += bubble.calculateEnergy();
-
   m_totalEnergy = currentTotalEnergy;
   m_time += m_dt_current;
   m_step_count += 1;

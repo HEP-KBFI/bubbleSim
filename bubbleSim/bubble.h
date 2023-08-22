@@ -27,6 +27,7 @@ class PhaseBubble {
               numType t_sigma, cl::Context& cl_context);
 
   void evolveWall(numType dt, numType dP);
+  void evolveWall2(numType dt, numType dP);
   numType calculateArea();
   numType calculateVolume();
   numType calculateEnergy();
@@ -61,4 +62,6 @@ class PhaseBubble {
   numType m_dV;
   numType m_sigma;
   numType m_initialRadius;
+  numType m_initialEnergy;
+  numType m_energy;
 };
