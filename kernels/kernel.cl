@@ -1,9 +1,25 @@
 #pragma OPENCL EXTENSION cl_khr_fp64 : enable
+#pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable
+
+#pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable
+void __attribute__((always_inline)) atomic_add_d(volatile global double* addr, const double val) {
+    union {
+        ulong  u64;
+        double f64;
+    } next, expected, current;
+    current.f64 = *addr;
+    do {
+        next.f64 = (expected.f64=current.f64)+val; // ...*val for atomic_mul_d()
+        current.u64 = atom_cmpxchg((volatile global ulong*)addr, expected.u64, next.u64);
+    } while(current.u64!=expected.u64);
+}
+
+
 
 // Bubble type (also defined in c++ code)
 typedef struct Bubble {
   double radius;
-  double radius2;           // Squared
+  double radius2;  // Squared
   double speed;
   double gamma;
   double gammaXspeed;  // gamma * speed
@@ -20,7 +36,7 @@ typedef struct CollisionCell {
   double z;
   double theta;
 
-  double p_E;
+  double E;
   double p_x;
   double p_y;
   double p_z;
@@ -29,6 +45,14 @@ typedef struct CollisionCell {
   double mass;
   unsigned int particle_count;
 } CollisionCell;
+
+ulong xorshift64(ulong state){
+  ulong random_number = state;
+  random_number ^= random_number >> 12;
+  random_number ^= random_number << 25;
+  random_number ^= random_number >> 27;
+  return random_number * UINT64_C(2685821657736338717);
+}
 
 /*
  * Given particle and it's velocity move it's location by time=dt.
@@ -77,6 +101,8 @@ double calculateTimeToWall(double x, double y, double z, double E, double pX,
     return 0.;
   }
 }
+
+
 
 double calculateTimeToWall_DEBUG(double x, double y, double z, double E,
                                  double pX, double pY, double pZ, Bubble bubble,
@@ -150,7 +176,7 @@ __kernel void particle_step_linear(
     __global double *particles_Z, __global double *particles_E,
     __global double *particles_pX, __global double *particles_pY,
     __global double *particles_pZ, __constant double *t_dt) {
-  unsigned int gid = get_global_id(0);
+  size_t gid = get_global_id(0);
 
   double E = particles_E[gid];
   double vX = particles_pX[gid] / E;
@@ -173,7 +199,7 @@ __kernel void particle_step_with_bubble(
     __constant Bubble *t_bubble, __constant double *t_m_in,
     __constant double *t_m_out, __constant double *t_delta_m2,
     __constant double *t_dt) {
-  unsigned int gid = get_global_id(0);
+  size_t gid = get_global_id(0);
   /*
    * t_dE is a array where each element is "pressure" by particle respective to
    * it's index. t_dE is not actual pressure but actually energy change ΔE/V_b.
@@ -209,13 +235,13 @@ __kernel void particle_step_with_bubble(
   double y_Vdt = fma(vY, dt, y);  // y component
   double z_Vdt = fma(vZ, dt, z);  // z component
 
-  double X_dt2 = fma(x_Vdt, x_Vdt, fma(y_Vdt, y_Vdt, z_Vdt * z_Vdt));
+  double X_dt2 = calculateDistanceSquaredFromCenter(x_Vdt, y_Vdt, z_Vdt);
   // M in < M out -> False vacuum bubble inside
   if (M_in < M_out) {
     // Particle starts inside the bubble
     if (X2 < bubble.radius2) {
       // Particle stays inside the bubble
-      if (X_dt2 < pow(bubble.radius + bubble.speed*dt, 2.)) {
+      if (X_dt2 < pow(bubble.radius + bubble.speed * dt, 2.)) {
         x = x_Vdt;
         y = y_Vdt;
         z = z_Vdt;
@@ -229,8 +255,10 @@ __kernel void particle_step_with_bubble(
         x = moveLinear(x, vX, time_to_wall);
         y = moveLinear(y, vY, time_to_wall);
         z = moveLinear(z, vZ, time_to_wall);
+        
         X2 = calculateDistanceSquaredFromCenter(x, y, z);
         calculateNormal(&nX, &nY, &nZ, x, y, z, bubble, X2);
+
         np = bubble.speed * bubble.gamma * E - nX * pX - nY * pY - nZ * pZ;
         // Particle bounces back from the bubble wall
         if (np * np < Delta_M2) {
@@ -264,7 +292,7 @@ __kernel void particle_step_with_bubble(
     // Particle starts outside
     else {
       // Particle stays outsided
-      if (X_dt2 > pow(bubble.radius + bubble.speed*dt, 2.)) {
+      if (X_dt2 > pow(bubble.radius + bubble.speed * dt, 2.)) {
         x = moveLinear(x, vX, dt);
         y = moveLinear(y, vY, dt);
         z = moveLinear(z, vZ, dt);
@@ -278,6 +306,7 @@ __kernel void particle_step_with_bubble(
         x = moveLinear(x, vX, time_to_wall);
         y = moveLinear(y, vY, time_to_wall);
         z = moveLinear(z, vZ, time_to_wall);
+
         X2 = calculateDistanceSquaredFromCenter(x, y, z);
         calculateNormal(&nX, &nY, &nZ, x, y, z, bubble, X2);
         np = bubble.speed * bubble.gamma * E - nX * pX - nY * pY - nZ * pZ;
@@ -301,7 +330,7 @@ __kernel void particle_step_with_bubble(
     // Particle starts outside the bubble
     if (X2 > bubble.radius2) {
       // Particle stays outside
-      if (X_dt2 > pow(bubble.radius + bubble.speed*dt, 2.)) {
+      if (X_dt2 > pow(bubble.radius + bubble.speed * dt, 2.)) {
         x = x_Vdt;
         y = y_Vdt;
         z = z_Vdt;
@@ -315,35 +344,62 @@ __kernel void particle_step_with_bubble(
         x = moveLinear(x, vX, time_to_wall);
         y = moveLinear(y, vY, time_to_wall);
         z = moveLinear(z, vZ, time_to_wall);
+
+        // x = 27.164266;
+        // y = -20.401635;
+        // z = 44.015562;
+        // bubble.speed = 0.23236236;
+        // bubble.gamma = 1.0281409;
+        // E = 0.23647691;
+        // pX = -0.13745723;
+        // pY = -0.13456866;
+        // pZ = -0.13717914;
+
         X2 = calculateDistanceSquaredFromCenter(x, y, z);
         calculateNormal(&nX, &nY, &nZ, x, y, z, bubble, X2);
+        //nX = -nX;
+        //nY = -nY;
+        //nZ = -nZ;
         np = bubble.speed * bubble.gamma * E - nX * pX - nY * pY - nZ * pZ;
+
         // Particle bounces back from the bubble wall
+        if (np < 0) {
+          printf("ERROR: np < 0, gid %i\n", gid);
+        }
+
         if (np * np < Delta_M2) {
+          // printf("Osake põrkub, np: %.6f\n", np);
           particles_M[gid] = M_out;
           pX = fma(np * 2., nX, pX);
           pY = fma(np * 2., nY, pY);
           pZ = fma(np * 2., nZ, pZ);
-          if (np < 0) {
-            printf("gid %i\n", gid);
-          }
           t_dE[gid] = bubble.gamma * np * 2.;
+          // printf("Energy change (particle): %.6f\n", calculateParticleEnergy(pX, pY, pZ, M_out) - E);
+          // printf("Energy change (bubble): %.6f\n", -t_dE[gid]*bubble.speed);
+          // printf("dP: %.5f\n", t_dE[gid]);
           E = calculateParticleEnergy(pX, pY, pZ, M_out);
           np = bubble.speed * bubble.gamma * E - nX * pX - nY * pY - nZ * pZ;
           t_interactedFalse[gid] += 1;
         }
         // Particle penetrates the bubble wall
         else {
+          // printf("Osake liigub sisse, np: %.6f\n", np);
           particles_M[gid] = M_in;
-          pX = fma(np * (1. - sqrt(1. - Delta_M2 / pow(np, 2.))), nX, pX);
-          pY = fma(np * (1. - sqrt(1. - Delta_M2 / pow(np, 2.))), nY, pY);
-          pZ = fma(np * (1. - sqrt(1. - Delta_M2 / pow(np, 2.))), nZ, pZ);
-          t_dE[gid] =
-              bubble.gamma * np * (1. - sqrt(1. - Delta_M2 / pow(np, 2.)));
+          pX = fma((np - sqrt(pow(np, 2.) - Delta_M2)), nX, pX);
+          pY = fma((np - sqrt(pow(np, 2.) - Delta_M2)), nY, pY);
+          pZ = fma((np - sqrt(pow(np, 2.) - Delta_M2)), nZ, pZ);
+          // pX = fma(np * (1. - sqrt(1. - Delta_M2 / pow(np, 2.))), nX, pX);
+          // pY = fma(np * (1. - sqrt(1. - Delta_M2 / pow(np, 2.))), nY, pY);
+          // pZ = fma(np * (1. - sqrt(1. - Delta_M2 / pow(np, 2.))), nZ, pZ);
+          t_dE[gid] = bubble.gamma * (np - sqrt(pow(np, 2) - Delta_M2));
+          // printf("Energy change: %.6f\n", E - calculateParticleEnergy(pX, pY, pZ, M_out));
+          // printf("Energy change: %.6f\n", -t_dE[gid]*bubble.speed);
+          // printf("dP: %.5f\n", t_dE[gid]);
           E = calculateParticleEnergy(pX, pY, pZ, M_in);
           t_interactedFalse[gid] += 1;
           t_passedFalse[gid] += 1;
         }
+        // printf("New momentum: %.6f, %.6f, %.6f, %.6f\n", E, pX, pY, pZ);
         vX = pX / E;
         vY = pY / E;
         vZ = pZ / E;
@@ -355,7 +411,7 @@ __kernel void particle_step_with_bubble(
     // Particle starts inside the bubble
     else {
       // Particle stays inside
-      if (X_dt2 < pow(bubble.radius + bubble.speed*dt, 2.)) {
+      if (X_dt2 < pow(bubble.radius + bubble.speed * dt, 2.)) {
         x = x_Vdt;
         y = y_Vdt;
         z = z_Vdt;
@@ -373,9 +429,12 @@ __kernel void particle_step_with_bubble(
         calculateNormal(&nX, &nY, &nZ, x, y, z, bubble, X2);
         np = bubble.speed * bubble.gamma * E - nX * pX - nY * pY - nZ * pZ;
         particles_M[gid] = M_out;
-        pX = fma(np * (1. - sqrt(1. + Delta_M2 / pow(np, 2.))), nX, pX);
-        pY = fma(np * (1. - sqrt(1. + Delta_M2 / pow(np, 2.))), nY, pY);
-        pZ = fma(np * (1. - sqrt(1. + Delta_M2 / pow(np, 2.))), nZ, pZ);
+        pX = fma((np - sqrt(pow(np, 2.) + Delta_M2)), nX, pX);
+        pY = fma((np - sqrt(pow(np, 2.) + Delta_M2)), nY, pY);
+        pZ = fma((np - sqrt(pow(np, 2.) + Delta_M2)), nZ, pZ);
+        // pX = fma(np * (1. - sqrt(1. + Delta_M2 / pow(np, 2.))), nX, pX);
+        // pY = fma(np * (1. - sqrt(1. + Delta_M2 / pow(np, 2.))), nY, pY);
+        // pZ = fma(np * (1. - sqrt(1. + Delta_M2 / pow(np, 2.))), nZ, pZ);
         t_dE[gid] =
             bubble.gamma * np * (1. - sqrt(1. + Delta_M2 / pow(np, 2.)));
         E = calculateParticleEnergy(pX, pY, pZ, M_out);
@@ -408,7 +467,7 @@ __kernel void particle_step_with_bubble_inverted(
     __constant Bubble *t_bubble, __constant double *t_m_in,
     __constant double *t_m_out, __constant double *t_delta_m2,
     __constant double *t_dt) {
-  unsigned int gid = get_global_id(0);
+  size_t gid = get_global_id(0);
   /*
    * t_dE is a array where each element is "pressure" by particle respective to
    * it's index. t_dE is not actual pressure but actually energy change ΔE.
@@ -452,7 +511,7 @@ __kernel void particle_step_with_bubble_inverted(
 
   if (M_in < M_out) {
     if (X2 < bubble.radius2) {
-      if (X_dt2 < pow(bubble.radius + bubble.speed*dt, 2.)) {
+      if (X_dt2 < pow(bubble.radius + bubble.speed * dt, 2.)) {
         x = x_Vdt;
         y = y_Vdt;
         z = z_Vdt;
@@ -507,7 +566,7 @@ __kernel void particle_step_with_bubble_inverted(
         z = moveLinear(z, vZ, dt - time_to_wall);
       }
     } else {
-      if (X_dt2 > pow(bubble.radius + bubble.speed*dt, 2.)) {
+      if (X_dt2 > pow(bubble.radius + bubble.speed * dt, 2.)) {
         x = moveLinear(x, vX, dt);
         y = moveLinear(y, vY, dt);
         z = moveLinear(z, vZ, dt);
@@ -552,7 +611,7 @@ __kernel void particle_step_with_bubble_inverted(
     }
   } else {
     if (X2 > bubble.radius2) {
-      if (X_dt2 > pow(bubble.radius + bubble.speed*dt, 2.)) {
+      if (X_dt2 > pow(bubble.radius + bubble.speed * dt, 2.)) {
         x = x_Vdt;
         y = y_Vdt;
         z = z_Vdt;
@@ -603,7 +662,7 @@ __kernel void particle_step_with_bubble_inverted(
         z = moveLinear(z, vZ, dt - time_to_wall);
       }
     } else {
-      if (X_dt2 < pow(bubble.radius + bubble.speed*dt, 2.)) {
+      if (X_dt2 < pow(bubble.radius + bubble.speed * dt, 2.)) {
         x = moveLinear(x, vX, dt);
         y = moveLinear(y, vY, dt);
         z = moveLinear(z, vZ, dt);
@@ -661,7 +720,7 @@ __kernel void particles_with_false_bubble_step_reflect(
     __global char *t_interactedTrue, __constant Bubble *t_bubble,
     __constant double *t_m_in, __constant double *t_m_out,
     __constant double *t_delta_m2, __constant double *t_dt) {
-  unsigned int gid = get_global_id(0);
+  size_t gid = get_global_id(0);
   // dE - dP is not actual energy difference. dE = ΔE/R_b -> to avoid
   // singularities/noise near R_b ~ 0
 
@@ -704,7 +763,8 @@ __kernel void particles_with_false_bubble_step_reflect(
 
   if (((X2 < bubble.radius2) && (M_in < M_out))) {
     // move particles that stay in
-    if ((X_dt2 < pow(bubble.radius + bubble.speed*dt, 2.)) && (M_in < M_out)) {
+    if ((X_dt2 < pow(bubble.radius + bubble.speed * dt, 2.)) &&
+        (M_in < M_out)) {
       x = x_Vdt;
       y = y_Vdt;
       z = z_Vdt;
@@ -770,17 +830,112 @@ __kernel void particles_with_false_bubble_step_reflect(
 ============================================================================
 */
 
+__kernel void collision_cell_reset(__global CollisionCell *t_cells){
+  // Loop over collision cells and reset it's values.
+  size_t gid = get_global_id(0);
+  t_cells[gid].E = 0.;
+  t_cells[gid].vX = 0.;
+  t_cells[gid].vY = 0.;
+  t_cells[gid].vZ = 0.;
+  t_cells[gid].mass = 0.;
+  t_cells[gid].collide = 0;
+}
+
+__kernel void collision_cell_calculation_summation(
+  __global double *particles_E, __global double *particles_pX,
+  __global double *particles_pY, __global double *particles_pZ,
+  __global unsigned int *particle_collision_cell_index,
+  __global CollisionCell *t_cells
+){
+  // Loop over particles and sum neccessary values
+  size_t gid = get_global_id(0);
+  atomic_add_d(&t_cells[particle_collision_cell_index[gid]].E, particles_E[gid]);
+  atomic_add_d(&t_cells[particle_collision_cell_index[gid]].pX, particles_pX[gid]);
+  atomic_add_d(&t_cells[particle_collision_cell_index[gid]].pY, particles_pY[gid]);
+  atomic_add_d(&t_cells[particle_collision_cell_index[gid]].pZ, particles_pZ[gid]);
+  atomic_add_d(&t_cells[particle_collision_cell_index[gid]].mass, log(particles_E[gid]));
+  atomic_inc(&t_cells[particle_collision_cell_index[gid]].particle_count);
+}
+
+__kernel void collision_cell_calculate_cells(
+  __global CollisionCell *t_cells, __global ulong *seed, __global double *no_collision_probability 
+){
+  // Loop over collision cells
+  // Maximum value for ulong: 18446744073709551616.0;
+  // Need 5 random numbers
+  size_t gid = get_global_id(0);
+  double probability;
+  ulong random_number;
+  double phi_xyz, theta_xyz;
+  CollisionCell cell = t_cells[gid];
+  if (cell.particle_count < 2){
+    cell.b_collide = (char)0;
+  }
+  else {
+    random_number = xorshift64(seed[0] + gid);
+      // Calculating probability not to collide
+      // Collision probability dependent on timestep-thermailization time ratio
+      // Probability = exp(-dt/tau) -> if dt=0 then never collide
+      probability = random_number/18446744073709551616.0;
+      if (probability <= no_collision_probability[0]){
+        cell.b_collide = (char)0;
+      }
+      else{
+        // Calculating probability not to collide
+        // Collision probability dependent on cell state (Energy, momentum, mass)
+        random_number = xorshift64(random_number);
+        probability = random_number/18446744073709551616.0;
+        // cell.mass currently is Sum of log(E) of each particle in that cell.
+        // This is temporary cheat to reduce variables
+        if (probability <= expt(-exp(cell.particle_count * (log(cell.E)-log(3.*cell.particle_count))-cell.mass -log(2.)))){
+          cell.b_collide = (char)0;
+        }
+        else{
+          cell.b_collide = (char)1;
+          cell.mass = sqrt(pow(cell.E, 2.) - pow(cell.pX, 2.) - pow(cell.pY, 2.) - pow(cell.pZ, 2.));
+          cell.vX = cell.pX/cell.E;
+          cell.vY = cell.pY/cell.E;
+          cell.vZ = cell.pZ/cell.E;
+          cell.pX = cell.pX/cell.particle_count;
+          cell.pY = cell.pY/cell.particle_count;
+          cell.pZ = cell.pZ/cell.particle_count;
+          cell.E = cell.E/cell.particle_count; 
+          random_number = xorshift64(random_number);
+          probability = random_number/18446744073709551616.0;
+          cell.theta = 2. * M_PI * probability;
+          random_number = xorshift64(random_number);
+          probability = random_number/18446744073709551616.0;
+          phi_xyz = acos(1. - 2.*probability)
+          random_number = xorshift64(random_number);
+          probability = random_number/18446744073709551616.0;
+          theta_xyz = 2. * M_PI * probability;
+          cell.x = sin(phi_xyz)*cos(theta_xyz);
+          cell.y = sin(phi_xyz)*sin(theta_xyz);
+          cell.z = cos(phi_xyz);
+        }
+
+      }
+  }
+
+  random_number = xorshift64(random_number);
+  double probability3 = random_number/18446744073709551616.0;
+  random_number = xorshift64(random_number);
+  double probability4 = random_number/18446744073709551616.0;
+  random_number = xorshift64(random_number);
+  double probability5 = random_number/18446744073709551616.0;
+}
+
+
 __kernel void rotate_momentum(
     __global double *particles_E, __global double *particles_pX,
     __global double *particles_pY, __global double *particles_pZ,
-    __global unsigned int *particles_collision_cell_index,
+    __global unsigned int *particle_collision_cell_index,
     __global CollisionCell *t_cells) {
-  unsigned int gid = get_global_id(0);
-
+  size_t gid = get_global_id(0);
   // If in bubble then cell number is doubled and second half is in bubble
   // cells.
-  if (particles_collision_cell_index[gid] != 0) {
-    CollisionCell cell = t_cells[particles_collision_cell_index[gid]];
+  if (particle_collision_cell_index[gid] != 0) {
+    CollisionCell cell = t_cells[particle_collision_cell_index[gid]];
 
     double v2 = fma(cell.vX, cell.vX, fma(cell.vY, cell.vY, cell.vZ * cell.vZ));
     double gamma = 1 / sqrt(1 - v2);
@@ -867,7 +1022,7 @@ __kernel void label_particles_position_by_coordinate(
     __global double *particles_X, __global double *particles_Y,
     __global double *particles_Z, __global char *particles_bool_in_bubble,
     __global Bubble *t_bubble) {
-  unsigned int gid = get_global_id(0);
+  size_t gid = get_global_id(0);
   double x = particles_X[gid];
   double y = particles_Y[gid];
   double z = particles_Z[gid];
@@ -880,7 +1035,7 @@ __kernel void label_particles_position_by_coordinate(
 __kernel void label_particles_position_by_mass(
     __global double *particles_M, __global char *particle_in_bubble,
     __global double *mass_in) {
-  unsigned int gid = get_global_id(0);
+  size_t gid = get_global_id(0);
 
   // If R_b^2 > R_x^2 then particle is inside the bubble
   particle_in_bubble[gid] = particles_M[gid] == mass_in[0];
@@ -892,7 +1047,7 @@ __kernel void assign_particle_to_collision_cell(
     __global unsigned int *m_particle_collision_cell_index,
     __global const unsigned int *maxCellIndex,
     __global const double *cellLength, __global const double *cuboidShift) {
-  unsigned int gid = get_global_id(0);
+  size_t gid = get_global_id(0);
 
   // Find cell numbers
   int x_index = (int)((particles_X[gid] + cellLength[0] * maxCellIndex[0] / 2 +
@@ -933,7 +1088,7 @@ __kernel void assign_particle_cell_index_two_phase(
     __global const double *cuboidShift  // Random particle location shift
 
 ) {
-  unsigned int gid = get_global_id(0);
+  size_t gid = get_global_id(0);
 
   // Find cell numbers
   int a = (int)((particles_X[gid] + cuboidShift[0]) / cellLength[0]);
@@ -970,7 +1125,7 @@ __kernel void particle_boundary_momentum_reflect(
     __global double *particles_pY, __global double *particles_pZ,
     __global double *t_boundaryRadius  // [x_delta]
 ) {
-  unsigned int gid = get_global_id(0);
+  size_t gid = get_global_id(0);
 
   double boundaryRadius = t_boundaryRadius[0];
   double x = particles_X[gid];
@@ -1005,7 +1160,7 @@ __kernel void particle_boundary_check(__global double *particles_X,
                                       __global double *particles_Y,
                                       __global double *particles_Z,
                                       __global double *t_boundaryRadius) {
-  unsigned int gid = get_global_id(0);
+  size_t gid = get_global_id(0);
 
   double x = particles_X[gid];
   double y = particles_Y[gid];
@@ -1021,6 +1176,7 @@ __kernel void particle_boundary_check(__global double *particles_X,
   z = (boundaryRadius > fabs(z)) * z +
       (z > boundaryRadius) * (z - 2 * boundaryRadius) +
       (z < -boundaryRadius) * (z + 2 * boundaryRadius);
+
 
   particles_X[gid] = x;
   particles_Y[gid] = y;

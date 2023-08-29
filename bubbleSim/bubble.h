@@ -22,9 +22,11 @@ class PhaseBubble {
   numType getdV() { return m_dV; }
   numType getSigma() { return m_sigma; }
   numType getInitialRadius() { return m_initialRadius; }
-
+  numType getEnergy() { return m_energy; }
   PhaseBubble(numType t_initialRadius, numType t_initialSpeed, numType t_dV,
               numType t_sigma, cl::Context& cl_context);
+  PhaseBubble(numType t_initialRadius, numType t_initialSpeed, numType t_dV,
+              numType t_sigma);
 
   void evolveWall(numType dt, numType dP);
   void evolveWall2(numType dt, numType dP);

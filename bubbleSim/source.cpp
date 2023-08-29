@@ -48,27 +48,30 @@ std::filesystem::path createSimulationFilePath(std::string& t_dataPath,
 
 void createSimulationInfoFile(std::ofstream& infoStream,
                               std::filesystem::path& filePath,
-                              ConfigReader& t_config, numType t_dV, numType t_n,
-                              numType t_rho) {
-  infoStream << "file_name,seed,alpha,eta,upsilon,coupling,radius,speed,m-,m+,"
-                "T-,T+,N-,N+,dt,interactionBubbleOn,cyclicBoundaryOn,"
-                "dV,n,rho,deltaN,runtime"
+                              ConfigReader& t_config, numType t_dV) {
+  infoStream << "file_name,seed,alpha,eta,upsilon,tau,m-,T-,N-,m+,T+,N+,"
+                "interactionBubbleOn,"
+                "radius,speed,Rb,Rc"
+                "dV,deltaN,runtime"
              << std::endl;
+  numType critical_radius =
+      2 * t_config.parameterUpsilon * t_config.bubbleInitialRadius;
+
   infoStream << filePath.filename() << "," << t_config.m_seed << ","
              << t_config.parameterAlpha << "," << t_config.parameterEta << ",";
-  infoStream << t_config.parameterUpsilon << "," << t_config.parameterCoupling
-             << ",";
+  infoStream << t_config.parameterUpsilon << "," << t_config.parameterTau;
+  infoStream << t_config.particleMassFalse << ","
+             << t_config.particleTemperatureFalse << ","
+             << t_config.particleCountFalse << ",";
+  infoStream << t_config.particleMassTrue << ","
+             << t_config.particleTemperatureTrue << ","
+             << t_config.particleCountTrue << ",";
+  infoStream << t_config.bubbleInteractionsOn << ",";
   infoStream << t_config.bubbleInitialRadius << ","
-             << t_config.bubbleInitialSpeed << ",";
-  infoStream << t_config.particleMassFalse << "," << t_config.particleMassTrue
-             << ",";
-  infoStream << t_config.particleTemperatureFalse << ","
-             << t_config.particleTemperatureTrue << ",";
-  infoStream << t_config.particleCountFalse << "," << t_config.particleCountTrue
-             << ",";
-  infoStream << t_config.dt << "," << t_config.bubbleInteractionsOn << ","
-             << t_config.cyclicBoundaryOn << ",";
-  infoStream << t_dV << "," << t_n << "," << t_rho << ",";
+             << t_config.bubbleInitialSpeed << ","
+             << t_config.cyclicBoundaryRadius * t_config.cyclicBoundaryOn << ","
+             << critical_radius << ",";
+  infoStream << t_dV << ",";
 }
 void appendSimulationInfoFile(std::ofstream& infoStream,
                               int t_postionDifference, int t_programRuntime) {
@@ -93,9 +96,9 @@ int main(int argc, char* argv[]) {
   ConfigReader config(s_configPath);
 
   numType tau = config.parameterTau;
-  u_int N_steps_tau = 10;
+  u_int N_steps_tau = 10000;
   numType dt = tau / N_steps_tau;
-  u_int sim_length_in_tau = 10;
+  u_int sim_length_in_tau = 100;
   /*
           ===============  ===============
   */
@@ -111,41 +114,69 @@ int main(int argc, char* argv[]) {
   // 2) Initialize openCL (kernels, commandQueues)
   OpenCLLoader kernels(s_kernelPath, config.kernelName);
 
-  // 4) Generate particles
+  // 3) Generate particles
   ParticleGenerator particleGenerator1;
-  // 4.1) Create generator (calculates distribution)
 
+  // 3.1) Create generator, calculates distribution(s)
   particleGenerator1 = ParticleGenerator(config.particleMassFalse);
-  // particleGenerator1.calculateCPDDelta(config.particleTemperatureFalse);
   particleGenerator1.calculateCPDBoltzmann(
       config.particleTemperatureFalse, 30 * config.particleTemperatureFalse,
       1e-5 * config.particleTemperatureFalse);
 
-  // 4.2) Create arrays for particles which hold the data of the particles
+  // 3.2) Create particle collection
+  numType deltaM = std::sqrt(std::pow(config.particleMassTrue, 2.) -
+                             std::pow(config.particleMassFalse, 2.));
+  numType particle_temperature_in_false_vacuum =
+      std::sqrt(deltaM) / config.parameterEta;
   ParticleCollection particles(
       config.particleMassTrue, config.particleMassFalse,
-      config.particleTemperatureTrue, config.particleTemperatureFalse,
+      config.particleTemperatureTrue, particle_temperature_in_false_vacuum,
       config.particleCountTrue, config.particleCountFalse,
-      config.parameterCoupling, config.bubbleIsTrueVacuum,
-      kernels.getContext());
+      config.bubbleIsTrueVacuum, kernels.getContext());
 
-  // 4.3) Generate particles
+  // 3.3) create particles
   numType genreatedParticleEnergy;
 
-  /* genreatedParticleEnergy = particleGenerator1.generateNParticlesInSphere(
-       1., (u_int)(particles.getParticleCountTotal() * 1), rn_generator,
-       particles);*/
+  numType initial_false_vacuum_volume =
+      (24. * std::pow(config.cyclicBoundaryRadius, 3.) -
+       4. * M_PI * std::pow(config.bubbleInitialRadius, 3.)) /
+      3.;
+  numType energy_density = 3 * particle_temperature_in_false_vacuum *
+                           config.particleCountFalse /
+                           initial_false_vacuum_volume;
+  numType dV = config.parameterAlpha * energy_density;
 
-  genreatedParticleEnergy = particleGenerator1.generateNParticlesInSphere(
-      1., 2., (u_int)(particles.getParticleCountTotal()), rn_generator,
-      particles);
+  genreatedParticleEnergy = particleGenerator1.generateNParticlesInCube(
+      config.bubbleInitialRadius, config.cyclicBoundaryRadius,
+      (u_int)(particles.getParticleCountTotal()), rn_generator, particles);
+  numType minimumRadius = 100000;
+  for (u_int i = 0; i < particles.getParticleCountTotal(); i++) {
+    if (particles.calculateParticleRadius(i) < minimumRadius) {
+      minimumRadius = particles.calculateParticleRadius(i);
+    }
+  }
+  std::cout << "V2ikseim osakese kaugus: " << minimumRadius << std::endl;
 
- 
   particles.add_to_total_initial_energy(genreatedParticleEnergy);
+
   // In development: step revert
   // particles.makeCopy();
 
-  // 5) Initialize simulation object: controls one simulation step
+  // 4) Create bubble
+  // numType dV = config.parameter_dV;
+  numType alpha = config.parameterAlpha;
+  numType sigma = config.parameterUpsilon * dV * config.bubbleInitialRadius;
+  numType critical_radius =
+      2 * config.parameterUpsilon * config.bubbleInitialRadius;
+  if (!config.bubbleIsTrueVacuum) {
+    // If bubble is true vacuum then dV is correct sign. Otherwise dV sign must
+    // be changed as change of direction changes.
+    dV = -dV;
+  }
+  PhaseBubble bubble(config.bubbleInitialRadius, config.bubbleInitialSpeed, dV,
+                     sigma, kernels.getContext());
+
+  // 5) Initialize Simulation
   Simulation simulation;
   if (!config.cyclicBoundaryOn) {
     simulation = Simulation(config.m_seed, dt, kernels.getContext());
@@ -155,47 +186,30 @@ int main(int argc, char* argv[]) {
   }
   simulation.setTau(config.parameterTau);
 
-  cl::Kernel* stepKernel;
-  // In development: set kernel name in config file.
-  // NB! Different kernels might need different input
-
-  stepKernel = &kernels.m_kernel;
-
-  // 7) Initialize bubble object
-  numType bubbleVolume = 4 * M_PI / 3 * std::pow(config.bubbleInitialRadius, 3);
-  numType initialEnergyDensityFalse =
-      particles.countParticlesEnergy() / bubbleVolume;
-  numType initialNumberDensityFalse =
-      particles.getParticleCountFalse() / bubbleVolume;
-
-  numType dV = config.parameter_dV;
-  numType alpha = config.parameterAlpha;
-
-  numType sigma = config.parameterUpsilon * dV * config.bubbleInitialRadius;
-  if (!config.bubbleIsTrueVacuum) {
-    // If bubble is true vacuum then dV is correct sign. Otherwise dV sign must
-    // be changed as change of direction changes.
-    dV = -dV;
-  }
-  PhaseBubble bubble(config.bubbleInitialRadius, config.bubbleInitialSpeed, dV,
-                     sigma, kernels.getContext());
-
   // Add all energy together in simulation for later use
   simulation.addInitialTotalEnergy(particles.getInitialTotalEnergy());
   simulation.addInitialTotalEnergy(bubble.calculateEnergy());
   simulation.setInitialCompactness(simulation.getInitialTotalEnergy() /
                                    bubble.getInitialRadius());
 
-  // In development: collision
+  // 6) Create collision cells
   CollisionCellCollection cells(config.collision_cell_length,
                                 config.collision_cell_count, false,
                                 kernels.getContext());
 
+  // 7) Create buffers and copy data on the GPU
+  cl::Kernel* stepKernel;
+  // NB! Different kernels might need different input
+
+  stepKernel = &kernels.m_kernel;
   if (config.bubbleInteractionsOn) {
     simulation.setBuffersParticleStepWithBubble(particles, bubble, *stepKernel);
-
   } else {
     simulation.setBuffersParticleStepLinear(particles, *stepKernel);
+  }
+  if (config.cyclicBoundaryOn) {
+    simulation.setBuffersParticleBoundaryCheck(particles,
+                                               kernels.m_particleBounceKernel);
   }
   if (config.collision_on) {
     simulation.setBuffersParticleBoundaryCheck(particles,
@@ -217,7 +231,6 @@ int main(int argc, char* argv[]) {
 
   // 8) Streaming initialization
   std::string dataFolderName = createFileNameFromCurrentDate();
-
   std::filesystem::path filePath =
       createSimulationFilePath(config.m_dataSavePath, dataFolderName);
   DataStreamer streamer(filePath.string());
@@ -264,16 +277,13 @@ int main(int argc, char* argv[]) {
   std::cout << std::endl;
   bubble.print_info(config);
   std::cout << std::endl;
-  // 9) Streams
 
+  // 9) Streams
   std::cout << std::setprecision(8) << std::endl;
   // Create simulation info file which includes description of the simulation
   std::ofstream infoStream(filePath / "info.txt",
                            std::ios::out | std::ios::trunc);
-
-  createSimulationInfoFile(infoStream, filePath, config, dV,
-                           initialNumberDensityFalse,
-                           initialEnergyDensityFalse);
+  createSimulationInfoFile(infoStream, filePath, config, dV);
 
   /*
     =============== Run simulation ===============
@@ -287,9 +297,6 @@ int main(int argc, char* argv[]) {
   std::cout << "Step: " << simulation.getStep()
             << ", Time: " << simulation.getTime()
             << ", R: " << bubble.getRadius() << ", V: " << bubble.getSpeed()
-            << ", C/C0: "
-            << (simulation.getTotalEnergy() / bubble.getRadius()) /
-                   simulation.getInitialCompactnes()
             << ", dP: " << simulation.get_dP() / simulation.get_dt_currentStep()
             << ", E: "
             << simulation.getTotalEnergy() / simulation.getInitialTotalEnergy()
@@ -342,23 +349,21 @@ int main(int argc, char* argv[]) {
         }
       }
     }*/
-    if (i % N_steps_tau == 0) {
+    
+    //if (i % N_steps_tau >= 0) {
+    if (i % 100 == 0) {
       streamer.stream(simulation, particles, bubble, log_scale_on,
                       kernels.getCommandQueue());
-        std::cout << "Step: " << simulation.getStep()
-                  << ", Time: " << simulation.getTime()
-                  << ", R: " << bubble.getRadius() << ", V: " <<
-                  bubble.getSpeed()
-                  << ", C/C0: "
-                  << (simulation.getTotalEnergy() / bubble.getRadius()) /
-                         simulation.getInitialCompactnes()
-                  << ", dP: "
-                  << simulation.get_dP() / simulation.get_dt_currentStep()
-                  << ", E: "
-                  << simulation.getTotalEnergy() /
-                         simulation.getInitialTotalEnergy()
-                  << std::endl;
-
+      std::cout << "Step: " << simulation.getStep()
+                << ", Time: " << simulation.getTime()
+                << ", R: " << bubble.getRadius()
+                << ", R/Rc: " << bubble.getRadius() / critical_radius
+                << ", V: " << bubble.getSpeed() << ", dP: "
+                << simulation.get_dP() / simulation.get_dt_currentStep()
+                << ", E: "
+                << simulation.getTotalEnergy() /
+                       simulation.getInitialTotalEnergy()
+                << std::endl;
     }
 
     // if (simTimeSinceLastStream >= config.streamTime) {

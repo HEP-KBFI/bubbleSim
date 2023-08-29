@@ -18,7 +18,6 @@ class ParticleCollection {
   cl::Buffer m_mass_in_buffer;
   cl::Buffer m_mass_out_buffer;
   cl::Buffer m_delta_mass_squared_buffer;
-  numType m_coupling;
   // Temperatures in true and false vacuum
   numType m_temperatureTrue, m_temperatureFalse, m_temperatureIn,
       m_temperatureOut;
@@ -101,7 +100,7 @@ class ParticleCollection {
   ParticleCollection(numType t_massTrue, numType t_massFalse,
                      numType t_temperatureTrue, numType t_temperatureFalse,
                      unsigned int t_particleCountTrue,
-                     unsigned int t_particleCountFalse, numType t_coupling,
+                     unsigned int t_particleCountFalse,
                      bool t_bubbleIsTrueVacuum, cl::Context& cl_context);
 
   ParticleCollection& operator=(const ParticleCollection& t) { return *this; }
@@ -673,20 +672,20 @@ class ParticleGenerator {
 
   bool checkCPDInitialization() { return m_CPD_initialized; }
 
-  numType generateNParticlesInBox(numType t_sideHalf, u_int t_N,
+  numType generateNParticlesInCube(numType t_sideHalf, u_int t_N,
                                   RandomNumberGenerator& t_generator,
                                   ParticleCollection& t_particles);
 
-  numType generateNParticlesInBox(numType t_radiusIn, numType t_sideHalf,
+  numType generateNParticlesInCube(numType t_radiusIn, numType t_sideHalf,
                                   u_int t_N, RandomNumberGenerator& t_generator,
                                   ParticleCollection& t_particles);
 
-  numType generateNParticlesInBox(numType t_xSideHalf, numType t_ySideHalf,
+  numType generateNParticlesInCube(numType t_xSideHalf, numType t_ySideHalf,
                                   numType t_zSideHalf, u_int t_N,
                                   RandomNumberGenerator& t_generator,
                                   ParticleCollection& t_particles);
 
-  numType generateNParticlesInBox(numType t_radiusIn, numType t_xSideHalf,
+  numType generateNParticlesInCube(numType t_radiusIn, numType t_xSideHalf,
                                   numType t_ySideHalf, numType t_zSideHalf,
                                   u_int t_N, RandomNumberGenerator& t_generator,
                                   ParticleCollection& t_particles);
@@ -722,7 +721,7 @@ class ParticleGenerator {
                                 numType& t_pResult,
                                 RandomNumberGenerator& t_generator);
 
-  void generatePointInBox(numType& x, numType& y, numType& z,
+  void generatePointInCube(numType& x, numType& y, numType& z,
                           numType& t_SideHalf,
                           RandomNumberGenerator& t_generator);
 
@@ -730,7 +729,7 @@ class ParticleGenerator {
                              numType t_maxRadius,
                              RandomNumberGenerator& t_generator);
 
-  void generatePointInBox(numType& x, numType& y, numType& z,
+  void generatePointInCube(numType& x, numType& y, numType& z,
                           numType& t_xSideHalf, numType& t_ySideHalf,
                           numType& t_zSideHalf,
                           RandomNumberGenerator& t_generator);

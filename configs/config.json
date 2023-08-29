@@ -8,34 +8,33 @@
         "max_steps": 20000,
         "max_time": 50,
         "cyclic_boundary_on": true,
-        "cyclic_boundary_radius": 100
+        "cyclic_boundary_radius": 69
     },
     "parameters": {
-        "alpha": 12.24727746868043,
-        "eta": 1000,
+        "alpha": 0.6,
+        "eta": 3,
         "upsilon": 0.4,
-        "tau": 0.1,
-        "coupling": 0.0,
-        "dV": 1600000
+        "tau": 1,
+        "dV": 0.16
     },
     "bubble": {
         "initial_radius": 1,
-        "initial_speed": 0.5,
+        "initial_speed": 0,
         "is_true_vacuum": true,
         "interaction_on": true
     },
     "particles": {
-        "mass_false": 0,
-        "mass_true": 1,
-        "T_false": 0.5,
-        "T_true": 0.0,
+        "mass_false": 0.01,
+        "T_false": 0.03,
         "N_false": 750000,
+        "mass_true": 1,
+        "T_true": 0.0,
         "N_true": 0
     },
     "collision": {
         "collision_on": true,
-        "N_cells": 101,
-        "cell_length": 0.0298
+        "N_cells": 71,
+        "cell_length": 0.972
     },
     "stream": {
         "stream": true,
@@ -50,18 +49,18 @@
         "stream_momentumOut_profile": true,
         "stream_radial_velocity": true,
         "stream_tangential_velocity": true,
-        "bins_count_density": 500,
-        "bins_count_energy": 500,
-        "bins_count_radial_velocity": 500,
-        "bins_count_tangential_velocity": 500,
+        "bins_count_density": 1000,
+        "bins_count_energy": 1000,
+        "bins_count_radial_velocity": 1000,
+        "bins_count_tangential_velocity": 1000,
         "bins_count_momentumIn": 200,
         "bins_count_momentumOut": 200,
         "min_value_momentumIn": 0.0001,
         "min_value_momentumOut": 0.0001,
-        "max_value_density": 11,
-        "max_value_energy": 11,
-        "max_value_radial_velocity": 11,
-        "max_value_tangential_velocity": 11,
+        "max_value_density": 69,
+        "max_value_energy": 69,
+        "max_value_radial_velocity": 69,
+        "max_value_tangential_velocity": 69,
         "max_value_momentumIn": 100,
         "max_value_momentumOut": 100
     }

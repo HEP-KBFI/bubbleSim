@@ -33,7 +33,6 @@ class ConfigReader {
    * Collision parameters
    */
   bool collision_on;
-  numType parameterCoupling;
   unsigned int collision_cell_count;
   numType collision_cell_length;
   /*
@@ -99,7 +98,6 @@ class ConfigReader {
     parameterEta = config["parameters"]["eta"];
     parameterUpsilon = config["parameters"]["upsilon"];
     parameterTau = config["parameters"]["tau"];
-    parameterCoupling = config["parameters"]["coupling"];
     parameter_dV = config["parameters"]["dV"];
     /*
      * Particle parameters
@@ -174,8 +172,7 @@ class ConfigReader {
               << std::endl;
     std::cout << sublabel_prefix + "Parameters" << sublabel_sufix << std::endl;
     std::cout << "alpha: " << parameterAlpha << ", eta: " << parameterEta
-              << ", upsilon: " << parameterUpsilon
-              << ", coupling: " << parameterCoupling << std::endl;
+              << ", upsilon: " << parameterUpsilon << std::endl;
 
     std::cout << sublabel_prefix + "Bubble" << sublabel_sufix << std::endl;
     std::cout << "R_b: " << bubbleInitialRadius

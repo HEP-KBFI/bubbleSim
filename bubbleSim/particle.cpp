@@ -151,7 +151,7 @@ void ParticleGenerator::generateParticleMomentum(
   generateRandomDirection(p_x, p_y, p_z, t_pResult, t_generator);
 }
 
-void ParticleGenerator::generatePointInBox(numType& x, numType& y, numType& z,
+void ParticleGenerator::generatePointInCube(numType& x, numType& y, numType& z,
                                            numType& t_SideHalf,
                                            RandomNumberGenerator& t_generator) {
   x = t_SideHalf - 2 * t_SideHalf * t_generator.generate_number();
@@ -159,7 +159,7 @@ void ParticleGenerator::generatePointInBox(numType& x, numType& y, numType& z,
   z = t_SideHalf - 2 * t_SideHalf * t_generator.generate_number();
 }
 
-void ParticleGenerator::generatePointInBox(numType& x, numType& y, numType& z,
+void ParticleGenerator::generatePointInCube(numType& x, numType& y, numType& z,
                                            numType& t_xSideHalf,
                                            numType& t_ySideHalf,
                                            numType& t_zSideHalf,
@@ -181,7 +181,7 @@ void ParticleGenerator::generatePointInSphere(
   z = radius * std::cos(phi);                    // z
 }
 
-numType ParticleGenerator::generateNParticlesInBox(
+numType ParticleGenerator::generateNParticlesInCube(
     numType t_sideHalf, u_int t_N, RandomNumberGenerator& t_generator,
     ParticleCollection& t_particles) {
   if (!m_CPD_initialized) {
@@ -199,7 +199,7 @@ numType ParticleGenerator::generateNParticlesInBox(
 
   for (u_int i = 0; i < t_N; i++) {
     // Generates 3D space coordinates and pushes to m_X vector
-    generatePointInBox(x, y, z, t_sideHalf, t_generator);
+    generatePointInCube(x, y, z, t_sideHalf, t_generator);
 
     // Generates 3D space coordinates and pushes to m_P vector
     generateParticleMomentum(p_x, p_y, p_z, pValue, t_generator);
@@ -217,7 +217,7 @@ numType ParticleGenerator::generateNParticlesInBox(
   return totalEnergy;
 }
 
-numType ParticleGenerator::generateNParticlesInBox(
+numType ParticleGenerator::generateNParticlesInCube(
     numType t_xSideHalf, numType t_ySideHalf, numType t_zSideHalf, u_int t_N,
     RandomNumberGenerator& t_generator, ParticleCollection& t_particles) {
   if (!m_CPD_initialized) {
@@ -235,7 +235,7 @@ numType ParticleGenerator::generateNParticlesInBox(
 
   for (u_int i = 0; i < t_N; i++) {
     // Generates 3D space coordinates and pushes to m_X vector
-    generatePointInBox(x, y, z, t_xSideHalf, t_ySideHalf, t_zSideHalf,
+    generatePointInCube(x, y, z, t_xSideHalf, t_ySideHalf, t_zSideHalf,
                        t_generator);
     // Generates 3D space coordinates and pushes to m_P vector
     generateParticleMomentum(p_x, p_y, p_z, pValue, t_generator);
@@ -254,7 +254,7 @@ numType ParticleGenerator::generateNParticlesInBox(
   return totalEnergy;
 }
 
-numType ParticleGenerator::generateNParticlesInBox(
+numType ParticleGenerator::generateNParticlesInCube(
     numType t_radiusIn, numType t_sideHalf, u_int t_N,
     RandomNumberGenerator& t_generator, ParticleCollection& t_particles) {
   if (!m_CPD_initialized) {
@@ -273,7 +273,7 @@ numType ParticleGenerator::generateNParticlesInBox(
   for (u_int i = 0; i < t_N; i++) {
     // Generates 3D space coordinates and pushes to m_X vector
     do {
-      generatePointInBox(x, y, z, t_sideHalf, t_generator);
+      generatePointInCube(x, y, z, t_sideHalf, t_generator);
       radius = std::sqrt(std::fma(x, x, fma(y, y, z * z)));
     } while (radius < t_radiusIn);
     // Generates 3D space coordinates and pushes to m_P vector
@@ -292,7 +292,7 @@ numType ParticleGenerator::generateNParticlesInBox(
   return totalEnergy;
 }
 
-numType ParticleGenerator::generateNParticlesInBox(
+numType ParticleGenerator::generateNParticlesInCube(
     numType t_radiusIn, numType t_xSideHalf, numType t_ySideHalf,
     numType t_zSideHalf, u_int t_N, RandomNumberGenerator& t_generator,
     ParticleCollection& t_particles) {
@@ -311,7 +311,7 @@ numType ParticleGenerator::generateNParticlesInBox(
   for (u_int i = 0; i < t_N; i++) {
     // Generates 3D space coordinates and pushes to m_X vector
     do {
-      generatePointInBox(x, y, z, t_xSideHalf, t_ySideHalf, t_zSideHalf,
+      generatePointInCube(x, y, z, t_xSideHalf, t_ySideHalf, t_zSideHalf,
                          t_generator);
       radius = std::sqrt(std::fma(x, x, fma(y, y, z * z)));
     } while (radius < t_radiusIn);
@@ -410,7 +410,7 @@ numType ParticleGenerator::generateNParticlesInSphere(
 ParticleCollection::ParticleCollection(
     numType t_massTrue, numType t_massFalse, numType t_temperatureTrue,
     numType t_temperatureFalse, unsigned int t_particleCountTrue,
-    unsigned int t_particleCountFalse, numType t_coupling,
+    unsigned int t_particleCountFalse,
     bool t_bubbleIsTrueVacuum, cl::Context& cl_context) {
   // Set up random number generator
   int openCLerrNum;
@@ -459,8 +459,6 @@ ParticleCollection::ParticleCollection(
     std::cout << "Particle count is < 0.\nExiting program..." << std::endl;
     exit(0);
   }
-
-  m_coupling = t_coupling;
 
   m_particle_X.reserve(m_particleCountTotal);
   m_particle_Y.reserve(m_particleCountTotal);

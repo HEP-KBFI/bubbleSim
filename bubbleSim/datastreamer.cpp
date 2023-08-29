@@ -243,6 +243,10 @@ void DataStreamer::stream(Simulation& simulation,
   std::vector<u_int> bins_RadialVelocityCount;
   std::vector<u_int> bins_TangentialVelocityCount;
 
+  // Bin indexes
+  u_int bin_index_radial_velocity;
+  u_int bin_index_tangential_velocity;
+
   // Read data from buffer:
   particleCollection.readParticleCoordinatesBuffer(cl_queue);
   particleCollection.readParticleMomentumsBuffer(cl_queue);
@@ -314,42 +318,32 @@ void DataStreamer::stream(Simulation& simulation,
         (particleRadius < m_maxRadius_RadialVelocity)) {
       // Average A(N) = [A(N-1) * (N-1) + a(N) ]/N
       particleRadialVelocity =
-          (particleCollection.returnParticleX(i) *
-               particleCollection.returnParticlepX(i) +
-           particleCollection.returnParticleY(i) *
-               particleCollection.returnParticlepY(i) +
-           particleCollection.returnParticleY(i) *
-               particleCollection.returnParticlepY(i)) /
-          (particleCollection.returnParticleE(i) * particleRadius);
-      bins_RadialVelocity[(int)(particleRadius / m_dr_RadialVelocity)] =
-          (bins_RadialVelocity[(int)(particleRadius / m_dr_RadialVelocity)] *
-               bins_RadialVelocityCount[(int)(particleRadius /
-                                              m_dr_RadialVelocity)] +
-           particleRadialVelocity) /
-          (bins_RadialVelocityCount[(int)(particleRadius /
-                                          m_dr_RadialVelocity)] +
-           1);
+          particleCollection.calculateParticleRadialVelocity(i);
+      bin_index_radial_velocity = (u_int)(particleRadius / m_dr_RadialVelocity);
+
+      bins_RadialVelocity[bin_index_radial_velocity] =
+          bins_RadialVelocity[bin_index_radial_velocity] +
+          (particleRadialVelocity -
+           bins_RadialVelocity[bin_index_radial_velocity]) /
+              (bins_RadialVelocityCount[bin_index_radial_velocity] + 1);
 
       bins_RadialVelocityCount[(int)(particleRadius / m_dr_RadialVelocity)] +=
           1;
     }
     if (m_initialized_TangentialVelocity &&
         (particleRadius < m_maxRadius_TangentialVelocity)) {
+      bin_index_tangential_velocity = (u_int)(particleRadius / m_dr_TangentialVelocity);
       if (m_initialized_RadialVelocity) {
         particleTangentialVelocity = std::sqrt(1 - particleRadialVelocity);
       } else {
         particleTangentialVelocity =
             particleCollection.calculateParticleTangentialVelocity(i);
       }
-      bins_TangentialVelocity[(int)(particleRadius / m_dr_TangentialVelocity)] =
-          (bins_TangentialVelocity[(int)(particleRadius /
-                                         m_dr_TangentialVelocity)] *
-               bins_TangentialVelocityCount[(int)(particleRadius /
-                                                  m_dr_TangentialVelocity)] +
-           particleTangentialVelocity) /
-          (bins_TangentialVelocityCount[(int)(particleRadius /
-                                              m_dr_TangentialVelocity)] +
-           1);
+      bins_TangentialVelocity[bin_index_tangential_velocity] =
+          bins_TangentialVelocity[bin_index_tangential_velocity] +
+          (particleTangentialVelocity -
+           bins_TangentialVelocity[bin_index_tangential_velocity]) /
+              (bins_TangentialVelocityCount[bin_index_tangential_velocity] + 1);
 
       bins_TangentialVelocityCount[(int)(particleRadius /
                                          m_dr_TangentialVelocity)] += 1;
@@ -369,7 +363,6 @@ void DataStreamer::stream(Simulation& simulation,
         (particleMomentum < m_maxMomentum_MomentumOut) &&
         (particleMomentum >= m_minMomentum_MomentumOut)) {
       if (t_log_scale_on) {
-        
         bins_MomentumOut[(
             int)(std::log10(particleMomentum / m_minMomentum_MomentumOut) /
                  m_dp_MomentumOut)] += 1;
