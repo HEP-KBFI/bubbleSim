@@ -1,6 +1,6 @@
 #pragma once
 #include <random>
-
+#include <limits>
 #include "base.h"
 
 class RandomNumberGeneratorNumType {
@@ -36,7 +36,7 @@ class RandomNumberGeneratorULong {
       m_generator = std::default_random_engine(t_seed);
     }
     m_distribution =
-        std::uniform_int_distribution<int64_t>(0, 0xFFFFFFFFFFFFFFFF);
+        std::uniform_int_distribution<int64_t>(0, std::numeric_limits<int64_t>::max());
   }
 
   int64_t generate_number() { return m_distribution(m_generator); }

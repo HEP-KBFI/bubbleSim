@@ -188,7 +188,7 @@ void PhaseBubble::evolveWall2(numType dt, numType dE) {
 
 void PhaseBubble::print_info(ConfigReader& t_config) {
   std::string sublabel_prefix = "==== ";
-  std::string sublabel_sufix = "s ====";
+  std::string sublabel_sufix = " ====";
   std::cout << std::setprecision(6);
   std::cout << "=============== Bubble ===============" << std::endl;
   std::cout << sublabel_prefix + "dV: " << m_dV << sublabel_sufix << std::endl;

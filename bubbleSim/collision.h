@@ -1,6 +1,7 @@
 #pragma once
 #include "base.h"
 #include "objects.h"
+
 typedef struct CollisionCell {
   // Lorentz transformation
   cl_numType vX;
@@ -30,9 +31,23 @@ class CollisionCellCollection {
                           bool t_doubleCellCount, cl::Context& cl_context);
 
   void recalculate_cells(ParticleCollection& t_particles, numType t_dt,
-                         numType t_tau, RandomNumberGenerator& t_rng);
+                         numType t_tau, RandomNumberGeneratorNumType& t_rng);
 
-  void generateShiftVector(RandomNumberGenerator& t_rng);
+  void recalculate_cells2(ParticleCollection& t_particles);
+
+  void recalculate_cells3(ParticleCollection& t_particles);
+
+  void generateSeed(RandomNumberGeneratorULong& t_rng);
+
+  void generateShiftVector(RandomNumberGeneratorNumType& t_rng);
+
+  void calculate_new_no_collision_probability(double dt, double tau) {
+    m_no_collision_probability = std::exp(-dt / tau);
+  }
+
+  void generate_new_seed(RandomNumberGeneratorULong t_rng) {
+    m_seed_int64 = t_rng.generate_number();
+  }
 
   /*
    * ================================================================
@@ -53,6 +68,10 @@ class CollisionCellCollection {
 
   u_int getCellCount() { return m_cellCount; }
 
+  double getNoCollisionProbability() { return m_no_collision_probability; }
+
+  int64_t getSeed() { return m_seed_int64; }
+
   std::vector<CollisionCell>& getCollisionCells() { return m_collisionCells; }
 
   cl::Buffer& getCellBuffer() { return m_collisionCellsBuffer; }
@@ -69,6 +88,11 @@ class CollisionCellCollection {
 
   cl::Buffer& getStructureRadiusBuffer() { return m_structureRadiusBuffer; }
 
+  cl::Buffer& getNoCollisionProbabilityBuffer() {
+    return m_no_collision_probability_buffer;
+  }
+
+  cl::Buffer& getSeedBuffer() { return m_seed_int64_buffer; }
   /*
    * ================================================================
    * ================================================================
@@ -80,6 +104,14 @@ class CollisionCellCollection {
   void writeCollisionCellBuffer(cl::CommandQueue& cl_queue) {
     cl_queue.enqueueWriteBuffer(m_collisionCellsBuffer, CL_TRUE, 0,
                                 m_collisionCells.size() * sizeof(CollisionCell),
+                                m_collisionCells.data());
+  }
+
+  void writeCollisionCellBuffer(cl::CommandQueue& cl_queue, size_t t_N, size_t t_offsetN=0) {
+    assert(t_offsetN + t_N <= m_collisionCells.size());
+    cl_queue.enqueueWriteBuffer(
+        m_collisionCellsBuffer, CL_TRUE, t_offsetN * sizeof(CollisionCell),
+                                t_N * sizeof(CollisionCell),
                                 m_collisionCells.data());
   }
 
@@ -107,6 +139,16 @@ class CollisionCellCollection {
     cl_queue.enqueueWriteBuffer(m_structureRadiusBuffer, CL_TRUE, 0,
                                 sizeof(numType), &m_structureRadius);
   };
+
+  void writeSeedBuffer(cl::CommandQueue& cl_queue) {
+    cl_queue.enqueueWriteBuffer(m_seed_int64_buffer, CL_TRUE, 0,
+                                sizeof(int64_t), &m_seed_int64);
+  }
+
+  void writeNoCollisionProbabilityBuffer(cl::CommandQueue& cl_queue) {
+    cl_queue.enqueueWriteBuffer(m_no_collision_probability_buffer, CL_TRUE, 0,
+                                sizeof(double), &m_no_collision_probability);
+  }
 
   void writeAllBuffersToKernel(cl::CommandQueue& cl_queue) {
     writeCollisionCellBuffer(cl_queue);
@@ -175,6 +217,12 @@ class CollisionCellCollection {
 
   numType m_structureRadius;
   cl::Buffer m_structureRadiusBuffer;
+
+  int64_t m_seed_int64;
+  cl::Buffer m_seed_int64_buffer;
+
+  double m_no_collision_probability;
+  cl::Buffer m_no_collision_probability_buffer;
 
   /*
    * Cell counts should be odd to have nice symmetry.

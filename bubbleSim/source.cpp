@@ -96,9 +96,9 @@ int main(int argc, char* argv[]) {
   ConfigReader config(s_configPath);
 
   numType tau = config.parameterTau;
-  u_int N_steps_tau = 10000;
+  u_int N_steps_tau = 10;
   numType dt = tau / N_steps_tau;
-  u_int sim_length_in_tau = 100;
+  u_int sim_length_in_tau = 10000;
   /*
           ===============  ===============
   */
@@ -109,25 +109,30 @@ int main(int argc, char* argv[]) {
  */
 
   // 1) Initialize random number generators
-  RandomNumberGenerator rn_generator(config.m_seed);
+  RandomNumberGeneratorNumType rn_generator(config.m_seed);
+  RandomNumberGeneratorULong rn_generator_64int(config.m_seed);
 
   // 2) Initialize openCL (kernels, commandQueues)
   OpenCLLoader kernels(s_kernelPath, config.kernelName);
 
   // 3) Generate particles
-  ParticleGenerator particleGenerator1;
 
-  // 3.1) Create generator, calculates distribution(s)
-  particleGenerator1 = ParticleGenerator(config.particleMassFalse);
-  particleGenerator1.calculateCPDBoltzmann(
-      config.particleTemperatureFalse, 30 * config.particleTemperatureFalse,
-      1e-5 * config.particleTemperatureFalse);
-
-  // 3.2) Create particle collection
   numType deltaM = std::sqrt(std::pow(config.particleMassTrue, 2.) -
                              std::pow(config.particleMassFalse, 2.));
   numType particle_temperature_in_false_vacuum =
       std::sqrt(deltaM) / config.parameterEta;
+  ParticleGenerator particleGenerator1;
+  std::cout << "T-: " << particle_temperature_in_false_vacuum << std::endl;
+  // 3.1) Create generator, calculates distribution(s)
+  particleGenerator1 = ParticleGenerator(config.particleMassFalse);
+  particleGenerator1.calculateCPDDelta(3 *
+                                       particle_temperature_in_false_vacuum);
+  /*particleGenerator1.calculateCPDBoltzmann(
+      config.particleTemperatureFalse, 30 * config.particleTemperatureFalse,
+      1e-5 * config.particleTemperatureFalse);*/
+
+  // 3.2) Create particle collection
+
   ParticleCollection particles(
       config.particleMassTrue, config.particleMassFalse,
       config.particleTemperatureTrue, particle_temperature_in_false_vacuum,
@@ -149,14 +154,7 @@ int main(int argc, char* argv[]) {
   genreatedParticleEnergy = particleGenerator1.generateNParticlesInCube(
       config.bubbleInitialRadius, config.cyclicBoundaryRadius,
       (u_int)(particles.getParticleCountTotal()), rn_generator, particles);
-  numType minimumRadius = 100000;
-  for (u_int i = 0; i < particles.getParticleCountTotal(); i++) {
-    if (particles.calculateParticleRadius(i) < minimumRadius) {
-      minimumRadius = particles.calculateParticleRadius(i);
-    }
-  }
-  std::cout << "V2ikseim osakese kaugus: " << minimumRadius << std::endl;
-
+  
   particles.add_to_total_initial_energy(genreatedParticleEnergy);
 
   // In development: step revert
@@ -218,7 +216,16 @@ int main(int argc, char* argv[]) {
         particles, cells, kernels.m_cellAssignmentKernel);
     simulation.setBuffersRotateMomentum(particles, cells,
                                         kernels.m_rotationKernel);
+
+    // New
+    simulation.setBuffersCollisionCellReset(cells,
+                                            kernels.m_collisionCellResetKernel);
+    simulation.setBuffersCollisionCellCalculateGeneration(
+        cells, kernels.m_collisionCellCalculateGenerationKernel);
+    // ==
     cells.writeAllBuffersToKernel(kernels.getCommandQueue());
+    cells.writeNoCollisionProbabilityBuffer(kernels.getCommandQueue());
+    cells.writeSeedBuffer(kernels.getCommandQueue());
   }
 
   // Copy data to the GPU
@@ -313,9 +320,12 @@ int main(int argc, char* argv[]) {
     if (config.bubbleInteractionsOn) {
       if (config.collision_on) {
         simulation.stepParticleBubbleCollisionBoundary(
-            particles, bubble, cells, rn_generator, *stepKernel,
-            kernels.m_particleBounceKernel, kernels.m_cellAssignmentKernel,
-            kernels.m_rotationKernel, kernels.getCommandQueue());
+            particles, bubble, cells, rn_generator, rn_generator_64int,
+            *stepKernel, kernels.m_particleBounceKernel,
+            kernels.m_cellAssignmentKernel, kernels.m_rotationKernel,
+            kernels.m_collisionCellResetKernel,
+            kernels.m_collisionCellCalculateGenerationKernel,
+            kernels.getCommandQueue());
       } else {
         if (config.cyclicBoundaryOn) {
           simulation.stepParticleBubbleBoundary(particles, bubble, *stepKernel,
@@ -329,9 +339,11 @@ int main(int argc, char* argv[]) {
     } else {
       if (config.collision_on) {
         simulation.stepParticleCollisionBoundary(
-            particles, cells, rn_generator, *stepKernel,
+            particles, cells, rn_generator, rn_generator_64int, *stepKernel,
             kernels.m_particleBounceKernel, kernels.m_cellAssignmentKernel,
-            kernels.m_rotationKernel, kernels.getCommandQueue());
+            kernels.m_rotationKernel, kernels.m_collisionCellResetKernel,
+            kernels.m_collisionCellCalculateGenerationKernel,
+            kernels.getCommandQueue());
       } else {
         simulation.step(bubble, 0);
       }
@@ -349,11 +361,12 @@ int main(int argc, char* argv[]) {
         }
       }
     }*/
-    
-    //if (i % N_steps_tau >= 0) {
-    if (i % 100 == 0) {
+
+    // if (i % N_steps_tau >= 0) {
+    if (i % 10 == 0) {
       streamer.stream(simulation, particles, bubble, log_scale_on,
                       kernels.getCommandQueue());
+     
       std::cout << "Step: " << simulation.getStep()
                 << ", Time: " << simulation.getTime()
                 << ", R: " << bubble.getRadius()

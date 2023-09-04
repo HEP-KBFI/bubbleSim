@@ -47,6 +47,9 @@ class OpenCLLoader {
   cl::Kernel m_particleBounceKernel;
   cl::Kernel m_particleBubbleStepKernel;
   cl::Kernel m_particleBubbleBoundaryStepKernel;
+  cl::Kernel m_collisionCellResetKernel;
+  cl::Kernel m_collisionCellCalculateSummationKernel;
+  cl::Kernel m_collisionCellCalculateGenerationKernel;
 
   cl::CommandQueue& getCommandQueue() { return m_queue; }
   cl::Context& getContext() { return m_context; }

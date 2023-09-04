@@ -50,14 +50,7 @@
     <ClCompile Include="particle.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\kernels\assign_cell.cl" />
-    <None Include="..\kernels\boundary_bounce.cl" />
-    <None Include="..\kernels\collision.cl" />
-    <None Include="..\kernels\find_comf.cl" />
-    <None Include="..\kernels\generate_rotation.cl" />
     <None Include="..\kernels\kernel.cl" />
-    <None Include="..\kernels\label_collision.cl" />
-    <None Include="..\kernels\label_position.cl" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
@@ -214,8 +207,8 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)\dependencies\OpenCL\include; $(SolutionDir)\dependencies\json</AdditionalIncludeDirectories>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalIncludeDirectories>$(SolutionDir)\dependencies\OpenCL\include; $(SolutionDir)\dependencies\json; $(SolutionDir)\dependencies\ankerl; $(SolutionDir)\dependencies\ankerl</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -229,8 +222,8 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)\dependencies\OpenCL\include; $(SolutionDir)\dependencies\json</AdditionalIncludeDirectories>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalIncludeDirectories>$(SolutionDir)\dependencies\OpenCL\include; $(SolutionDir)\dependencies\json; $(SolutionDir)\dependencies\ankerl;</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -246,8 +239,8 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)\dependencies\OpenCL\include; $(SolutionDir)\dependencies\json</AdditionalIncludeDirectories>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalIncludeDirectories>$(SolutionDir)\dependencies\OpenCL\include; $(SolutionDir)\dependencies\json; $(SolutionDir)\dependencies\ankerl;</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

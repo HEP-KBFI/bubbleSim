@@ -64,6 +64,17 @@ class Simulation {
 
   void setBuffersLabelParticleInBubbleMass(ParticleCollection& t_particles,
                                            cl::Kernel& t_kernel);
+
+  void setBuffersCollisionCellReset(CollisionCellCollection t_cells,
+                                    cl::Kernel& t_kernel);
+
+  void setBuffersCollisionCellCalculateSummation(
+      ParticleCollection& t_particles, CollisionCellCollection& cells,
+      cl::Kernel& t_kernel);
+
+  void setBuffersCollisionCellCalculateGeneration(
+      CollisionCellCollection& cells, cl::Kernel& t_kernel);
+
   /*
    * ================================================================
    * ================================================================
@@ -78,34 +89,61 @@ class Simulation {
    */
 
   void stepParticleBubble(ParticleCollection& particles, PhaseBubble& bubble,
-            cl::Kernel& t_bubbleInteractionKernel, cl::CommandQueue& cl_queue);
+                          cl::Kernel& t_bubbleInteractionKernel,
+                          cl::CommandQueue& cl_queue);
 
-  void stepParticleBubbleBoundary(ParticleCollection& particles, PhaseBubble& bubble,
-            cl::Kernel& t_particle_step_kernel,
-            cl::Kernel& t_particle_boundary_check_kernel,
-            cl::CommandQueue& cl_queue);
+  void stepParticleBubbleBoundary(ParticleCollection& particles,
+                                  PhaseBubble& bubble,
+                                  cl::Kernel& t_particle_step_kernel,
+                                  cl::Kernel& t_particle_boundary_check_kernel,
+                                  cl::CommandQueue& cl_queue);
 
   void collide(ParticleCollection& particles, CollisionCellCollection& cells,
-               numType t_dt, numType t_tau,
-               RandomNumberGenerator& generator_collision,
+               numType t_dt, numType t_tau, RandomNumberGeneratorNumType& t_rng,
                cl::Kernel& t_assign_particle_to_collision_cell_kernel,
                cl::Kernel& t_rotate_momentum_kernel,
                cl::CommandQueue& cl_queue);
 
+  void collide2(ParticleCollection& particles, CollisionCellCollection& cells,
+                numType t_dt, numType t_tau,
+                RandomNumberGeneratorNumType& t_rng_numtype,
+                RandomNumberGeneratorULong& t_rng_int,
+                cl::Kernel& t_assign_particle_to_collision_cell_kernel,
+                cl::Kernel& t_rotate_momentum_kernel,
+                cl::Kernel& t_reset_collision_cell_kernel,
+                cl::Kernel& t_generate_collision_cell_kernel,
+                cl::CommandQueue& cl_queue);
+
+  void collide3(ParticleCollection& particles, CollisionCellCollection& cells,
+                numType t_dt, numType t_tau,
+                RandomNumberGeneratorNumType& t_rng_numtype,
+                RandomNumberGeneratorULong& t_rng_int,
+                cl::Kernel& t_assign_particle_to_collision_cell_kernel,
+                cl::Kernel& t_rotate_momentum_kernel,
+                cl::Kernel& t_reset_collision_cell_kernel,
+                cl::Kernel& t_generate_collision_cell_kernel,
+                cl::CommandQueue& cl_queue);
+
   void stepParticleCollisionBoundary(
       ParticleCollection& particles, CollisionCellCollection& cells,
-      RandomNumberGenerator& t_rng, cl::Kernel& t_particle_step_kernel,
+      RandomNumberGeneratorNumType& t_rng_numtype,
+      RandomNumberGeneratorULong& t_rng_int, cl::Kernel& t_particle_step_kernel,
       cl::Kernel& t_particle_boundary_check_kernel,
       cl::Kernel& t_assign_particle_to_collision_cell_kernel,
-      cl::Kernel& t_rotate_momentum_kernel, cl::CommandQueue& cl_queue);
+      cl::Kernel& t_rotate_momentum_kernel,
+      cl::Kernel& t_reset_collision_cell_kernel,
+      cl::Kernel& t_generate_collision_cell_kernel, cl::CommandQueue& cl_queue);
 
   void stepParticleBubbleCollisionBoundary(
-      ParticleCollection& particles, PhaseBubble& bubble, CollisionCellCollection& cells,
-      RandomNumberGenerator& t_rng, cl::Kernel& t_particle_step_kernel,
+      ParticleCollection& particles, PhaseBubble& bubble,
+      CollisionCellCollection& cells,
+      RandomNumberGeneratorNumType& t_rng_numtype,
+      RandomNumberGeneratorULong& t_rng_int, cl::Kernel& t_particle_step_kernel,
       cl::Kernel& t_particle_boundary_check_kernel,
       cl::Kernel& t_assign_particle_to_collision_cell_kernel,
-      cl::Kernel& t_rotate_momentum_kernel, cl::CommandQueue& cl_queue);
-
+      cl::Kernel& t_rotate_momentum_kernel,
+      cl::Kernel& t_reset_collision_cell_kernel,
+      cl::Kernel& t_generate_collision_cell_kernel, cl::CommandQueue& cl_queue);
 
   /*
    * ================================================================

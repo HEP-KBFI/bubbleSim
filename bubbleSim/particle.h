@@ -178,7 +178,9 @@ class ParticleCollection {
   std::vector<numType>& getParticlepZ() { return m_particle_pZ; }
   std::vector<numType>& getParticleE() { return m_particle_E; }
   std::vector<numType>& getParticleM() { return m_particle_M; }
-
+  std::vector<cl_uint>& getParticleCollisionCellIndex() {
+    return m_particle_collision_cell_index;
+  }
   std::vector<int8_t>& getInteractedFalse() {
     return m_interacted_bubble_false_state;
   }
@@ -673,30 +675,30 @@ class ParticleGenerator {
   bool checkCPDInitialization() { return m_CPD_initialized; }
 
   numType generateNParticlesInCube(numType t_sideHalf, u_int t_N,
-                                  RandomNumberGenerator& t_generator,
+                                  RandomNumberGeneratorNumType& t_generator,
                                   ParticleCollection& t_particles);
 
   numType generateNParticlesInCube(numType t_radiusIn, numType t_sideHalf,
-                                  u_int t_N, RandomNumberGenerator& t_generator,
+                                  u_int t_N, RandomNumberGeneratorNumType& t_generator,
                                   ParticleCollection& t_particles);
 
   numType generateNParticlesInCube(numType t_xSideHalf, numType t_ySideHalf,
                                   numType t_zSideHalf, u_int t_N,
-                                  RandomNumberGenerator& t_generator,
+                                  RandomNumberGeneratorNumType& t_generator,
                                   ParticleCollection& t_particles);
 
   numType generateNParticlesInCube(numType t_radiusIn, numType t_xSideHalf,
                                   numType t_ySideHalf, numType t_zSideHalf,
-                                  u_int t_N, RandomNumberGenerator& t_generator,
+                                  u_int t_N, RandomNumberGeneratorNumType& t_generator,
                                   ParticleCollection& t_particles);
 
   numType generateNParticlesInSphere(numType t_radiusMax, u_int t_N,
-                                     RandomNumberGenerator& t_generator,
+                                     RandomNumberGeneratorNumType& t_generator,
                                      ParticleCollection& t_particles);
 
   numType generateNParticlesInSphere(numType t_radiusMin, numType t_radiusMax,
                                      u_int t_N,
-                                     RandomNumberGenerator& t_generator,
+                                     RandomNumberGeneratorNumType& t_generator,
                                      ParticleCollection& t_particles);
   void calculateCPDBoltzmann(numType t_temperature, numType t_pMax,
                              numType t_dp);
@@ -715,22 +717,22 @@ class ParticleGenerator {
 
   void generateRandomDirection(numType& x, numType& y, numType& z,
                                numType t_radius,
-                               RandomNumberGenerator& t_generator);
+                               RandomNumberGeneratorNumType& t_generator);
 
   void generateParticleMomentum(numType& p_x, numType& p_y, numType& p_z,
                                 numType& t_pResult,
-                                RandomNumberGenerator& t_generator);
+                                RandomNumberGeneratorNumType& t_generator);
 
   void generatePointInCube(numType& x, numType& y, numType& z,
                           numType& t_SideHalf,
-                          RandomNumberGenerator& t_generator);
+                          RandomNumberGeneratorNumType& t_generator);
 
   void generatePointInSphere(numType& x, numType& y, numType& z,
                              numType t_maxRadius,
-                             RandomNumberGenerator& t_generator);
+                             RandomNumberGeneratorNumType& t_generator);
 
   void generatePointInCube(numType& x, numType& y, numType& z,
                           numType& t_xSideHalf, numType& t_ySideHalf,
                           numType& t_zSideHalf,
-                          RandomNumberGenerator& t_generator);
+                          RandomNumberGeneratorNumType& t_generator);
 };

@@ -131,7 +131,7 @@ numType ParticleGenerator::interp(numType t_xValue,
 
 void ParticleGenerator::generateRandomDirection(
     numType& x, numType& y, numType& z, numType t_radius,
-    RandomNumberGenerator& t_generator) {
+    RandomNumberGeneratorNumType& t_generator) {
   numType phi =
       std::acos((numType)1. -
                 (numType)2. * t_generator.generate_number());  // inclination
@@ -143,7 +143,7 @@ void ParticleGenerator::generateRandomDirection(
 
 void ParticleGenerator::generateParticleMomentum(
     numType& p_x, numType& p_y, numType& p_z, numType& t_pResult,
-    RandomNumberGenerator& t_generator) {
+    RandomNumberGeneratorNumType& t_generator) {
   t_pResult =
       interp(t_generator.generate_number(), m_cumulativeProbabilityFunction[0],
              m_cumulativeProbabilityFunction[1]);
@@ -153,7 +153,7 @@ void ParticleGenerator::generateParticleMomentum(
 
 void ParticleGenerator::generatePointInCube(numType& x, numType& y, numType& z,
                                            numType& t_SideHalf,
-                                           RandomNumberGenerator& t_generator) {
+                                           RandomNumberGeneratorNumType& t_generator) {
   x = t_SideHalf - 2 * t_SideHalf * t_generator.generate_number();
   y = t_SideHalf - 2 * t_SideHalf * t_generator.generate_number();
   z = t_SideHalf - 2 * t_SideHalf * t_generator.generate_number();
@@ -163,7 +163,7 @@ void ParticleGenerator::generatePointInCube(numType& x, numType& y, numType& z,
                                            numType& t_xSideHalf,
                                            numType& t_ySideHalf,
                                            numType& t_zSideHalf,
-                                           RandomNumberGenerator& t_generator) {
+                                           RandomNumberGeneratorNumType& t_generator) {
   x = t_xSideHalf - 2 * t_xSideHalf * t_generator.generate_number();
   y = t_ySideHalf - 2 * t_ySideHalf * t_generator.generate_number();
   z = t_zSideHalf - 2 * t_zSideHalf * t_generator.generate_number();
@@ -171,7 +171,7 @@ void ParticleGenerator::generatePointInCube(numType& x, numType& y, numType& z,
 
 void ParticleGenerator::generatePointInSphere(
     numType& x, numType& y, numType& z, numType t_maxRadius,
-    RandomNumberGenerator& t_generator) {
+    RandomNumberGeneratorNumType& t_generator) {
   numType phi =
       std::acos(1 - 2 * t_generator.generate_number());  // inclination
   numType theta = 2 * M_PI * t_generator.generate_number();
@@ -182,7 +182,7 @@ void ParticleGenerator::generatePointInSphere(
 }
 
 numType ParticleGenerator::generateNParticlesInCube(
-    numType t_sideHalf, u_int t_N, RandomNumberGenerator& t_generator,
+    numType t_sideHalf, u_int t_N, RandomNumberGeneratorNumType& t_generator,
     ParticleCollection& t_particles) {
   if (!m_CPD_initialized) {
     std::cerr << "CPD not initialized. Can't generate particles." << std::endl;
@@ -219,7 +219,7 @@ numType ParticleGenerator::generateNParticlesInCube(
 
 numType ParticleGenerator::generateNParticlesInCube(
     numType t_xSideHalf, numType t_ySideHalf, numType t_zSideHalf, u_int t_N,
-    RandomNumberGenerator& t_generator, ParticleCollection& t_particles) {
+    RandomNumberGeneratorNumType& t_generator, ParticleCollection& t_particles) {
   if (!m_CPD_initialized) {
     std::cerr << "CPD not initialized. Can't generate particles." << std::endl;
     std::exit(0);
@@ -256,7 +256,7 @@ numType ParticleGenerator::generateNParticlesInCube(
 
 numType ParticleGenerator::generateNParticlesInCube(
     numType t_radiusIn, numType t_sideHalf, u_int t_N,
-    RandomNumberGenerator& t_generator, ParticleCollection& t_particles) {
+    RandomNumberGeneratorNumType& t_generator, ParticleCollection& t_particles) {
   if (!m_CPD_initialized) {
     std::cerr << "CPD not initialized. Can't generate particles." << std::endl;
     std::exit(0);
@@ -294,7 +294,7 @@ numType ParticleGenerator::generateNParticlesInCube(
 
 numType ParticleGenerator::generateNParticlesInCube(
     numType t_radiusIn, numType t_xSideHalf, numType t_ySideHalf,
-    numType t_zSideHalf, u_int t_N, RandomNumberGenerator& t_generator,
+    numType t_zSideHalf, u_int t_N, RandomNumberGeneratorNumType& t_generator,
     ParticleCollection& t_particles) {
   if (!m_CPD_initialized) {
     std::cerr << "CPD not initialized. Can't generate particles." << std::endl;
@@ -332,7 +332,7 @@ numType ParticleGenerator::generateNParticlesInCube(
 }
 
 numType ParticleGenerator::generateNParticlesInSphere(
-    numType t_radiusMax, u_int t_N, RandomNumberGenerator& t_generator,
+    numType t_radiusMax, u_int t_N, RandomNumberGeneratorNumType& t_generator,
     ParticleCollection& t_particles) {
   if (!m_CPD_initialized) {
     std::cerr << "CPD not initialized. Can't generate particles." << std::endl;
@@ -371,7 +371,7 @@ numType ParticleGenerator::generateNParticlesInSphere(
 
 numType ParticleGenerator::generateNParticlesInSphere(
     numType t_radiusMin, numType t_radiusMax, u_int t_N,
-    RandomNumberGenerator& t_generator, ParticleCollection& t_particles) {
+    RandomNumberGeneratorNumType& t_generator, ParticleCollection& t_particles) {
   if (!m_CPD_initialized) {
     std::cerr << "CPD not initialized. Can't generate particles." << std::endl;
     std::exit(0);

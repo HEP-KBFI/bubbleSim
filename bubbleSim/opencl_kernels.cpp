@@ -24,6 +24,16 @@ OpenCLLoader::OpenCLLoader(std::string kernelPath) {
   createKernel(m_program, m_particleBounceKernel,
                particleBounceKernelName.c_str());
 
+  std::string collisionCellResetKernelName = "collision_cell_reset";
+  std::string collisionCellCalculateSummationName = "collision_cell_calculate_summation";
+  std::string collisionCellCalculateGenerationName = "collision_cell_calculate_generation";
+
+  createKernel(m_program, m_collisionCellResetKernel, collisionCellResetKernelName.c_str());
+  createKernel(m_program, m_collisionCellCalculateSummationKernel,
+               collisionCellCalculateSummationName.c_str());
+  createKernel(m_program, m_collisionCellCalculateGenerationKernel,
+               collisionCellCalculateGenerationName.c_str());
+
 
   createQueue(m_context, m_deviceUsed);
 }
@@ -56,6 +66,19 @@ OpenCLLoader::OpenCLLoader(std::string kernelPath, std::string kernelName) {
       "particle_boundary_check";
   createKernel(m_program, m_particleBubbleBoundaryStepKernel,
                particleBubbleBoundaryStepKernelName.c_str());
+
+   std::string collisionCellResetKernelName = "collision_cell_reset";
+  std::string collisionCellCalculateSummationName =
+      "collision_cell_calculate_summation";
+  std::string collisionCellCalculateGenerationName =
+      "collision_cell_calculate_generation";
+
+  createKernel(m_program, m_collisionCellResetKernel,
+               collisionCellResetKernelName.c_str());
+  createKernel(m_program, m_collisionCellCalculateSummationKernel,
+               collisionCellCalculateSummationName.c_str());
+  createKernel(m_program, m_collisionCellCalculateGenerationKernel,
+               collisionCellCalculateGenerationName.c_str());
 
   createQueue(m_context, m_deviceUsed);
 }
