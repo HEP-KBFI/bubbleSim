@@ -35,7 +35,7 @@ class CollisionCellCollection {
 
   void recalculate_cells2(ParticleCollection& t_particles);
 
-  void recalculate_cells3(ParticleCollection& t_particles);
+  u_int recalculate_cells3(ParticleCollection& t_particles);
 
   void generateSeed(RandomNumberGeneratorULong& t_rng);
 

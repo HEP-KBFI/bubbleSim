@@ -229,11 +229,12 @@ void CollisionCellCollection::recalculate_cells2(
   }
 }
 
-void CollisionCellCollection::recalculate_cells3(
+u_int CollisionCellCollection::recalculate_cells3(
     ParticleCollection& t_particles) {
   auto start = std::chrono::high_resolution_clock::now();
 
   u_int cell_index = 1;
+
   ankerl::unordered_dense::map<u_int, std::array<u_int, 2>> cell_map;
   cell_map.reserve(t_particles.getParticleCountTotal());
   for (u_int i = 0; i < t_particles.getParticleCountTotal(); i++) {
@@ -257,22 +258,24 @@ void CollisionCellCollection::recalculate_cells3(
     }
   }
 
-  CollisionCell cell;
+  //CollisionCell cell;
   u_int cell_index_particle;
   for (u_int i = 0; i < t_particles.getParticleCountTotal(); i++) {
     auto it = cell_map.find(t_particles.returnCollisionCellIndex(i));
     if (it == cell_map.end()) {
-      t_particles.getParticleCollisionCellIndex()[i]=0;
+      t_particles.getParticleCollisionCellIndex()[i] = 0;
     } else {
       cell_index_particle = (it->second)[0];
       t_particles.getParticleCollisionCellIndex()[i] = cell_index_particle;
-      cell = m_collisionCells[cell_index_particle];
+      /*cell = m_collisionCells[cell_index_particle];
       cell.pE += t_particles.returnParticleE(i);
       cell.pX += t_particles.returnParticlepX(i);
       cell.pY += t_particles.returnParticlepY(i);
       cell.pZ += t_particles.returnParticlepZ(i);
       cell.total_mass += std::log(t_particles.returnParticleE(i));
-      cell.particle_count += 1;
+      cell.particle_count += 1;*/
+      //m_collisionCells[cell_index_particle] = cell;
     }
   }
+  return cell_index_new;
 }

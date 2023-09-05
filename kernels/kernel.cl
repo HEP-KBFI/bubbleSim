@@ -894,7 +894,7 @@ __kernel void collision_cell_calculate_generation(
           cell.b_collide = (char)0;
         }
         else{
-          cell.b_collide = (char)1;
+          cell.b_collide = (char)0;
           cell.mass = sqrt(pow(cell.E, 2.) - pow(cell.pX, 2.) - pow(cell.pY, 2.) - pow(cell.pZ, 2.));
           cell.vX = cell.pX/cell.E;
           cell.vY = cell.pY/cell.E;
@@ -948,6 +948,10 @@ __kernel void rotate_momentum(
     double pY_1 = particles_pY[gid];
     double pZ_1 = particles_pZ[gid];
     double pX_2, pY_2, pZ_2;
+
+    double vX = cell.pX/cell.E;
+    double vY = cell.pY/cell.E;
+    double vZ = cell.pZ/cell.E;
 
     if (cell.mass != 0) {
       // Lorentz transformation (to COM frame)
