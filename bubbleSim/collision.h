@@ -5,7 +5,8 @@
 class CollisionCellCollection {
  public:
   CollisionCellCollection(numType t_meanFreePath, unsigned int t_cellCount,
-                          bool t_doubleCellCount, cl::Context& cl_context);
+                          bool t_doubleCellCount, std::uint32_t& t_buffer_flags,
+                          cl::Context& cl_context);
 
   void recalculate_cells(ParticleCollection& t_particles, numType t_dt,
                          numType t_tau, RandomNumberGeneratorNumType& t_rng);
@@ -50,7 +51,6 @@ class CollisionCellCollection {
   int64_t getSeed() { return m_seed_int64; }
 
 
-  cl::Buffer& getCellBuffer() { return m_collisionCellsBuffer; }
 
   cl::Buffer& getCellLengthBuffer() { return m_cellLengthBuffer; }
 
@@ -62,7 +62,6 @@ class CollisionCellCollection {
 
   cl::Buffer& getCellCountBuffer() { return m_cellCountBuffer; }
 
-  cl::Buffer& getStructureRadiusBuffer() { return m_structureRadiusBuffer; }
 
   cl::Buffer& getNoCollisionProbabilityBuffer() {
     return m_no_collision_probability_buffer;
@@ -139,10 +138,6 @@ class CollisionCellCollection {
                                 3 * sizeof(numType), m_shiftVector.data());
   };
 
-  void writeStructureRadiusBuffer(cl::CommandQueue& cl_queue) {
-    cl_queue.enqueueWriteBuffer(m_structureRadiusBuffer, CL_TRUE, 0,
-                                sizeof(numType), &m_structureRadius);
-  };
 
   void writeSeedBuffer(cl::CommandQueue& cl_queue) {
     cl_queue.enqueueWriteBuffer(m_seed_int64_buffer, CL_TRUE, 0,
@@ -244,11 +239,9 @@ class CollisionCellCollection {
   void writeAllBuffersToKernel(cl::CommandQueue& cl_queue) {      
     //writeCollisionCellBuffer(cl_queue);
     writeCollisionCellBuffers(cl_queue);
-    writeCellCountBuffer(cl_queue);
     writeCellCountInOneAxisBuffer(cl_queue);
     writeCellLengthBuffer(cl_queue);
     writeShiftVectorBuffer(cl_queue);
-    writeStructureRadiusBuffer(cl_queue);
   }
 
   /*
@@ -278,11 +271,6 @@ class CollisionCellCollection {
   void readCellCountBuffer(cl::CommandQueue& cl_queue) {
     cl_queue.enqueueReadBuffer(m_cellCountBuffer, CL_TRUE, 0,
                                sizeof(unsigned int), &m_cellCount);
-  };
-
-  void readStructureRadiusBuffer(cl::CommandQueue& cl_queue) {
-    cl_queue.enqueueReadBuffer(m_structureRadiusBuffer, CL_TRUE, 0,
-                               sizeof(numType), &m_structureRadius);
   };
 
   void readCellThetaAxisBuffer(cl::CommandQueue& cl_queue) {
@@ -384,7 +372,6 @@ class CollisionCellCollection {
   std::vector<uint32_t> m_cell_particle_count;
   cl::Buffer m_cell_particle_count_buffer;
 
-  cl::Buffer m_collisionCellsBuffer;
 
   numType m_cellLength;
   cl::Buffer m_cellLengthBuffer;
@@ -398,8 +385,6 @@ class CollisionCellCollection {
   std::array<numType, 3> m_shiftVector;
   cl::Buffer m_shiftVectorBuffer;
 
-  numType m_structureRadius;
-  cl::Buffer m_structureRadiusBuffer;
 
   int64_t m_seed_int64;
   cl::Buffer m_seed_int64_buffer;

@@ -1,39 +1,22 @@
 #include "opencl_kernels.h"
 
 OpenCLLoader::OpenCLLoader(std::string kernelPath) {
-
-
   createContext(m_devices);
   createProgram(m_context, m_deviceUsed, kernelPath);
 
+  m_cellAssignmentKernel = AssignParticleToCollisionCellKernel(m_program);
+  m_rotationKernel = MomentumRotationKernel(m_program);
+  m_particleBoundaryKernel = ParticleBoundaryCheckKernel(m_program);
+  m_particleLinearStepKernel = ParticleStepLinearKernel(m_program);
+  m_particleStepWithBubbleKernel = ParticleStepWithBubbleKernel(m_program);
+  m_collisionCellResetKernel = CollisionCellResetKernel(m_program);
+  m_collisionCellCalculateGenerationKernel =
+      CollisionCellGenerationKernel(m_program);
 
-  std::string particleBubbleStepKernelName = "particle_step_with_bubble";
-  createKernel(m_program, m_particleBubbleStepKernel,
-               particleBubbleStepKernelName.c_str());  // cl::Kernel
-
-  std::string transformKernelName = "rotate_momentum";
-  createKernel(m_program, m_rotationKernel, transformKernelName.c_str());
-  
-  std::string cellAssignKernelName = "assign_particle_to_collision_cell";
-  createKernel(m_program, m_cellAssignmentKernel, cellAssignKernelName.c_str());
-
-  std::string particleStepKernelName = "particle_step_linear";
-  createKernel(m_program, m_particleStepKernel, particleStepKernelName.c_str());
-
-  std::string particleBounceKernelName = "particle_boundary_check";
-  createKernel(m_program, m_particleBounceKernel,
-               particleBounceKernelName.c_str());
-
-  std::string collisionCellResetKernelName = "collision_cell_reset";
-  std::string collisionCellCalculateSummationName = "collision_cell_calculate_summation";
-  std::string collisionCellCalculateGenerationName = "collision_cell_calculate_generation";
-
-  createKernel(m_program, m_collisionCellResetKernel, collisionCellResetKernelName.c_str());
-  createKernel(m_program, m_collisionCellCalculateSummationKernel,
-               collisionCellCalculateSummationName.c_str());
-  createKernel(m_program, m_collisionCellCalculateGenerationKernel,
-               collisionCellCalculateGenerationName.c_str());
-
+  // std::string collisionCellCalculateSummationName =
+  // "collision_cell_calculate_summation";
+  // createKernel(m_program, m_collisionCellCalculateSummationKernel,
+  //              collisionCellCalculateSummationName.c_str());
 
   createQueue(m_context, m_deviceUsed);
 }
@@ -43,42 +26,21 @@ OpenCLLoader::OpenCLLoader(std::string kernelPath, std::string kernelName) {
   createProgram(m_context, m_deviceUsed, kernelPath);
 
   // For collision
-  std::string cellAssignKernelName = "assign_particle_to_collision_cell";
-  createKernel(m_program, m_cellAssignmentKernel, cellAssignKernelName.c_str());
+  m_cellAssignmentKernel = AssignParticleToCollisionCellKernel(m_program);
+  m_rotationKernel = MomentumRotationKernel(m_program);
+  m_particleBoundaryKernel = ParticleBoundaryCheckKernel(m_program);
+  m_particleLinearStepKernel = ParticleStepLinearKernel(m_program);
+  m_particleStepWithBubbleKernel = ParticleStepWithBubbleKernel(m_program);
+  m_collisionCellResetKernel = CollisionCellResetKernel(m_program);
+  m_collisionCellCalculateGenerationKernel =
+      CollisionCellGenerationKernel(m_program);
 
-  std::string transformKernelName = "rotate_momentum";
-  createKernel(m_program, m_rotationKernel, transformKernelName.c_str());
+  // createKernel(m_program, m_kernel, kernelName.c_str());  // cl::Kernel
 
-  std::string particleBounceKernelName = "particle_boundary_check";
-  createKernel(m_program, m_particleBounceKernel,
-               particleBounceKernelName.c_str());
-
-  std::string particleStepKernelName = "particle_step_linear";
-  createKernel(m_program, m_particleStepKernel, particleStepKernelName.c_str());
-
-  createKernel(m_program, m_kernel, kernelName.c_str());  // cl::Kernel
-
-  std::string particleBubbleStepKernelName = "particle_step_with_bubble";
-  createKernel(m_program, m_particleBubbleStepKernel,
-               particleBubbleStepKernelName.c_str());  // cl::Kernel
-
-  std::string particleBubbleBoundaryStepKernelName =
-      "particle_boundary_check";
-  createKernel(m_program, m_particleBubbleBoundaryStepKernel,
-               particleBubbleBoundaryStepKernelName.c_str());
-
-   std::string collisionCellResetKernelName = "collision_cell_reset";
-  std::string collisionCellCalculateSummationName =
-      "collision_cell_calculate_summation";
-  std::string collisionCellCalculateGenerationName =
-      "collision_cell_calculate_generation";
-
-  createKernel(m_program, m_collisionCellResetKernel,
-               collisionCellResetKernelName.c_str());
-  createKernel(m_program, m_collisionCellCalculateSummationKernel,
-               collisionCellCalculateSummationName.c_str());
-  createKernel(m_program, m_collisionCellCalculateGenerationKernel,
-               collisionCellCalculateGenerationName.c_str());
+  // std::string collisionCellCalculateSummationName =
+  //     "collision_cell_calculate_summation";
+  // createKernel(m_program, m_collisionCellCalculateSummationKernel,
+  //              collisionCellCalculateSummationName.c_str());
 
   createQueue(m_context, m_deviceUsed);
 }

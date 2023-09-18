@@ -5,6 +5,7 @@
 
 #include "base.h"
 #include "objects.h"
+#include "kernels.h"
 
 class OpenCLLoader {
   /*
@@ -41,19 +42,43 @@ class OpenCLLoader {
   OpenCLLoader(std::string kernelsPath);
   OpenCLLoader(std::string kernelPath, std::string kernelName);
   cl::Kernel m_kernel;
-  cl::Kernel m_cellAssignmentKernel;
-  cl::Kernel m_rotationKernel;
-  cl::Kernel m_particleStepKernel;
-  cl::Kernel m_particleBounceKernel;
-  cl::Kernel m_particleBubbleStepKernel;
-  cl::Kernel m_particleBubbleBoundaryStepKernel;
-  cl::Kernel m_collisionCellResetKernel;
-  cl::Kernel m_collisionCellCalculateSummationKernel;
-  cl::Kernel m_collisionCellCalculateGenerationKernel;
+
+  ParticleStepLinearKernel m_particleLinearStepKernel;
+  AssignParticleToCollisionCellKernel m_cellAssignmentKernel;
+  MomentumRotationKernel m_rotationKernel;
+  ParticleBoundaryCheckKernel m_particleBoundaryKernel;
+  ParticleStepWithBubbleKernel m_particleStepWithBubbleKernel;
+  CollisionCellResetKernel m_collisionCellResetKernel;
+  CollisionCellGenerationKernel m_collisionCellCalculateGenerationKernel;
+
+  // cl::Kernel m_collisionCellCalculateSummationKernel;
 
   cl::CommandQueue& getCommandQueue() { return m_queue; }
   cl::Context& getContext() { return m_context; }
   cl::Kernel& getKernel() { return m_kernel; }
+
+  std::array<std::string, 5> m_kernel_names_thermalization = {
+      "assign_particle_to_collision_cell",
+      "assign_particle_to_collision_cell_two_state",
+      "rotate_momentum",
+      "collision_cell_calculate_generation",
+      "collision_cell_reset",
+  };
+  std::array<std::string, 4> m_kernel_names_step = {
+      "particle_step_linear",
+      "particle_step_with_bubble",
+      "particle_step_with_bubble_inverted",
+      "particles_step_with_false_bubble_reflect",
+  };
+  std::array<std::string, 2> m_kernel_names_boundary = {
+      "particle_boundary_check",
+      "particle_boundary_momentum_reflect",
+  };
+  std::array<std::string, 2> m_kernel_names_label = {
+      "label_particles_position_by_coordinate",
+      "label_particles_position_by_mass",
+  };
+
   void createContext(std::vector<cl::Device>& devices);
   void createProgram(cl::Context& context, cl::Device& device,
                      std::string& kernelFile);

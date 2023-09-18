@@ -37,6 +37,9 @@
     <Filter Include="OpenCL">
       <UniqueIdentifier>{d00f1d28-f39c-485c-bc09-b2ad361e7fee}</UniqueIdentifier>
     </Filter>
+    <Filter Include="OpenCL\Kernels">
+      <UniqueIdentifier>{0a5868e7-135c-495a-8485-027b6b02f6a0}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="timestep.h">
@@ -75,6 +78,12 @@
     <ClInclude Include="random_number.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="kernels.h">
+      <Filter>OpenCL\Kernels</Filter>
+    </ClInclude>
+    <ClInclude Include="simulation_parameters.h">
+      <Filter>Physics</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="source.cpp">
@@ -97,6 +106,12 @@
     </ClCompile>
     <ClCompile Include="simulation.cpp">
       <Filter>Physics\Dynamics</Filter>
+    </ClCompile>
+    <ClCompile Include="kernels.cpp">
+      <Filter>OpenCL\Kernels</Filter>
+    </ClCompile>
+    <ClCompile Include="simulation_parameters.cpp">
+      <Filter>Physics</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

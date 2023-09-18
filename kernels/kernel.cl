@@ -690,7 +690,7 @@ __kernel void particle_step_with_bubble_inverted(
   particles_E[gid] = E;
 }
 
-__kernel void particles_with_false_bubble_step_reflect(
+__kernel void particles_step_with_false_bubble_reflect(
     __global double *particles_X, __global double *particles_Y,
     __global double *particles_Z, __global double *particles_E,
     __global double *particles_pX, __global double *particles_pY,
@@ -1040,41 +1040,41 @@ __kernel void assign_particle_to_collision_cell(
     __global double *particles_X, __global double *particles_Y,
     __global double *particles_Z,
     __global unsigned int *m_particle_collision_cell_index,
-    __global const unsigned int *maxCellIndex,
+    __global const unsigned int *maxCellIndexInAxis,
     __global const double *cellLength, __global const double *cuboidShift) {
   size_t gid = get_global_id(0);
 
   // Find cell numbers
-  int x_index = (int)((particles_X[gid] + cellLength[0] * maxCellIndex[0] / 2. +
+  int x_index = (int)((particles_X[gid] + cellLength[0] * maxCellIndexInAxis[0] / 2. +
                        cuboidShift[0]) /
                       cellLength[0]);
-  int y_index = (int)((particles_Y[gid] + cellLength[0] * maxCellIndex[0] / 2. +
+  int y_index = (int)((particles_Y[gid] + cellLength[0] * maxCellIndexInAxis[0] / 2. +
                        cuboidShift[1]) /
                       cellLength[0]);
-  int z_index = (int)((particles_Z[gid] + cellLength[0] * maxCellIndex[0] / 2. +
+  int z_index = (int)((particles_Z[gid] + cellLength[0] * maxCellIndexInAxis[0] / 2. +
                        cuboidShift[2]) /
                       cellLength[0]);
   // Idx = 0 -> if particle is outside of the cuboid cell structure
   // Convert cell number into 1D vector
 
-  if ((x_index < 0) || (x_index >= maxCellIndex[0])) {
+  if ((x_index < 0) || (x_index >= maxCellIndexInAxis[0])) {
     m_particle_collision_cell_index[gid] = 0;
     // printf("X. %i", x_index);
-  } else if ((y_index < 0) || (y_index >= maxCellIndex[0])) {
+  } else if ((y_index < 0) || (y_index >= maxCellIndexInAxis[0])) {
     m_particle_collision_cell_index[gid] = 0;
     // printf("Y. %i", y_index);
-  } else if ((z_index < 0) || (z_index >= maxCellIndex[0])) {
+  } else if ((z_index < 0) || (z_index >= maxCellIndexInAxis[0])) {
     m_particle_collision_cell_index[gid] = 0;
     // printf("Z. %i", z_index);
 
   } else {
     m_particle_collision_cell_index[gid] =
-        1 + x_index + y_index * maxCellIndex[0] +
-        z_index * maxCellIndex[0] * maxCellIndex[0];
+        1 + x_index + y_index * maxCellIndexInAxis[0] +
+        z_index * maxCellIndexInAxis[0] * maxCellIndexInAxis[0];
   }
 }
 
-__kernel void assign_particle_cell_index_two_phase(
+__kernel void assign_particle_to_collision_cell_two_state(
     __global double *particles_X, __global double *particles_Y,
     __global double *particles_Z,
     __global unsigned int *m_particle_collision_cell_index,

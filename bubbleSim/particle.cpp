@@ -151,19 +151,18 @@ void ParticleGenerator::generateParticleMomentum(
   generateRandomDirection(p_x, p_y, p_z, t_pResult, t_generator);
 }
 
-void ParticleGenerator::generatePointInCube(numType& x, numType& y, numType& z,
-                                           numType& t_SideHalf,
-                                           RandomNumberGeneratorNumType& t_generator) {
+void ParticleGenerator::generatePointInCube(
+    numType& x, numType& y, numType& z, numType& t_SideHalf,
+    RandomNumberGeneratorNumType& t_generator) {
   x = t_SideHalf - 2 * t_SideHalf * t_generator.generate_number();
   y = t_SideHalf - 2 * t_SideHalf * t_generator.generate_number();
   z = t_SideHalf - 2 * t_SideHalf * t_generator.generate_number();
 }
 
-void ParticleGenerator::generatePointInCube(numType& x, numType& y, numType& z,
-                                           numType& t_xSideHalf,
-                                           numType& t_ySideHalf,
-                                           numType& t_zSideHalf,
-                                           RandomNumberGeneratorNumType& t_generator) {
+void ParticleGenerator::generatePointInCube(
+    numType& x, numType& y, numType& z, numType& t_xSideHalf,
+    numType& t_ySideHalf, numType& t_zSideHalf,
+    RandomNumberGeneratorNumType& t_generator) {
   x = t_xSideHalf - 2 * t_xSideHalf * t_generator.generate_number();
   y = t_ySideHalf - 2 * t_ySideHalf * t_generator.generate_number();
   z = t_zSideHalf - 2 * t_zSideHalf * t_generator.generate_number();
@@ -219,7 +218,8 @@ numType ParticleGenerator::generateNParticlesInCube(
 
 numType ParticleGenerator::generateNParticlesInCube(
     numType t_xSideHalf, numType t_ySideHalf, numType t_zSideHalf, u_int t_N,
-    RandomNumberGeneratorNumType& t_generator, ParticleCollection& t_particles) {
+    RandomNumberGeneratorNumType& t_generator,
+    ParticleCollection& t_particles) {
   if (!m_CPD_initialized) {
     std::cerr << "CPD not initialized. Can't generate particles." << std::endl;
     std::exit(0);
@@ -236,7 +236,7 @@ numType ParticleGenerator::generateNParticlesInCube(
   for (u_int i = 0; i < t_N; i++) {
     // Generates 3D space coordinates and pushes to m_X vector
     generatePointInCube(x, y, z, t_xSideHalf, t_ySideHalf, t_zSideHalf,
-                       t_generator);
+                        t_generator);
     // Generates 3D space coordinates and pushes to m_P vector
     generateParticleMomentum(p_x, p_y, p_z, pValue, t_generator);
 
@@ -256,7 +256,8 @@ numType ParticleGenerator::generateNParticlesInCube(
 
 numType ParticleGenerator::generateNParticlesInCube(
     numType t_radiusIn, numType t_sideHalf, u_int t_N,
-    RandomNumberGeneratorNumType& t_generator, ParticleCollection& t_particles) {
+    RandomNumberGeneratorNumType& t_generator,
+    ParticleCollection& t_particles) {
   if (!m_CPD_initialized) {
     std::cerr << "CPD not initialized. Can't generate particles." << std::endl;
     std::exit(0);
@@ -312,7 +313,7 @@ numType ParticleGenerator::generateNParticlesInCube(
     // Generates 3D space coordinates and pushes to m_X vector
     do {
       generatePointInCube(x, y, z, t_xSideHalf, t_ySideHalf, t_zSideHalf,
-                         t_generator);
+                          t_generator);
       radius = std::sqrt(std::fma(x, x, fma(y, y, z * z)));
     } while (radius < t_radiusIn);
     // Generates 3D space coordinates and pushes to m_P vector
@@ -371,7 +372,8 @@ numType ParticleGenerator::generateNParticlesInSphere(
 
 numType ParticleGenerator::generateNParticlesInSphere(
     numType t_radiusMin, numType t_radiusMax, u_int t_N,
-    RandomNumberGeneratorNumType& t_generator, ParticleCollection& t_particles) {
+    RandomNumberGeneratorNumType& t_generator,
+    ParticleCollection& t_particles) {
   if (!m_CPD_initialized) {
     std::cerr << "CPD not initialized. Can't generate particles." << std::endl;
     std::exit(0);
@@ -407,48 +409,22 @@ numType ParticleGenerator::generateNParticlesInSphere(
   return totalEnergy;
 }
 
-ParticleCollection::ParticleCollection(
-    numType t_massTrue, numType t_massFalse, numType t_temperatureTrue,
-    numType t_temperatureFalse, unsigned int t_particleCountTrue,
-    unsigned int t_particleCountFalse,
-    bool t_bubbleIsTrueVacuum, cl::Context& cl_context) {
+ParticleCollection::ParticleCollection(unsigned int t_particleCountTrue,
+                                       unsigned int t_particleCountFalse,
+                                       bool t_bubbleIsTrueVacuum,
+                                       std::uint32_t& t_buffer_flags,
+                                       cl::Context& cl_context) {
   // Set up random number generator
   int openCLerrNum;
   // Masses
   if (t_bubbleIsTrueVacuum) {
-    m_mass_in = t_massTrue;
-    m_mass_out = t_massFalse;
-    m_temperatureIn = t_temperatureTrue;
-    m_temperatureOut = t_temperatureFalse;
     m_particleCountIn = t_particleCountTrue;
     m_particleCountOut = t_particleCountFalse;
   } else {
-    m_mass_in = t_massFalse;
-    m_mass_out = t_massTrue;
-    m_temperatureIn = t_temperatureFalse;
-    m_temperatureOut = t_temperatureTrue;
     m_particleCountIn = t_particleCountFalse;
     m_particleCountOut = t_particleCountTrue;
   }
-  m_delta_mass_squared = std::abs(std::pow(t_massTrue, (numType)2.) -
-                                  std::pow(t_massFalse, (numType)2.));
-
-  m_mass_in_buffer =
-      cl::Buffer(cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                 sizeof(numType), &m_mass_in, &openCLerrNum);
-
-  m_mass_out_buffer =
-      cl::Buffer(cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                 sizeof(numType), &m_mass_out, &openCLerrNum);
-  m_delta_mass_squared_buffer =
-      cl::Buffer(cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                 sizeof(numType), &m_delta_mass_squared, &openCLerrNum);
-
   // Temperatures
-  m_massTrue = t_massTrue;
-  m_massFalse = t_massFalse;
-  m_temperatureTrue = t_temperatureTrue;
-  m_temperatureFalse = t_temperatureFalse;
   m_particleCountTrue = t_particleCountTrue;
   m_particleCountFalse = t_particleCountFalse;
 
@@ -473,47 +449,54 @@ ParticleCollection::ParticleCollection(
       cl::Buffer(cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
                  m_particleCountTotal * sizeof(numType), m_particle_X.data(),
                  &openCLerrNum);
+  t_buffer_flags |= PARTICLE_X_BUFFER;
   m_particle_Y_buffer =
       cl::Buffer(cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
                  m_particleCountTotal * sizeof(numType), m_particle_Y.data(),
                  &openCLerrNum);
+  t_buffer_flags |= PARTICLE_Y_BUFFER;
   m_particle_Z_buffer =
       cl::Buffer(cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
                  m_particleCountTotal * sizeof(numType), m_particle_Z.data(),
                  &openCLerrNum);
+  t_buffer_flags |= PARTICLE_Z_BUFFER;
   m_particle_pX_buffer =
       cl::Buffer(cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
                  m_particleCountTotal * sizeof(numType), m_particle_pX.data(),
                  &openCLerrNum);
+  t_buffer_flags |= PARTICLE_PX_BUFFER;
   m_particle_pY_buffer =
       cl::Buffer(cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
                  m_particleCountTotal * sizeof(numType), m_particle_pY.data(),
                  &openCLerrNum);
+  t_buffer_flags |= PARTICLE_PY_BUFFER;
   m_particle_pZ_buffer =
       cl::Buffer(cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
                  m_particleCountTotal * sizeof(numType), m_particle_pZ.data(),
                  &openCLerrNum);
+  t_buffer_flags |= PARTICLE_PZ_BUFFER;
   m_particle_E_buffer =
       cl::Buffer(cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
                  m_particleCountTotal * sizeof(numType), m_particle_E.data(),
                  &openCLerrNum);
+  t_buffer_flags |= PARTICLE_E_BUFFER;
   m_particle_M_buffer =
       cl::Buffer(cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
                  m_particleCountTotal * sizeof(numType), m_particle_M.data(),
                  &openCLerrNum);
-
+  t_buffer_flags |= PARTICLE_M_BUFFER;
   m_dP = std::vector<numType>(m_particleCountTotal, (numType)0.);
   m_dP_buffer = cl::Buffer(cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
                            m_particleCountTotal * sizeof(numType), m_dP.data(),
                            &openCLerrNum);
-
+  t_buffer_flags |= PARTICLE_dP_BUFFER;
   m_particle_bool_collide =
       std::vector<cl_char>(m_particleCountTotal, (cl_char)0);
-
   m_particle_bool_collide_buffer =
       cl::Buffer(cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
                  m_particleCountTotal * sizeof(cl_char),
                  m_particle_bool_collide.data(), &openCLerrNum);
+  t_buffer_flags |= PARTICLE_COLLIDE_BUFFER;
 
   m_particle_bool_in_bubble =
       std::vector<cl_char>(m_particleCountTotal, (cl_char)0);
@@ -522,7 +505,7 @@ ParticleCollection::ParticleCollection(
       cl::Buffer(cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
                  m_particleCountTotal * sizeof(cl_char),
                  m_particle_bool_in_bubble.data(), &openCLerrNum);
-
+  t_buffer_flags |= PARTICLE_IN_BUBBLE_BUFFER;
   m_particle_collision_cell_index =
       std::vector<cl_uint>(m_particleCountTotal, (cl_uint)0);
 
@@ -530,7 +513,7 @@ ParticleCollection::ParticleCollection(
       cl::Buffer(cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
                  m_particleCountTotal * sizeof(cl_uint),
                  m_particle_collision_cell_index.data(), &openCLerrNum);
-
+  t_buffer_flags |= PARTICLE_COLLISION_CELL_IDX_BUFFER;
   // Data reserve
   m_interacted_bubble_false_state =
       std::vector<int8_t>(m_particleCountTotal, 0);
@@ -538,17 +521,19 @@ ParticleCollection::ParticleCollection(
       cl::Buffer(cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
                  m_particleCountTotal * sizeof(int8_t),
                  m_interacted_bubble_false_state.data(), &openCLerrNum);
-
+  t_buffer_flags |= PARTICLE_INTERACTED_FALSE_BUFFER;
   m_passed_bubble_false_state = std::vector<int8_t>(m_particleCountTotal, 0);
   m_passed_bubble_false_state_buffer =
       cl::Buffer(cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
                  m_particleCountTotal * sizeof(int8_t),
                  m_passed_bubble_false_state.data(), &openCLerrNum);
+  t_buffer_flags |= PARTICLE_PASSED_FALSE_BUFFER;
   m_interacted_bubble_true_state = std::vector<int8_t>(m_particleCountTotal, 0);
   m_interacted_bubble_true_state_buffer =
       cl::Buffer(cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
                  m_particleCountTotal * sizeof(int8_t),
                  m_interacted_bubble_true_state.data(), &openCLerrNum);
+  t_buffer_flags |= PARTICLE_INTERACTED_TRUE_BUFFER;
   // Initial simulation values
   m_initialTotalEnergy = 0.;
 }

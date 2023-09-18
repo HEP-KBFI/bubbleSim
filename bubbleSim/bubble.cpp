@@ -38,6 +38,7 @@ PhaseBubble::PhaseBubble(numType t_initialRadius, numType t_initialSpeed,
 
 PhaseBubble::PhaseBubble(numType t_initialRadius, numType t_initialSpeed,
                          numType t_dV, numType t_sigma,
+                         std::uint32_t& t_buffer_flags,
                          cl::Context& cl_context) {
   /*
   cl_double radius;
@@ -62,6 +63,7 @@ PhaseBubble::PhaseBubble(numType t_initialRadius, numType t_initialSpeed,
   m_bubbleBuffer =
       cl::Buffer(cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
                  sizeof(Bubble), &m_bubble, &openCLerrNum);
+  t_buffer_flags |= BUBBLE_BUFFER;
   m_dV = t_dV;
   m_sigma = t_sigma;
   m_initialRadius = t_initialRadius;

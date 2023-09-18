@@ -3,14 +3,37 @@
 
 #include "base.h"
 
+class SimulationSettings {
+ public:
+  bool isFlagSet(SimulationFlags flag) const { return flag == (flags & flag); }
+  void setFlag(SimulationFlags flag) { flags |= flag; }
+  void removeFlag(SimulationFlags flag) { flags &= ~flag; }
+  std::uint32_t getFlag() { return flags; }
+ private:
+  std::uint32_t flags = 0b00000000000000000000000000000000;
+};
+
+class StreamSettings {
+ public:
+  bool isFlagSet(StreamFlags flag) const { return flag == (flags & flag); }
+  void setFlag(StreamFlags flag) { flags |= flag; }
+  void removeFlag(StreamFlags flag) { flags &= ~flag; }
+  std::uint32_t getFlag() { return flags; }
+ private:
+  std::uint32_t flags = 0b00000000000000000000000000000000;
+};
+
 class ConfigReader {
  public:
+  SimulationSettings SIMULATION_SETTINGS = SimulationSettings();
+  StreamSettings STREAM_SETTINGS = StreamSettings();
   std::string kernelName;
   int m_seed;
   u_int m_maxSteps;
   numType dt;
   numType maxTime;
   bool cyclicBoundaryOn;
+
   numType cyclicBoundaryRadius;
   /*
    * Physics parameters
@@ -38,6 +61,7 @@ class ConfigReader {
   /*
    * Bubble parameters
    */
+  bool bubbleOn;
   numType bubbleInitialRadius;
   numType bubbleInitialSpeed;
   bool bubbleIsTrueVacuum;
@@ -89,6 +113,10 @@ class ConfigReader {
 
     dt = config["simulation"]["dt"];
     maxTime = config["simulation"]["max_time"];
+
+    if (config["simulation"]["cyclic_boundary_on"]) {
+      SIMULATION_SETTINGS.setFlag(SIMULATION_BOUNDARY_ON);
+    }
     cyclicBoundaryOn = config["simulation"]["cyclic_boundary_on"];
     cyclicBoundaryRadius = config["simulation"]["cyclic_boundary_radius"];
     /*
@@ -111,19 +139,61 @@ class ConfigReader {
     /*
      * Collisions
      */
+    if (config["collision"]["collision_on"])
+      SIMULATION_SETTINGS.setFlag(COLLISION_ON);
     collision_on = config["collision"]["collision_on"];
     collision_cell_count = config["collision"]["N_cells"];
     collision_cell_length = config["collision"]["cell_length"];
     /*
      * Bubble parameters
      */
+
+    if (config["bubble"]["bubble_on"]) SIMULATION_SETTINGS.setFlag(BUBBLE_ON);
+    bubbleOn = config["bubble"]["bubble_on"];
     bubbleInitialRadius = config["bubble"]["initial_radius"];
     bubbleInitialSpeed = config["bubble"]["initial_speed"];
+    if (config["bubble"]["is_true_vacuum"]) {
+      SIMULATION_SETTINGS.setFlag(TRUE_VACUUM_BUBBLE_ON);
+    }
+
     bubbleIsTrueVacuum = config["bubble"]["is_true_vacuum"];
+    if (config["bubble"]["interaction_on"]) {
+      SIMULATION_SETTINGS.setFlag(BUBBLE_INTERACTION_ON);
+    }
     bubbleInteractionsOn = config["bubble"]["interaction_on"];
     /*
      * Streaming parameters
      */
+
+
+    if (config["stream"]["stream"]) {
+      STREAM_SETTINGS.setFlag(STREAM_ON);
+    }
+    if (config["stream"]["stream_data"]) {
+      STREAM_SETTINGS.setFlag(STREAM_DATA);
+    }
+    if (config["stream"]["stream_density_profile"]) {
+      STREAM_SETTINGS.setFlag(STREAM_NUMBER_DENSITY);
+    }
+    if (config["stream"]["steam_energy_profile"]) {
+      STREAM_SETTINGS.setFlag(STREAM_ENERGY_DENSITY);
+    }
+    if (config["stream"]["stream_momentum"]) {
+      STREAM_SETTINGS.setFlag(STREAM_MOMENTUM);
+    }
+    if (config["stream"]["stream_momentumIn_profile"]) {
+      STREAM_SETTINGS.setFlag(STREAM_MOMENTUM_IN);
+    }
+    if (config["stream"]["stream_momentumOut_profile"]) {
+      STREAM_SETTINGS.setFlag(STREAM_MOMENTUM_OUT);
+    }
+    if (config["stream"]["stream_radial_velocity"]) {
+      STREAM_SETTINGS.setFlag(STREAM_RADIAL_VELOCITY);
+    }
+    if (config["stream"]["stream_tangential_velocity"]) {
+      STREAM_SETTINGS.setFlag(STREAM_TANGENTIAL_VELOCITY);
+    }
+
     streamOn = config["stream"]["stream"];
     streamDataOn = config["stream"]["stream_data"];
     streamDensityOn = config["stream"]["stream_density_profile"];

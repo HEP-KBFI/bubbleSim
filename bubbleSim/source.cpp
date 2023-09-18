@@ -91,9 +91,10 @@ int main(int argc, char* argv[]) {
   std::string s_configPath = argv[1];  // "config.json"
   std::string s_kernelPath = argv[2];  // "kernel.cl";
 
+  std::uint32_t buffer_flags = 0;
+
   std::cout << "Config path: " << s_configPath << std::endl;
   std::cout << "Kernel path: " << s_kernelPath << std::endl;
-
   ConfigReader config(s_configPath);
 
   numType tau = config.parameterTau;
@@ -139,10 +140,9 @@ int main(int argc, char* argv[]) {
   // 3.2) Create particle collection
 
   ParticleCollection particles(
-      config.particleMassTrue, config.particleMassFalse,
-      config.particleTemperatureTrue, particle_temperature_in_false_vacuum,
       config.particleCountTrue, config.particleCountFalse,
-      config.bubbleIsTrueVacuum, kernels.getContext());
+      config.SIMULATION_SETTINGS.isFlagSet(TRUE_VACUUM_BUBBLE_ON), buffer_flags,
+      kernels.getContext());
 
   // 3.3) create particles
   numType genreatedParticleEnergy;
@@ -180,22 +180,40 @@ int main(int argc, char* argv[]) {
   numType sigma = config.parameterUpsilon * dV * config.bubbleInitialRadius;
   numType critical_radius =
       2 * config.parameterUpsilon * config.bubbleInitialRadius;
-  if (!config.bubbleIsTrueVacuum) {
+  if (!config.SIMULATION_SETTINGS.isFlagSet(TRUE_VACUUM_BUBBLE_ON)) {
     // If bubble is true vacuum then dV is correct sign. Otherwise dV sign must
     // be changed as change of direction changes.
     dV = -dV;
   }
   PhaseBubble bubble(config.bubbleInitialRadius, config.bubbleInitialSpeed, dV,
-                     sigma, kernels.getContext());
+                     sigma, buffer_flags, kernels.getContext());
 
   // 5) Initialize Simulation
+  SimulationParameters simulation_parameters;
   Simulation simulation;
-  if (!config.cyclicBoundaryOn) {
-    simulation = Simulation(config.m_seed, dt, kernels.getContext());
+
+  numType particle_mass_in =
+      (config.SIMULATION_SETTINGS.isFlagSet(TRUE_VACUUM_BUBBLE_ON))
+          ? config.particleMassTrue
+          : config.particleMassFalse;
+  numType particle_mass_out =
+      (config.SIMULATION_SETTINGS.isFlagSet(TRUE_VACUUM_BUBBLE_ON))
+          ? config.particleMassFalse
+          : config.particleMassTrue;
+  if (config.SIMULATION_SETTINGS.isFlagSet(SIMULATION_BOUNDARY_ON |
+                                           BUBBLE_ON)) {
+    simulation_parameters =
+        SimulationParameters(dt, particle_mass_in, particle_mass_out, config.cyclicBoundaryRadius,
+        buffer_flags, kernels.getContext());
+  } else if (config.SIMULATION_SETTINGS.isFlagSet(BUBBLE_ON)) {
+    simulation_parameters = SimulationParameters(dt, particle_mass_in, particle_mass_out,
+                             buffer_flags, kernels.getContext());
   } else {
-    simulation = Simulation(config.m_seed, dt, config.cyclicBoundaryRadius,
-                            kernels.getContext());
+    simulation_parameters = SimulationParameters(dt, buffer_flags, kernels.getContext());
   }
+  simulation = Simulation(config.m_seed, dt, simulation_parameters,
+                          kernels.getContext());
+
   simulation.setTau(config.parameterTau);
 
   // Add all energy together in simulation for later use
@@ -207,35 +225,32 @@ int main(int argc, char* argv[]) {
   // 6) Create collision cells
   CollisionCellCollection cells(config.collision_cell_length,
                                 config.collision_cell_count, false,
-                                kernels.getContext());
+                                buffer_flags, kernels.getContext());
 
   // 7) Create buffers and copy data on the GPU
   cl::Kernel* stepKernel;
   // NB! Different kernels might need different input
 
   stepKernel = &kernels.m_kernel;
-  if (config.bubbleInteractionsOn) {
-    simulation.setBuffersParticleStepWithBubble(particles, bubble, *stepKernel);
+  if (config.SIMULATION_SETTINGS.isFlagSet(BUBBLE_INTERACTION_ON)) {
+    kernels.m_particleStepWithBubbleKernel.setBuffers(
+        simulation.getSimulationParameters(), particles, bubble, buffer_flags);
   } else {
-    simulation.setBuffersParticleStepLinear(particles, *stepKernel);
+    kernels.m_particleLinearStepKernel.setBuffers(
+        simulation.getSimulationParameters(), particles, buffer_flags);
   }
-  if (config.cyclicBoundaryOn) {
-    simulation.setBuffersParticleBoundaryCheck(particles,
-                                               kernels.m_particleBounceKernel);
+  if (config.SIMULATION_SETTINGS.isFlagSet(SIMULATION_BOUNDARY_ON)) {
+    kernels.m_particleBoundaryKernel.setBuffers(
+        simulation.getSimulationParameters(), particles, buffer_flags);
   }
-  if (config.collision_on) {
-    simulation.setBuffersParticleBoundaryCheck(particles,
-                                               kernels.m_particleBounceKernel);
-    simulation.setBuffersAssignParticleToCollisionCell(
-        particles, cells, kernels.m_cellAssignmentKernel);
-    simulation.setBuffersRotateMomentum(particles, cells,
-                                        kernels.m_rotationKernel);
+  if (config.SIMULATION_SETTINGS.isFlagSet(COLLISION_ON)) {
+    kernels.m_cellAssignmentKernel.setBuffers(particles, cells, buffer_flags);
+    kernels.m_rotationKernel.setBuffers(particles, cells, buffer_flags);
+    kernels.m_collisionCellResetKernel.setBuffers(cells, buffer_flags);
+    kernels.m_collisionCellCalculateGenerationKernel.setBuffers(cells,
+                                                                buffer_flags);
 
     // New
-    simulation.setBuffersCollisionCellReset(cells,
-                                            kernels.m_collisionCellResetKernel);
-    simulation.setBuffersCollisionCellCalculateGeneration(
-        cells, kernels.m_collisionCellCalculateGenerationKernel);
     // ==
     cells.writeAllBuffersToKernel(kernels.getCommandQueue());
     cells.writeNoCollisionProbabilityBuffer(kernels.getCommandQueue());
@@ -247,7 +262,14 @@ int main(int argc, char* argv[]) {
   particles.writeParticleEBuffer(kernels.getCommandQueue());
   particles.writeParticleMomentumsBuffer(kernels.getCommandQueue());
   particles.writeParticleMBuffer(kernels.getCommandQueue());
-  simulation.writeAllBuffersToKernel(kernels.getCommandQueue());
+  particles.writedPBuffer(kernels.getCommandQueue());
+  simulation.getSimulationParameters().writeDtBuffer(kernels.getCommandQueue());
+  simulation.getSimulationParameters().writeMassInBuffer(
+      kernels.getCommandQueue());
+  simulation.getSimulationParameters().writeMassInBuffer(
+      kernels.getCommandQueue());
+  simulation.getSimulationParameters().writeMassOutBuffer(
+      kernels.getCommandQueue());
   bubble.writeAllBuffersToKernel(kernels.getCommandQueue());
 
   // 8) Streaming initialization
@@ -258,34 +280,36 @@ int main(int argc, char* argv[]) {
 
   bool log_scale_on = true;
 
-  if (config.streamDataOn) {
+  if (config.STREAM_SETTINGS.isFlagSet(STREAM_DATA)) {
     streamer.initStream_Data();
   }
-  if (config.streamRadialVelocityOn) {
+  if (config.STREAM_SETTINGS.isFlagSet(STREAM_RADIAL_VELOCITY)) {
     streamer.initStream_RadialVelocity(config.binsCountRadialVelocity,
                                        config.maxValueRadialVelocity);
   }
-  if (config.streamTangentialVelocityOn) {
+  if (config.STREAM_SETTINGS.isFlagSet(STREAM_TANGENTIAL_VELOCITY)) {
     streamer.initStream_TangentialVelocity(config.binsCountTangentialVelocity,
                                            config.maxValueTangentialVelocity);
   }
-  if (config.streamDensityOn) {
+  if (config.STREAM_SETTINGS.isFlagSet(STREAM_NUMBER_DENSITY)) {
     streamer.initStream_Density(config.binsCountDensity,
                                 config.maxValueDensity);
   }
-  if (config.streamEnergyOn) {
+  if (config.STREAM_SETTINGS.isFlagSet(STREAM_ENERGY_DENSITY)) {
     streamer.initStream_EnergyDensity(config.binsCountEnergy,
                                       config.maxValueEnergy);
   }
-  if (config.streamMomentumInOn) {
-    streamer.initStream_MomentumIn(config.binsCountMomentumIn,
-                                   config.minValueMomentumIn,
-                                   config.maxValueMomentumIn, log_scale_on);
-  }
-  if (config.streamMomentumOutOn) {
-    streamer.initStream_MomentumOut(config.binsCountMomentumOut,
-                                    config.minValueMomentumOut,
-                                    config.maxValueMomentumOut, log_scale_on);
+  if (config.STREAM_SETTINGS.isFlagSet(STREAM_MOMENTUM)) {
+    if (config.STREAM_SETTINGS.isFlagSet(STREAM_MOMENTUM_IN)) {
+      streamer.initStream_MomentumIn(config.binsCountMomentumIn,
+                                     config.minValueMomentumIn,
+                                     config.maxValueMomentumIn, log_scale_on);
+    }
+    if (config.STREAM_SETTINGS.isFlagSet(STREAM_MOMENTUM_OUT)) {
+      streamer.initStream_MomentumOut(config.binsCountMomentumOut,
+                                      config.minValueMomentumOut,
+                                      config.maxValueMomentumOut, log_scale_on);
+    }
   }
   streamer.stream(simulation, particles, bubble, log_scale_on,
                   kernels.getCommandQueue());
@@ -331,36 +355,21 @@ int main(int argc, char* argv[]) {
        i++)
   */
   for (u_int i = 1; i <= N_steps_tau * sim_length_in_tau; i++) {
-    if (config.bubbleInteractionsOn) {
-      if (config.collision_on) {
-        simulation.stepParticleBubbleCollisionBoundary(
-            particles, bubble, cells, rn_generator, rn_generator_64int,
-            *stepKernel, kernels.m_particleBounceKernel,
-            kernels.m_cellAssignmentKernel, kernels.m_rotationKernel,
-            kernels.m_collisionCellResetKernel,
-            kernels.m_collisionCellCalculateGenerationKernel,
-            kernels.getCommandQueue());
-      } else {
-        if (config.cyclicBoundaryOn) {
-          simulation.stepParticleBubbleBoundary(particles, bubble, *stepKernel,
-                                                kernels.m_particleBounceKernel,
-                                                kernels.getCommandQueue());
-        } else {
-          simulation.stepParticleBubble(particles, bubble, *stepKernel,
-                                        kernels.getCommandQueue());
-        }
-      }
+    if (config.SIMULATION_SETTINGS.isFlagSet(
+            BUBBLE_INTERACTION_ON | COLLISION_ON | SIMULATION_BOUNDARY_ON)) {
+      simulation.stepParticleBubbleCollisionBoundary(
+          particles, bubble, cells, rn_generator, rn_generator_64int, kernels);
+    } else if (config.SIMULATION_SETTINGS.isFlagSet(BUBBLE_INTERACTION_ON |
+                                                    SIMULATION_BOUNDARY_ON)) {
+      simulation.stepParticleBubbleBoundary(particles, bubble, kernels);
+    } else if (config.SIMULATION_SETTINGS.isFlagSet(BUBBLE_INTERACTION_ON)) {
+      simulation.stepParticleBubble(particles, bubble, kernels);
+    } else if (!config.SIMULATION_SETTINGS.isFlagSet(BUBBLE_INTERACTION_ON) &&
+               config.SIMULATION_SETTINGS.isFlagSet(COLLISION_ON)) {
+      simulation.stepParticleCollisionBoundary(particles, cells, rn_generator,
+                                               rn_generator_64int, kernels);
     } else {
-      if (config.collision_on) {
-        simulation.stepParticleCollisionBoundary(
-            particles, cells, rn_generator, rn_generator_64int, *stepKernel,
-            kernels.m_particleBounceKernel, kernels.m_cellAssignmentKernel,
-            kernels.m_rotationKernel, kernels.m_collisionCellResetKernel,
-            kernels.m_collisionCellCalculateGenerationKernel,
-            kernels.getCommandQueue());
-      } else {
-        simulation.step(bubble, 0);
-      }
+      simulation.step(bubble, 0);
     }
 
     /*simTimeSinceLastStream += simulation.get_dt_currentStep();

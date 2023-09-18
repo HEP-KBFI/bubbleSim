@@ -4,7 +4,8 @@
 
 CollisionCellCollection::CollisionCellCollection(
     numType t_cellLength, unsigned int t_cellCountInOneAxis,
-    bool t_doubleCellCount, cl::Context& cl_context) {
+    bool t_doubleCellCount, std::uint32_t& t_buffer_flags,
+    cl::Context& cl_context) {
   /*
   TODO:
     Differentiate if particle is inside or outside the bubble. (Different
@@ -30,49 +31,55 @@ CollisionCellCollection::CollisionCellCollection(
   m_cell_theta_axis_buffer = cl::Buffer(
       cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
       m_cellCount * sizeof(numType), m_cell_theta_axis.data(), &openCLerrNum);
+  t_buffer_flags |= CELL_THETA_AXIS_BUFFER;
   m_cell_phi_axis.resize(m_cellCount, 0.);
   m_cell_phi_axis_buffer = cl::Buffer(
       cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
       m_cellCount * sizeof(numType), m_cell_phi_axis.data(), &openCLerrNum);
+  t_buffer_flags |= CELL_PHI_AXIS_BUFFER;
   m_cell_theta_rotation.resize(m_cellCount, 0.);
   m_cell_theta_rotation_buffer =
       cl::Buffer(cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
                  m_cellCount * sizeof(numType), m_cell_theta_rotation.data(),
                  &openCLerrNum);
+  t_buffer_flags |= CELL_THETA_ROTATION_BUFFER;
   m_cell_E.resize(m_cellCount, 0.);
   m_cell_E_buffer =
       cl::Buffer(cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
                  m_cellCount * sizeof(numType), m_cell_E.data(), &openCLerrNum);
+  t_buffer_flags |= CELL_E_BUFFER;
   m_cell_logE.resize(m_cellCount, 0.);
   m_cell_logE_buffer = cl::Buffer(
       cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
       m_cellCount * sizeof(numType), m_cell_logE.data(), &openCLerrNum);
+  t_buffer_flags |= CELL_LOGE_BUFFER;
   m_cell_pX.resize(m_cellCount, 0.);
   m_cell_pX_buffer = cl::Buffer(
       cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
       m_cellCount * sizeof(numType), m_cell_pX.data(), &openCLerrNum);
+  t_buffer_flags |= CELL_PX_BUFFER;
   m_cell_pY.resize(m_cellCount, 0.);
   m_cell_pY_buffer = cl::Buffer(
       cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
       m_cellCount * sizeof(numType), m_cell_pY.data(), &openCLerrNum);
+  t_buffer_flags |= CELL_PY_BUFFER;
   m_cell_pZ.resize(m_cellCount, 0.);
   m_cell_pZ_buffer = cl::Buffer(
       cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
       m_cellCount * sizeof(numType), m_cell_pZ.data(), &openCLerrNum);
+  t_buffer_flags |= CELL_PZ_BUFFER;
   m_cell_collide_boolean.resize(m_cellCount, (cl_char)0);
   m_cell_collide_boolean_buffer =
       cl::Buffer(cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
                  m_cellCount * sizeof(cl_char), m_cell_collide_boolean.data(),
                  &openCLerrNum);
+  t_buffer_flags |= CELL_COLLIDE_BUFFER;
   m_cell_particle_count.resize(m_cellCount, (uint32_t)0);
   m_cell_particle_count_buffer =
       cl::Buffer(cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
                  m_cellCount * sizeof(uint32_t), m_cell_particle_count.data(),
                  &openCLerrNum);
-
-  m_cellCountBuffer =
-      cl::Buffer(cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                 sizeof(u_int), &m_cellCount, &openCLerrNum);
+  t_buffer_flags |= CELL_PARTICLE_COUNT_BUFFER;
 
   m_doubleCellCount = t_doubleCellCount;
 
@@ -80,37 +87,28 @@ CollisionCellCollection::CollisionCellCollection(
   m_cellCountInOneAxisBuffer =
       cl::Buffer(cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
                  sizeof(u_int), &m_cellCountInOneAxis, &openCLerrNum);
-
-  /*m_collisionCells.resize(m_cellCount);
-  m_collisionCellsBuffer =
-      cl::Buffer(cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                 m_cellCount * sizeof(CollisionCell), m_collisionCells.data(),
-                 &openCLerrNum);*/
+  t_buffer_flags |= CELL_COUNT_IN_ONE_AXIS_BUFFER;
 
   m_cellLength = t_cellLength;
   m_cellLengthBuffer =
       cl::Buffer(cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
                  sizeof(numType), &m_cellLength, &openCLerrNum);
-
-  m_structureRadius = m_cellLength * m_cellCountInOneAxis / 2;
-  m_structureRadiusBuffer =
-      cl::Buffer(cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                 sizeof(numType), &m_structureRadius, &openCLerrNum);
-
+  t_buffer_flags |= CELL_LENGTH_BUFFER;
   m_shiftVector = {0., 0., 0.};
   m_shiftVectorBuffer =
       cl::Buffer(cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
                  3 * sizeof(numType), m_shiftVector.data(), &openCLerrNum);
-
+  t_buffer_flags |= CELL_SHIFT_VECTOR_BUFFER;
   m_seed_int64 = (int64_t)0;
   m_seed_int64_buffer =
       cl::Buffer(cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
                  sizeof(int64_t), &m_seed_int64, &openCLerrNum);
-
+  t_buffer_flags |= CELL_SEED_INT64_BUFFER;
   m_no_collision_probability = 0.;
   m_no_collision_probability_buffer =
       cl::Buffer(cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
                  sizeof(double), &m_no_collision_probability, &openCLerrNum);
+  t_buffer_flags |= CELL_NO_COLLISION_PROBABILITY_BUFFER;
 }
 
 void CollisionCellCollection::generateSeed(RandomNumberGeneratorULong& t_rng) {

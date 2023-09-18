@@ -7,76 +7,20 @@
 #include "collision.h"
 #include "objects.h"
 #include "opencl_kernels.h"
-#include "timestep.h"
+#include "simulation_parameters.h"
 
 using my_clock = std::chrono::steady_clock;
 
 class Simulation {
  public:
   Simulation() { m_seed = 0; }
-  Simulation(int t_seed, numType t_max_dt, cl::Context& cl_context);
-  Simulation(int t_seed, numType t_max_dt, numType boundaryRadius,
-             cl::Context& cl_context);
+  Simulation(int t_seed, numType t_max_dt, SimulationParameters& t_simulation_parameters, cl::Context& cl_context);
 
   void addInitialTotalEnergy(numType energy) {
     assert(m_time == 0.);
     m_initialTotalEnergy += energy;
     m_totalEnergy += energy;
   }
-
-  /*
-   * ================================================================
-   * ================================================================
-   *                        Kernel setup
-   * ================================================================
-   * ================================================================
-   */
-  void setBuffersParticleStepLinear(ParticleCollection& t_particles,
-                                    cl::Kernel& t_kernel);
-
-  void setBuffersParticleStepWithBubble(ParticleCollection& t_particles,
-                                        PhaseBubble& t_bubble,
-                                        cl::Kernel& t_bubbleInteractionKernel);
-
-  void setBuffersParticleStepWithBubbleInverted(ParticleCollection& t_particles,
-                                                PhaseBubble& t_bubble,
-                                                cl::Kernel& t_kernel);
-
-  void setBuffersParticleStepWithBubbleOnlyReflect(
-      ParticleCollection& t_particles, PhaseBubble& t_bubble,
-      cl::Kernel& t_kernel);
-
-  void setBuffersParticleBoundaryCheck(ParticleCollection& t_particles,
-                                       cl::Kernel& t_kernel);
-
-  void setBuffersParticleBoundaryMomentumReflect(
-      ParticleCollection& t_particles, cl::Kernel& t_kernel);
-
-  void setBuffersRotateMomentum(ParticleCollection& t_particles,
-                                CollisionCellCollection& cells,
-                                cl::Kernel& t_kernel);
-
-  void setBuffersAssignParticleToCollisionCell(
-      ParticleCollection& t_particles, CollisionCellCollection& cells,
-      cl::Kernel& t_cellAssignmentKernel);
-
-  void setBuffersLabelParticleInBubbleCoordinate(
-      ParticleCollection& t_particles, PhaseBubble& t_bubble,
-      cl::Kernel& t_kernel);
-
-  void setBuffersLabelParticleInBubbleMass(ParticleCollection& t_particles,
-                                           cl::Kernel& t_kernel);
-
-  void setBuffersCollisionCellReset(CollisionCellCollection& t_cells,
-                                    cl::Kernel& t_kernel);
-
-  void setBuffersCollisionCellCalculateSummation(
-      ParticleCollection& t_particles, CollisionCellCollection& cells,
-      cl::Kernel& t_kernel);
-
-  void setBuffersCollisionCellCalculateGeneration(
-      CollisionCellCollection& cells, cl::Kernel& t_kernel);
-
   /*
    * ================================================================
    * ================================================================
@@ -91,61 +35,37 @@ class Simulation {
    */
 
   void stepParticleBubble(ParticleCollection& particles, PhaseBubble& bubble,
-                          cl::Kernel& t_bubbleInteractionKernel,
-                          cl::CommandQueue& cl_queue);
+                          OpenCLLoader& t_kernels);
 
   void stepParticleBubbleBoundary(ParticleCollection& particles,
-                                  PhaseBubble& bubble,
-                                  cl::Kernel& t_particle_step_kernel,
-                                  cl::Kernel& t_particle_boundary_check_kernel,
-                                  cl::CommandQueue& cl_queue);
+                                  PhaseBubble& bubble, OpenCLLoader& t_kernels);
 
   void collide(ParticleCollection& particles, CollisionCellCollection& cells,
                numType t_dt, numType t_tau, RandomNumberGeneratorNumType& t_rng,
-               cl::Kernel& t_assign_particle_to_collision_cell_kernel,
-               cl::Kernel& t_rotate_momentum_kernel,
-               cl::CommandQueue& cl_queue);
+               OpenCLLoader& t_kernels);
 
   void collide2(ParticleCollection& particles, CollisionCellCollection& cells,
                 numType t_dt, numType t_tau,
                 RandomNumberGeneratorNumType& t_rng_numtype,
-                RandomNumberGeneratorULong& t_rng_int,
-                cl::Kernel& t_assign_particle_to_collision_cell_kernel,
-                cl::Kernel& t_rotate_momentum_kernel,
-                cl::Kernel& t_reset_collision_cell_kernel,
-                cl::Kernel& t_generate_collision_cell_kernel,
-                cl::CommandQueue& cl_queue);
+                RandomNumberGeneratorULong& t_rng_int, OpenCLLoader& t_kernels);
 
   void collide3(ParticleCollection& particles, CollisionCellCollection& cells,
                 numType t_dt, numType t_tau,
                 RandomNumberGeneratorNumType& t_rng_numtype,
-                RandomNumberGeneratorULong& t_rng_int,
-                cl::Kernel& t_assign_particle_to_collision_cell_kernel,
-                cl::Kernel& t_rotate_momentum_kernel,
-                cl::Kernel& t_reset_collision_cell_kernel,
-                cl::Kernel& t_generate_collision_cell_kernel,
-                cl::CommandQueue& cl_queue);
+                RandomNumberGeneratorULong& t_rng_int, OpenCLLoader& t_kernels);
 
   void stepParticleCollisionBoundary(
       ParticleCollection& particles, CollisionCellCollection& cells,
       RandomNumberGeneratorNumType& t_rng_numtype,
-      RandomNumberGeneratorULong& t_rng_int, cl::Kernel& t_particle_step_kernel,
-      cl::Kernel& t_particle_boundary_check_kernel,
-      cl::Kernel& t_assign_particle_to_collision_cell_kernel,
-      cl::Kernel& t_rotate_momentum_kernel,
-      cl::Kernel& t_reset_collision_cell_kernel,
-      cl::Kernel& t_generate_collision_cell_kernel, cl::CommandQueue& cl_queue);
+      RandomNumberGeneratorULong& t_rng_int,
+      OpenCLLoader& t_kernels);
 
   void stepParticleBubbleCollisionBoundary(
       ParticleCollection& particles, PhaseBubble& bubble,
       CollisionCellCollection& cells,
       RandomNumberGeneratorNumType& t_rng_numtype,
-      RandomNumberGeneratorULong& t_rng_int, cl::Kernel& t_particle_step_kernel,
-      cl::Kernel& t_particle_boundary_check_kernel,
-      cl::Kernel& t_assign_particle_to_collision_cell_kernel,
-      cl::Kernel& t_rotate_momentum_kernel,
-      cl::Kernel& t_reset_collision_cell_kernel,
-      cl::Kernel& t_generate_collision_cell_kernel, cl::CommandQueue& cl_queue);
+      RandomNumberGeneratorULong& t_rng_int,
+      OpenCLLoader& t_kernels);
 
   /*
    * ================================================================
@@ -183,8 +103,6 @@ class Simulation {
    * ================================================================
    */
 
-  cl::Buffer& get_dtBuffer() { return m_dtBuffer; }
-
   unsigned int getStep() { return m_step_count; }
 
   numType getTime() { return m_time; }
@@ -197,7 +115,6 @@ class Simulation {
 
   numType getTau() { return m_tau; }
 
-  bool getCyclicBoundaryOn() { return m_boundaryOn; }
 
   size_t getParticleCount() { return m_particleCount; }
 
@@ -207,38 +124,12 @@ class Simulation {
 
   numType getInitialCompactnes() { return m_initialCompactness; }
 
-  /*
-   * ================================================================
-   * ================================================================
-   *                        Buffer writers
-   * ================================================================
-   * ================================================================
-   */
-
-  void writedtBuffer(cl::CommandQueue& cl_queue) {
-    cl_queue.enqueueWriteBuffer(m_dtBuffer, CL_TRUE, 0, sizeof(numType),
-                                &m_dt_current);
-  }
-
-  void writeAllBuffersToKernel(cl::CommandQueue& cl_queue) {
-    writedtBuffer(cl_queue);
-  }
-
-  /*
-   * ================================================================
-   * ================================================================
-   *                        Buffer readers
-   * ================================================================
-   * ================================================================
-   */
-
-  void readdtBuffer(cl::CommandQueue& cl_queue) {
-    cl_queue.enqueueReadBuffer(m_dtBuffer, CL_TRUE, 0, sizeof(numType),
-                               &m_dt_current);
-  }
+  SimulationParameters& getSimulationParameters() { return m_parameters; }
 
  private:
   int m_seed;
+
+  SimulationParameters m_parameters;
 
   // Simulation time state
   numType m_time = 0.;
@@ -249,12 +140,6 @@ class Simulation {
   numType m_dt_current;
   numType m_dt_max;
   numType m_tau;
-  TimestepAdapter m_timestepAdapter;
-  cl::Buffer m_dtBuffer;
-
-  bool m_boundaryOn = false;
-  numType m_boundaryRadius;
-  cl::Buffer m_boundaryRadiusBuffer;
 
   // Simulation values
   numType m_initialCompactness = 0.;

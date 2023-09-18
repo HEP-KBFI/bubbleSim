@@ -1,26 +1,12 @@
 #pragma once
 #include "base.h"
 #include "bubble.h"
+#include "cmath"
 #include "config_reader.hpp"
 #include "random_number.hpp"
-#include "cmath"
 
 // TODO: Flags for all processes of array initialization..
 class ParticleCollection {
-  /*
-  False at the end of variable means False vaccum (lower mass)
-  True at the end of variable means False vaccum (higher mass)
-  */
-
-  // Masses of particles in true and false vacuum
-  numType m_mass_in, m_mass_out, m_delta_mass_squared;
-  numType m_massTrue, m_massFalse;
-  cl::Buffer m_mass_in_buffer;
-  cl::Buffer m_mass_out_buffer;
-  cl::Buffer m_delta_mass_squared_buffer;
-  // Temperatures in true and false vacuum
-  numType m_temperatureTrue, m_temperatureFalse, m_temperatureIn,
-      m_temperatureOut;
   // Particle counts total / true vacuum / false vacuum
   size_t m_particleCountTotal, m_particleCountIn, m_particleCountOut,
       m_particleCountTrue, m_particleCountFalse;
@@ -97,11 +83,10 @@ class ParticleCollection {
    * runtime, vector data address also changes and buffer has wrong
    * memory address
    */
-  ParticleCollection(numType t_massTrue, numType t_massFalse,
-                     numType t_temperatureTrue, numType t_temperatureFalse,
-                     unsigned int t_particleCountTrue,
+  ParticleCollection(unsigned int t_particleCountTrue,
                      unsigned int t_particleCountFalse,
-                     bool t_bubbleIsTrueVacuum, cl::Context& cl_context);
+                     bool t_bubbleIsTrueVacuum, std::uint32_t& t_buffer_flags,
+                     cl::Context& cl_context);
 
   ParticleCollection& operator=(const ParticleCollection& t) { return *this; }
 
@@ -153,11 +138,6 @@ class ParticleCollection {
    * ================================================================
    * ================================================================
    */
-
-  numType getMassIn() { return m_mass_in; }
-
-  numType getMassOut() { return m_mass_out; }
-
   size_t getParticleCountTotal() { return m_particleCountTotal; }
 
   size_t getParticleCountIn() { return m_particleCountIn; }
@@ -185,9 +165,7 @@ class ParticleCollection {
     return m_interacted_bubble_false_state;
   }
 
-  std::vector<int8_t>& getPassedFalse() {
-    return m_passed_bubble_false_state;
-  }
+  std::vector<int8_t>& getPassedFalse() { return m_passed_bubble_false_state; }
 
   std::vector<int8_t>& getInteractedTrue() {
     return m_interacted_bubble_true_state;
@@ -213,11 +191,7 @@ class ParticleCollection {
 
   cl::Buffer& getdPBuffer() { return m_dP_buffer; }
   std::vector<numType>& getdP() { return m_dP; }
-  cl::Buffer& getMassInBuffer() { return m_mass_in_buffer; };
-  cl::Buffer& getMassOutBuffer() { return m_mass_out_buffer; }
-  cl::Buffer& getDeltaMassSquaredBuffer() {
-    return m_delta_mass_squared_buffer;
-  };
+
   cl::Buffer& getParticleInBubbleBuffer() {
     return m_particle_bool_in_bubble_buffer;
   }
@@ -322,18 +296,6 @@ class ParticleCollection {
   void writedPBuffer(cl::CommandQueue& cl_queue) {
     cl_queue.enqueueWriteBuffer(m_dP_buffer, CL_TRUE, 0,
                                 m_dP.size() * sizeof(numType), m_dP.data());
-  }
-  void writeMassInBuffer(cl::CommandQueue& cl_queue) {
-    cl_queue.enqueueWriteBuffer(m_mass_in_buffer, CL_TRUE, 0, sizeof(numType),
-                                &m_mass_in);
-  }
-  void writeMassOutBuffer(cl::CommandQueue& cl_queue) {
-    cl_queue.enqueueWriteBuffer(m_mass_out_buffer, CL_TRUE, 0, sizeof(numType),
-                                &m_mass_out);
-  }
-  void writeMassDelta2Buffer(cl::CommandQueue& cl_queue) {
-    cl_queue.enqueueWriteBuffer(m_delta_mass_squared_buffer, CL_TRUE, 0,
-                                sizeof(numType), &m_delta_mass_squared);
   }
 
   void writeParticleInBubbelBuffer(cl::CommandQueue& cl_queue) {
@@ -443,18 +405,6 @@ class ParticleCollection {
     cl_queue.enqueueReadBuffer(m_dP_buffer, CL_TRUE, 0,
                                m_dP.size() * sizeof(numType), m_dP.data());
   }
-  void readMassInBuffer(cl::CommandQueue& cl_queue) {
-    cl_queue.enqueueReadBuffer(m_mass_in_buffer, CL_TRUE, 0, sizeof(numType),
-                               &m_mass_in);
-  }
-  void readMassOutBuffer(cl::CommandQueue& cl_queue) {
-    cl_queue.enqueueReadBuffer(m_mass_out_buffer, CL_TRUE, 0, sizeof(numType),
-                               &m_mass_out);
-  }
-  void readMassDelta2Buffer(cl::CommandQueue& cl_queue) {
-    cl_queue.enqueueReadBuffer(m_delta_mass_squared_buffer, CL_TRUE, 0,
-                               sizeof(numType), &m_delta_mass_squared);
-  }
 
   void readParticleInBubbelBuffer(cl::CommandQueue& cl_queue) {
     cl_queue.enqueueReadBuffer(
@@ -514,9 +464,6 @@ class ParticleCollection {
     writeInteractedBubbleFalseStateBuffer(cl_queue);
     writePassedBubbleFalseStateBuffer(cl_queue);
     writeInteractedBubbleTrueStateBuffer(cl_queue);
-    writeMassInBuffer(cl_queue);
-    writeMassOutBuffer(cl_queue);
-    writeMassDelta2Buffer(cl_queue);
   }
 
   /*
@@ -675,22 +622,24 @@ class ParticleGenerator {
   bool checkCPDInitialization() { return m_CPD_initialized; }
 
   numType generateNParticlesInCube(numType t_sideHalf, u_int t_N,
-                                  RandomNumberGeneratorNumType& t_generator,
-                                  ParticleCollection& t_particles);
+                                   RandomNumberGeneratorNumType& t_generator,
+                                   ParticleCollection& t_particles);
 
   numType generateNParticlesInCube(numType t_radiusIn, numType t_sideHalf,
-                                  u_int t_N, RandomNumberGeneratorNumType& t_generator,
-                                  ParticleCollection& t_particles);
+                                   u_int t_N,
+                                   RandomNumberGeneratorNumType& t_generator,
+                                   ParticleCollection& t_particles);
 
   numType generateNParticlesInCube(numType t_xSideHalf, numType t_ySideHalf,
-                                  numType t_zSideHalf, u_int t_N,
-                                  RandomNumberGeneratorNumType& t_generator,
-                                  ParticleCollection& t_particles);
+                                   numType t_zSideHalf, u_int t_N,
+                                   RandomNumberGeneratorNumType& t_generator,
+                                   ParticleCollection& t_particles);
 
   numType generateNParticlesInCube(numType t_radiusIn, numType t_xSideHalf,
-                                  numType t_ySideHalf, numType t_zSideHalf,
-                                  u_int t_N, RandomNumberGeneratorNumType& t_generator,
-                                  ParticleCollection& t_particles);
+                                   numType t_ySideHalf, numType t_zSideHalf,
+                                   u_int t_N,
+                                   RandomNumberGeneratorNumType& t_generator,
+                                   ParticleCollection& t_particles);
 
   numType generateNParticlesInSphere(numType t_radiusMax, u_int t_N,
                                      RandomNumberGeneratorNumType& t_generator,
@@ -724,15 +673,15 @@ class ParticleGenerator {
                                 RandomNumberGeneratorNumType& t_generator);
 
   void generatePointInCube(numType& x, numType& y, numType& z,
-                          numType& t_SideHalf,
-                          RandomNumberGeneratorNumType& t_generator);
+                           numType& t_SideHalf,
+                           RandomNumberGeneratorNumType& t_generator);
 
   void generatePointInSphere(numType& x, numType& y, numType& z,
                              numType t_maxRadius,
                              RandomNumberGeneratorNumType& t_generator);
 
   void generatePointInCube(numType& x, numType& y, numType& z,
-                          numType& t_xSideHalf, numType& t_ySideHalf,
-                          numType& t_zSideHalf,
-                          RandomNumberGeneratorNumType& t_generator);
+                           numType& t_xSideHalf, numType& t_ySideHalf,
+                           numType& t_zSideHalf,
+                           RandomNumberGeneratorNumType& t_generator);
 };
