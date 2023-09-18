@@ -658,7 +658,6 @@ numType ParticleCollection::countParticleNumberDensity(numType t_radius1,
 
 numType ParticleCollection::countParticleEnergyDensity(numType t_radius1) {
   numType energy = countParticlesEnergy(t_radius1);
-  std::cout << energy << std::endl;
   numType volume =
       (numType)4. * (pow(t_radius1, (numType)3.) * (numType)M_PI) / (numType)3.;
   return energy / volume;

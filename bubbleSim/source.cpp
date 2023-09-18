@@ -4,7 +4,7 @@
 using std::chrono::duration;
 using std::chrono::duration_cast;
 using std::chrono::high_resolution_clock;
-using std::chrono::milliseconds;
+using std::chrono::seconds;
 
 // Collision is in development
 std::string createFileNameFromCurrentDate() {
@@ -50,8 +50,8 @@ void createSimulationInfoFile(std::ofstream& infoStream,
                               std::filesystem::path& filePath,
                               ConfigReader& t_config, numType t_dV) {
   infoStream << "file_name,seed,alpha,eta,upsilon,tau,m-,T-,N-,m+,T+,N+,"
-                "interactionBubbleOn,"
-                "radius,speed,Rb,Rc"
+                "bubbleInteraction,selfInteraction,"
+                "radius,speed,Rb,Rc,"
                 "dV,deltaN,runtime"
              << std::endl;
   numType critical_radius =
@@ -66,7 +66,8 @@ void createSimulationInfoFile(std::ofstream& infoStream,
   infoStream << t_config.particleMassTrue << ","
              << t_config.particleTemperatureTrue << ","
              << t_config.particleCountTrue << ",";
-  infoStream << t_config.bubbleInteractionsOn << ",";
+  infoStream << t_config.bubbleInteractionsOn << "," << t_config.collision_on
+             << ",";
   infoStream << t_config.bubbleInitialRadius << ","
              << t_config.bubbleInitialSpeed << ","
              << t_config.cyclicBoundaryRadius * t_config.cyclicBoundaryOn << ","
@@ -98,7 +99,7 @@ int main(int argc, char* argv[]) {
   numType tau = config.parameterTau;
   u_int N_steps_tau = 10;
   numType dt = tau / N_steps_tau;
-  u_int sim_length_in_tau = 10000;
+  u_int sim_length_in_tau = config.m_maxSteps;
   /*
           ===============  ===============
   */
@@ -122,14 +123,18 @@ int main(int argc, char* argv[]) {
   numType particle_temperature_in_false_vacuum =
       std::sqrt(deltaM) / config.parameterEta;
   ParticleGenerator particleGenerator1;
+  ParticleGenerator particleGenerator2;
   std::cout << "T-: " << particle_temperature_in_false_vacuum << std::endl;
   // 3.1) Create generator, calculates distribution(s)
   particleGenerator1 = ParticleGenerator(config.particleMassFalse);
-  particleGenerator1.calculateCPDDelta(3 *
-                                       particle_temperature_in_false_vacuum);
-  /*particleGenerator1.calculateCPDBoltzmann(
+  // particleGenerator2 = ParticleGenerator(config.particleMassFalse);
+
+  /*particleGenerator1.calculateCPDDelta(3 *
+                                       particle_temperature_in_false_vacuum);*/
+  particleGenerator1.calculateCPDBoltzmann(
       config.particleTemperatureFalse, 30 * config.particleTemperatureFalse,
-      1e-5 * config.particleTemperatureFalse);*/
+      1e-5 * config.particleTemperatureFalse);
+  // particleGenerator2.calculateCPDBeta(2.5, 1., 2., 2., 0.00001);
 
   // 3.2) Create particle collection
 
@@ -154,7 +159,16 @@ int main(int argc, char* argv[]) {
   genreatedParticleEnergy = particleGenerator1.generateNParticlesInCube(
       config.bubbleInitialRadius, config.cyclicBoundaryRadius,
       (u_int)(particles.getParticleCountTotal()), rn_generator, particles);
-  
+  /*genreatedParticleEnergy += particleGenerator2.generateNParticlesInCube(
+      config.bubbleInitialRadius, config.cyclicBoundaryRadius,
+      (u_int)(particles.getParticleCountTotal() -
+     particles.getParticleX().size()), rn_generator, particles);*/
+
+  std::cout << std::setprecision(10)
+            << "Particle total energy: " << genreatedParticleEnergy << ", "
+            << "Particle count: " << particles.getParticleX().size() << "T: "
+            << genreatedParticleEnergy / particles.getParticleX().size() / 3.
+            << std::endl;
   particles.add_to_total_initial_energy(genreatedParticleEnergy);
 
   // In development: step revert
@@ -363,10 +377,10 @@ int main(int argc, char* argv[]) {
     }*/
 
     // if (i % N_steps_tau >= 0) {
-    if (i % 10 == 0) {
+    if (i % 100 == 0) {
       streamer.stream(simulation, particles, bubble, log_scale_on,
                       kernels.getCommandQueue());
-     
+
       std::cout << "Step: " << simulation.getStep()
                 << ", Time: " << simulation.getTime()
                 << ", R: " << bubble.getRadius()
@@ -443,7 +457,7 @@ int main(int argc, char* argv[]) {
 
   // Measure runtime
   auto programEndTime = high_resolution_clock::now();
-  auto ms_int = std::chrono::duration_cast<std::chrono::milliseconds>(
+  auto ms_int = std::chrono::duration_cast<std::chrono::seconds>(
       programEndTime - program_start_time);
 
   appendSimulationInfoFile(infoStream, 0, (int)ms_int.count());

@@ -16,9 +16,6 @@
     <Filter Include="Kernels">
       <UniqueIdentifier>{ad3d76ba-6f94-404f-bc5d-04c6fe891d8f}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\Generators">
-      <UniqueIdentifier>{70c9ae99-7764-4421-ad94-5ac76b6b096b}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Physics">
       <UniqueIdentifier>{065cebb1-beb8-4e96-9821-6f828b7743fa}</UniqueIdentifier>
     </Filter>
@@ -42,9 +39,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="random_number.hpp">
-      <Filter>Source Files\Generators</Filter>
-    </ClInclude>
     <ClInclude Include="timestep.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -77,6 +71,9 @@
     </ClInclude>
     <ClInclude Include="base.h">
       <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="random_number.hpp">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -2,19 +2,20 @@
 #pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable
 
 #pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable
-void __attribute__((always_inline)) atomic_add_d(volatile global double* addr, const double val) {
-    union {
-        ulong  u64;
-        double f64;
-    } next, expected, current;
-    current.f64 = *addr;
-    do {
-        next.f64 = (expected.f64=current.f64)+val; // ...*val for atomic_mul_d()
-        current.u64 = atom_cmpxchg((volatile global ulong*)addr, expected.u64, next.u64);
-    } while(current.u64!=expected.u64);
+void __attribute__((always_inline))
+atomic_add_d(volatile global double *addr, const double val) {
+  union {
+    ulong u64;
+    double f64;
+  } next, expected, current;
+  current.f64 = *addr;
+  do {
+    next.f64 =
+        (expected.f64 = current.f64) + val;  // ...*val for atomic_mul_d()
+    current.u64 =
+        atom_cmpxchg((volatile global ulong *)addr, expected.u64, next.u64);
+  } while (current.u64 != expected.u64);
 }
-
-
 
 // Bubble type (also defined in c++ code)
 typedef struct Bubble {
@@ -25,28 +26,7 @@ typedef struct Bubble {
   double gammaXspeed;  // gamma * speed
 } Bubble;
 
-// In development
-typedef struct CollisionCell {
-  double vX;
-  double vY;
-  double vZ;
-
-  double x;
-  double y;
-  double z;
-  double theta;
-
-  double E;
-  double pX;
-  double pY;
-  double pZ;
-
-  char b_collide;
-  double mass;
-  unsigned int particle_count;
-} CollisionCell;
-
-ulong xorshift64(ulong state){
+ulong xorshift64(ulong state) {
   ulong random_number = state;
   random_number ^= random_number >> 12;
   random_number ^= random_number << 25;
@@ -101,8 +81,6 @@ double calculateTimeToWall(double x, double y, double z, double E, double pX,
     return 0.;
   }
 }
-
-
 
 double calculateTimeToWall_DEBUG(double x, double y, double z, double E,
                                  double pX, double pY, double pZ, Bubble bubble,
@@ -255,7 +233,7 @@ __kernel void particle_step_with_bubble(
         x = moveLinear(x, vX, time_to_wall);
         y = moveLinear(y, vY, time_to_wall);
         z = moveLinear(z, vZ, time_to_wall);
-        
+
         X2 = calculateDistanceSquaredFromCenter(x, y, z);
         calculateNormal(&nX, &nY, &nZ, x, y, z, bubble, X2);
 
@@ -357,9 +335,9 @@ __kernel void particle_step_with_bubble(
 
         X2 = calculateDistanceSquaredFromCenter(x, y, z);
         calculateNormal(&nX, &nY, &nZ, x, y, z, bubble, X2);
-        //nX = -nX;
-        //nY = -nY;
-        //nZ = -nZ;
+        // nX = -nX;
+        // nY = -nY;
+        // nZ = -nZ;
         np = bubble.speed * bubble.gamma * E - nX * pX - nY * pY - nZ * pZ;
 
         // Particle bounces back from the bubble wall
@@ -374,9 +352,10 @@ __kernel void particle_step_with_bubble(
           pY = fma(np * 2., nY, pY);
           pZ = fma(np * 2., nZ, pZ);
           t_dE[gid] = bubble.gamma * np * 2.;
-          // printf("Energy change (particle): %.6f\n", calculateParticleEnergy(pX, pY, pZ, M_out) - E);
-          // printf("Energy change (bubble): %.6f\n", -t_dE[gid]*bubble.speed);
-          // printf("dP: %.5f\n", t_dE[gid]);
+          // printf("Energy change (particle): %.6f\n",
+          // calculateParticleEnergy(pX, pY, pZ, M_out) - E); printf("Energy
+          // change (bubble): %.6f\n", -t_dE[gid]*bubble.speed); printf("dP:
+          // %.5f\n", t_dE[gid]);
           E = calculateParticleEnergy(pX, pY, pZ, M_out);
           np = bubble.speed * bubble.gamma * E - nX * pX - nY * pY - nZ * pZ;
           t_interactedFalse[gid] += 1;
@@ -392,9 +371,9 @@ __kernel void particle_step_with_bubble(
           // pY = fma(np * (1. - sqrt(1. - Delta_M2 / pow(np, 2.))), nY, pY);
           // pZ = fma(np * (1. - sqrt(1. - Delta_M2 / pow(np, 2.))), nZ, pZ);
           t_dE[gid] = bubble.gamma * (np - sqrt(pow(np, 2) - Delta_M2));
-          // printf("Energy change: %.6f\n", E - calculateParticleEnergy(pX, pY, pZ, M_out));
-          // printf("Energy change: %.6f\n", -t_dE[gid]*bubble.speed);
-          // printf("dP: %.5f\n", t_dE[gid]);
+          // printf("Energy change: %.6f\n", E - calculateParticleEnergy(pX, pY,
+          // pZ, M_out)); printf("Energy change: %.6f\n",
+          // -t_dE[gid]*bubble.speed); printf("dP: %.5f\n", t_dE[gid]);
           E = calculateParticleEnergy(pX, pY, pZ, M_in);
           t_interactedFalse[gid] += 1;
           t_passedFalse[gid] += 1;
@@ -829,179 +808,196 @@ __kernel void particles_with_false_bubble_step_reflect(
 ============================================================================
 ============================================================================
 */
-
-__kernel void collision_cell_reset(__global CollisionCell *t_cells){
+__kernel void collision_cell_reset(
+    __global double *cell_theta_axis, __global double *cell_phi_axis,
+    __global double *cell_theta_rotation, __global double *cell_E,
+    __global double *cell_pX, __global double *cell_pY,
+    __global double *cell_pZ, __global char *cell_collide_boolean,
+    __global double *cell_logE, __global uint *cell_particle_count) {
   // Loop over collision cells and reset it's values.
   size_t gid = get_global_id(0);
-  t_cells[gid].E = 0.;
-  t_cells[gid].vX = 0.;
-  t_cells[gid].vY = 0.;
-  t_cells[gid].vZ = 0.;
-  t_cells[gid].mass = 0.;
-  t_cells[gid].b_collide = 0;
-  t_cells[gid].particle_count = 0;
-
+  cell_theta_axis[gid] = 0.;
+  cell_phi_axis[gid] = 0.;
+  cell_theta_rotation[gid] = 0.;
+  cell_E[gid] = 0.;
+  cell_pX[gid] = 0.;
+  cell_pY[gid] = 0.;
+  cell_pZ[gid] = 0.;
+  cell_collide_boolean[gid] = (char)0;
+  cell_logE[gid] = 0.;
+  cell_particle_count[gid] = 0;
 }
 
-__kernel void collision_cell_calculate_summation(
-  __global double *particles_E, __global double *particles_pX,
-  __global double *particles_pY, __global double *particles_pZ,
-  __global unsigned int *particle_collision_cell_index,
-  __global CollisionCell *t_cells
-){
+// __kernel void collision_cell_calculate_summation(
+//     __global double *particles_E, __global double *particles_pX,
+//     __global double *particles_pY, __global double *particles_pZ,
+//     __global unsigned int *particle_collision_cell_index,
+//     __global CollisionCell *t_cells) {
   // Loop over particles and sum neccessary values
-  size_t gid = get_global_id(0);
-  // atomic_add_d(&t_cells[particle_collision_cell_index[gid]].E, particles_E[gid]);
-  // atomic_add_d(&t_cells[particle_collision_cell_index[gid]].pX, particles_pX[gid]);
-  // atomic_add_d(&t_cells[particle_collision_cell_index[gid]].pY, particles_pY[gid]);
-  // atomic_add_d(&t_cells[particle_collision_cell_index[gid]].pZ, particles_pZ[gid]);
-  // atomic_add_d(&t_cells[particle_collision_cell_index[gid]].mass, log(particles_E[gid]));
+  // size_t gid = get_global_id(0);
+  // atomic_add_d(&t_cells[particle_collision_cell_index[gid]].E,
+  // particles_E[gid]);
+  // atomic_add_d(&t_cells[particle_collision_cell_index[gid]].pX,
+  // particles_pX[gid]);
+  // atomic_add_d(&t_cells[particle_collision_cell_index[gid]].pY,
+  // particles_pY[gid]);
+  // atomic_add_d(&t_cells[particle_collision_cell_index[gid]].pZ,
+  // particles_pZ[gid]);
+  // atomic_add_d(&t_cells[particle_collision_cell_index[gid]].mass,
+  // log(particles_E[gid]));
   // atomic_inc(&t_cells[particle_collision_cell_index[gid]].particle_count);
-}
+// }
 
 __kernel void collision_cell_calculate_generation(
-  __global CollisionCell *t_cells, __global ulong *seed, __global double *no_collision_probability 
-){  
+    __global double *cell_theta_axis, __global double *cell_phi_axis,
+    __global double *cell_theta_rotation, __global double *cell_E,
+    __global double *cell_pX, __global double *cell_pY,
+    __global double *cell_pZ, __global char *cell_collide_boolean,
+    __global double *cell_logE, __global uint *cell_particle_count,
+    __global ulong *seed, __global double *no_collision_probability) {
   // Loop over collision cells
   // Maximum value for ulong: 18446744073709551616.0;
   // Need 5 random numbers
   size_t gid = get_global_id(0);
-  
-  double probability;
-  ulong random_number;
-  double phi_xyz, theta_xyz;
-  CollisionCell cell = t_cells[gid];
-  // if (cell.particle_count < 2){
-  //   cell.b_collide = (char)0;
-  // }
-  // else {
-    random_number = xorshift64(seed[0] + gid);
-      // Calculating probability not to collide
-      // Collision probability dependent on timestep-thermailization time ratio
-      // Probability = exp(-dt/tau) -> if dt=0 then never collide
-      probability = random_number/18446744073709551616.0;
-      if (probability <= no_collision_probability[0]){
-        cell.b_collide = (char)0;
-      }
-      else{
-        // Calculating probability not to collide
-        // Collision probability dependent on cell state (Energy, momentum, mass)
-        random_number = xorshift64(random_number);
-        probability = random_number/18446744073709551616.0;
-        // cell.mass currently is Sum of log(E) of each particle in that cell.
-        // This is temporary cheat to reduce variables
-        if (probability <= exp(-exp(cell.particle_count * (log(cell.E)-log(3.*cell.particle_count))-cell.mass -log(2.)))){
-          cell.b_collide = (char)0;
-        }
-        else{
-          cell.b_collide = (char)0;
-          cell.mass = sqrt(pow(cell.E, 2.) - pow(cell.pX, 2.) - pow(cell.pY, 2.) - pow(cell.pZ, 2.));
-          cell.vX = cell.pX/cell.E;
-          cell.vY = cell.pY/cell.E;
-          cell.vZ = cell.pZ/cell.E;
-          cell.pX = cell.pX/cell.particle_count;
-          cell.pY = cell.pY/cell.particle_count;
-          cell.pZ = cell.pZ/cell.particle_count;
-          cell.E = cell.E/cell.particle_count; 
-          random_number = xorshift64(random_number);
-          probability = random_number/18446744073709551616.0;
-          cell.theta = 2. * M_PI * probability;
-          random_number = xorshift64(random_number);
-          probability = random_number/18446744073709551616.0;
-          phi_xyz = acos(1. - 2.*probability);
-          random_number = xorshift64(random_number);
-          probability = random_number/18446744073709551616.0;
-          theta_xyz = 2. * M_PI * probability;
-          cell.x = sin(phi_xyz)*cos(theta_xyz);
-          cell.y = sin(phi_xyz)*sin(theta_xyz);
-          cell.z = cos(phi_xyz);
-        }
-      }
-  // }
-  t_cells[gid] = cell;
-}
 
+  double mass = pow(cell_E[gid], 2.) - pow(cell_pX[gid], 2.) -
+                pow(cell_pY[gid], 2.) - pow(cell_pZ[gid], 2.);
+  if (mass != 0.) {
+    double probability;
+    ulong random_number;
+
+    // if (cell.particle_count < 2){
+    //   cell.b_collide = (char)0;
+    // }
+    // else {
+    random_number = xorshift64(seed[0] + gid);
+    // Calculating probability not to collide
+    // Collision probability dependent on timestep-thermailization time ratio
+    // Probability = exp(-dt/tau) -> if dt=0 then never collide
+    probability = random_number / 18446744073709551616.0;
+    if (probability <= no_collision_probability[0]) {
+      cell_collide_boolean[gid] = (char)0;
+    } else {
+      // Calculating probability not to collide
+      // Collision probability dependent on cell state (Energy, momentum, mass)
+      random_number = xorshift64(random_number);
+      probability = (double)random_number / 18446744073709551616.0;
+      // cell.mass currently is Sum of log(E) of each particle in that cell.
+      // This is temporary cheat to reduce variables
+      if (probability <=
+          exp(-exp(cell_particle_count[gid] *
+                       (log(cell_E[gid]) - log(3. * cell_particle_count[gid])) -
+                   cell_logE[gid] - log(2.)))) {
+        cell_collide_boolean[gid] = (char)0;
+      } else {
+        cell_collide_boolean[gid] = (char)0;
+
+        random_number = xorshift64(random_number);
+        probability = (double)random_number / 18446744073709551616.0;
+        cell_theta_rotation[gid] = 2. * M_PI * probability;
+        random_number = xorshift64(random_number);
+        probability = (double)random_number / 18446744073709551616.0;
+        cell_phi_axis[gid] = acos(2. * probability - 1.);
+        random_number = xorshift64(random_number);
+        probability = (double)random_number / 18446744073709551616.0;
+        cell_theta_axis[gid] = 2. * M_PI * probability;
+      }
+    }
+    // }
+  }
+}
 
 __kernel void rotate_momentum(
     __global double *particles_E, __global double *particles_pX,
     __global double *particles_pY, __global double *particles_pZ,
     __global unsigned int *particle_collision_cell_index,
-    __global CollisionCell *t_cells) {
+    __global double *cell_theta_axis, __global double *cell_phi_axis,
+    __global double *cell_theta_rotation, __global double *cell_E,
+    __global double *cell_pX, __global double *cell_pY,
+    __global double *cell_pZ, __global char *cell_collide_boolean) {
   size_t gid = get_global_id(0);
   // If in bubble then cell number is doubled and second half is in bubble
   // cells.
-  if (t_cells[particle_collision_cell_index[gid]].b_collide) {
-    
-    CollisionCell cell = t_cells[particle_collision_cell_index[gid]];
-    double v2 = fma(cell.vX, cell.vX, fma(cell.vY, cell.vY, cell.vZ * cell.vZ));
+  uint cell_idx = particle_collision_cell_index[gid];
+  if (cell_collide_boolean[cell_idx]) {
+    // === Collision cell variables
+    double x = sin(cell_phi_axis[cell_idx]) * cos(cell_theta_axis[cell_idx]);
+    double y = sin(cell_phi_axis[cell_idx]) * sin(cell_theta_axis[cell_idx]);
+    double z = cos(cell_phi_axis[cell_idx]);
+
+    double E_cell = cell_E[cell_idx];
+    double vX = cell_pX[cell_idx] / E_cell;
+    double vY = cell_pY[cell_idx] / E_cell;
+    double vZ = cell_pZ[cell_idx] / E_cell;
+
+    double v2 = fma(vX, vX, fma(vY, vY, vZ * vZ));  // v^2
+    //printf("%.5f, %.5f, %.5f, %.5f, %.5f, %i\n", E_cell, cell_pX[gid], cell_pY[gid], cell_pZ[gid], v2, cell_collide_boolean[particle_collision_cell_index[gid]]);
     double gamma = 1 / sqrt(1 - v2);
     double gamma_minus_one = gamma - 1;
-
     double gamma_minus_one_divided_cell_v2 = gamma_minus_one / v2;
 
-    double cos_theta = cos(cell.theta);
+    double cos_theta = cos(cell_theta_rotation[cell_idx]);
     double one_minus_cos_theta = 1 - cos_theta;
-    double sin_theta = sin(cell.theta);
+    double sin_theta = sin(cell_theta_rotation[cell_idx]);
+    // ===
+    if (1 - v2 != 0) {
+      // Particle variables
+      // if (E_cell == 0.){
+      //   printf("%i\n", gid);
+      // }
+      double E = particles_E[gid];
+      double pX_1 = particles_pX[gid];
+      double pY_1 = particles_pY[gid];
+      double pZ_1 = particles_pZ[gid];
+      double pX_2, pY_2, pZ_2;
+      // Cell mass = E^2 - p^2
+      // If cell mass = 0 we can't rotate as no frame of refernce. E^2 - p^2 = 0
+      // -> 1 - v^2 = 0
 
-    double E = particles_E[gid];
-    double pX_1 = particles_pX[gid];
-    double pY_1 = particles_pY[gid];
-    double pZ_1 = particles_pZ[gid];
-    double pX_2, pY_2, pZ_2;
-
-    double vX = cell.pX/cell.E;
-    double vY = cell.pY/cell.E;
-    double vZ = cell.pZ/cell.E;
-
-    if (cell.mass != 0) {
       // Lorentz transformation (to COM frame)
-      pX_2 = -E * gamma * cell.vX +
-             pX_1 * (1 + cell.vX * cell.vX * gamma_minus_one_divided_cell_v2) +
-             pY_1 * cell.vX * cell.vY * gamma_minus_one_divided_cell_v2 +
-             pZ_1 * cell.vX * cell.vZ * gamma_minus_one_divided_cell_v2;
+      pX_2 = -E * gamma * vX +
+             pX_1 * (1 + vX * vX * gamma_minus_one_divided_cell_v2) +
+             pY_1 * vX * vY * gamma_minus_one_divided_cell_v2 +
+             pZ_1 * vX * vZ * gamma_minus_one_divided_cell_v2;
 
-      pY_2 = -gamma * E * cell.vY +
-             pY_1 * (1 + cell.vY * cell.vY * gamma_minus_one_divided_cell_v2) +
-             pX_1 * cell.vX * cell.vY * gamma_minus_one_divided_cell_v2 +
-             pZ_1 * cell.vY * cell.vZ * gamma_minus_one_divided_cell_v2;
+      pY_2 = -gamma * E * vY +
+             pY_1 * (1 + vY * vY * gamma_minus_one_divided_cell_v2) +
+             pX_1 * vX * vY * gamma_minus_one_divided_cell_v2 +
+             pZ_1 * vY * vZ * gamma_minus_one_divided_cell_v2;
 
-      pZ_2 = -gamma * E * cell.vZ +
-             pZ_1 * (1 + cell.vZ * cell.vZ * gamma_minus_one_divided_cell_v2) +
-             pX_1 * cell.vX * cell.vZ * gamma_minus_one_divided_cell_v2 +
-             pY_1 * cell.vY * cell.vZ * gamma_minus_one_divided_cell_v2;
-      E = gamma * (E - pX_1 * cell.vX - pY_1 * cell.vY - pZ_1 * cell.vZ);
-
+      pZ_2 = -gamma * E * vZ +
+             pZ_1 * (1 + vZ * vZ * gamma_minus_one_divided_cell_v2) +
+             pX_1 * vX * vZ * gamma_minus_one_divided_cell_v2 +
+             pY_1 * vY * vZ * gamma_minus_one_divided_cell_v2;
+      E = gamma * (E - pX_1 * vX - pY_1 * vY - pZ_1 * vZ);
       // Rotate 3-momentum
-      pX_1 =
-          pX_2 * (cos_theta + pow(cell.x, 2) * one_minus_cos_theta) +
-          pY_2 * (cell.x * cell.y * one_minus_cos_theta - cell.z * sin_theta) +
-          pZ_2 * (cell.x * cell.z * one_minus_cos_theta + cell.y * sin_theta);
-      pY_1 =
-          pX_2 * (cell.x * cell.y * one_minus_cos_theta + cell.z * sin_theta) +
-          pY_2 * (cos_theta + pow(cell.y, 2) * one_minus_cos_theta) +
-          pZ_2 * (cell.y * cell.z * one_minus_cos_theta - cell.x * sin_theta);
-      pZ_1 =
-          pX_2 * (cell.x * cell.z * one_minus_cos_theta - cell.y * sin_theta) +
-          pY_2 * (cell.y * cell.z * one_minus_cos_theta + cell.x * sin_theta) +
-          pZ_2 * (cos_theta + pow(cell.z, 2) * one_minus_cos_theta);
+      pX_1 = pX_2 * (cos_theta + pow(x, 2) * one_minus_cos_theta) +
+             pY_2 * (x * y * one_minus_cos_theta - z * sin_theta) +
+             pZ_2 * (x * z * one_minus_cos_theta + y * sin_theta);
+      pY_1 = pX_2 * (x * y * one_minus_cos_theta + z * sin_theta) +
+             pY_2 * (cos_theta + pow(y, 2) * one_minus_cos_theta) +
+             pZ_2 * (y * z * one_minus_cos_theta - x * sin_theta);
+      pZ_1 = pX_2 * (x * z * one_minus_cos_theta - y * sin_theta) +
+             pY_2 * (y * z * one_minus_cos_theta + x * sin_theta) +
+             pZ_2 * (cos_theta + pow(z, 2) * one_minus_cos_theta);
 
       // Lorentz inverse transformation (to initial frame)
-      pX_2 = gamma * E * cell.vX +
-             pX_1 * (1 + cell.vX * cell.vX * gamma_minus_one_divided_cell_v2) +
-             pY_1 * cell.vX * cell.vY * gamma_minus_one_divided_cell_v2 +
-             pZ_1 * cell.vX * cell.vZ * gamma_minus_one_divided_cell_v2;
+      pX_2 = gamma * E * vX +
+             pX_1 * (1 + vX * vX * gamma_minus_one_divided_cell_v2) +
+             pY_1 * vX * vY * gamma_minus_one_divided_cell_v2 +
+             pZ_1 * vX * vZ * gamma_minus_one_divided_cell_v2;
 
-      pY_2 = gamma * E * cell.vY +
-             pY_1 * (1 + cell.vY * cell.vY * gamma_minus_one_divided_cell_v2) +
-             pX_1 * cell.vX * cell.vY * gamma_minus_one_divided_cell_v2 +
-             pZ_1 * cell.vY * cell.vZ * gamma_minus_one_divided_cell_v2;
+      pY_2 = gamma * E * vY +
+             pY_1 * (1 + vY * vY * gamma_minus_one_divided_cell_v2) +
+             pX_1 * vX * vY * gamma_minus_one_divided_cell_v2 +
+             pZ_1 * vY * vZ * gamma_minus_one_divided_cell_v2;
 
-      pZ_2 = gamma * E * cell.vZ +
-             pZ_1 * (1 + cell.vZ * cell.vZ * gamma_minus_one_divided_cell_v2) +
-             pX_1 * cell.vX * cell.vZ * gamma_minus_one_divided_cell_v2 +
-             pY_1 * cell.vY * cell.vZ * gamma_minus_one_divided_cell_v2;
+      pZ_2 = gamma * E * vZ +
+             pZ_1 * (1 + vZ * vZ * gamma_minus_one_divided_cell_v2) +
+             pX_1 * vX * vZ * gamma_minus_one_divided_cell_v2 +
+             pY_1 * vY * vZ * gamma_minus_one_divided_cell_v2;
 
-      E = gamma * (E + pX_1 * cell.vX + pY_1 * cell.vY + pZ_1 * cell.vZ);
+      E = gamma * (E + pX_1 * vX + pY_1 * vY + pZ_1 * vZ);
       particles_E[gid] = E;
       particles_pX[gid] = pX_2;
       particles_pY[gid] = pY_2;
@@ -1009,7 +1005,6 @@ __kernel void rotate_momentum(
     }
   }
 }
-
 /*
 ============================================================================
 ============================================================================
@@ -1176,7 +1171,6 @@ __kernel void particle_boundary_check(__global double *particles_X,
   z = (boundaryRadius > fabs(z)) * z +
       (z > boundaryRadius) * (z - 2 * boundaryRadius) +
       (z < -boundaryRadius) * (z + 2 * boundaryRadius);
-
 
   particles_X[gid] = x;
   particles_Y[gid] = y;

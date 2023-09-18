@@ -1,5 +1,15 @@
 #include "simulation.h"
 
+template <typename Duration>
+
+std::chrono::microseconds clock_micros(Duration const& duration) {
+  return std::chrono::duration_cast<std::chrono::microseconds>(duration);
+}
+
+void print_timer_info(const char* text, long long time) {
+  std::cout << text << time << std::endl;
+}
+
 Simulation::Simulation(int t_seed, numType t_max_dt, cl::Context& cl_context) {
   int openCLerrNum = 0;
   m_seed = t_seed;
@@ -334,7 +344,14 @@ void Simulation::setBuffersRotateMomentum(ParticleCollection& t_particles,
   t_kernel.setArg(2, t_particles.getParticlepYBuffer());
   t_kernel.setArg(3, t_particles.getParticlepZBuffer());
   t_kernel.setArg(4, t_particles.getParticleCollisionCellIndexBuffer());
-  t_kernel.setArg(5, t_cells.getCellBuffer());
+  t_kernel.setArg(5, t_cells.getCellThetaAxisBuffer());
+  t_kernel.setArg(6, t_cells.getCellPhiAxisBuffer());
+  t_kernel.setArg(7, t_cells.getCellThetaRotationBuffer());
+  t_kernel.setArg(8, t_cells.getCellEBuffer());
+  t_kernel.setArg(9, t_cells.getCellpXBuffer());
+  t_kernel.setArg(10, t_cells.getCellpYBuffer());
+  t_kernel.setArg(11, t_cells.getCellpZBuffer());
+  t_kernel.setArg(12, t_cells.getCellCollideBooleanBuffer());
 }
 
 void Simulation::setBuffersAssignParticleToCollisionCell(
@@ -366,27 +383,45 @@ void Simulation::setBuffersLabelParticleInBubbleMass(
   t_kernel.setArg(2, t_particles.getMassInBuffer());
 }
 
-void Simulation::setBuffersCollisionCellReset(CollisionCellCollection t_cells,
+void Simulation::setBuffersCollisionCellReset(CollisionCellCollection& t_cells,
                                               cl::Kernel& t_kernel) {
-  t_kernel.setArg(0, t_cells.getCellBuffer());
+  t_kernel.setArg(0, t_cells.getCellThetaAxisBuffer());
+  t_kernel.setArg(1, t_cells.getCellPhiAxisBuffer());
+  t_kernel.setArg(2, t_cells.getCellThetaRotationBuffer());
+  t_kernel.setArg(3, t_cells.getCellEBuffer());
+  t_kernel.setArg(4, t_cells.getCellpXBuffer());
+  t_kernel.setArg(5, t_cells.getCellpYBuffer());
+  t_kernel.setArg(6, t_cells.getCellpZBuffer());
+  t_kernel.setArg(7, t_cells.getCellCollideBooleanBuffer());
+  t_kernel.setArg(8, t_cells.getCellLogEBuffer());
+  t_kernel.setArg(9, t_cells.getCellParticleCountBuffer());
 }
 
 void Simulation::setBuffersCollisionCellCalculateSummation(
-    ParticleCollection& t_particles, CollisionCellCollection& cells,
+    ParticleCollection& t_particles, CollisionCellCollection& t_cells,
     cl::Kernel& t_kernel) {
   t_kernel.setArg(0, t_particles.getParticleEBuffer());
   t_kernel.setArg(1, t_particles.getParticlepXBuffer());
   t_kernel.setArg(2, t_particles.getParticlepYBuffer());
   t_kernel.setArg(3, t_particles.getParticlepZBuffer());
   t_kernel.setArg(4, t_particles.getParticleCollisionCellIndexBuffer());
-  t_kernel.setArg(5, cells.getCellBuffer());
+  t_kernel.setArg(5, t_cells.getCellBuffer());
 }
 
 void Simulation::setBuffersCollisionCellCalculateGeneration(
-    CollisionCellCollection& cells, cl::Kernel& t_kernel) {
-  t_kernel.setArg(0, cells.getCellBuffer());
-  t_kernel.setArg(1, cells.getSeedBuffer());
-  t_kernel.setArg(2, cells.getNoCollisionProbabilityBuffer());
+    CollisionCellCollection& t_cells, cl::Kernel& t_kernel) {
+  t_kernel.setArg(0, t_cells.getCellThetaAxisBuffer());
+  t_kernel.setArg(1, t_cells.getCellPhiAxisBuffer());
+  t_kernel.setArg(2, t_cells.getCellThetaRotationBuffer());
+  t_kernel.setArg(3, t_cells.getCellEBuffer());
+  t_kernel.setArg(4, t_cells.getCellpXBuffer());
+  t_kernel.setArg(5, t_cells.getCellpYBuffer());
+  t_kernel.setArg(6, t_cells.getCellpZBuffer());
+  t_kernel.setArg(7, t_cells.getCellCollideBooleanBuffer());
+  t_kernel.setArg(8, t_cells.getCellLogEBuffer());
+  t_kernel.setArg(9, t_cells.getCellParticleCountBuffer());
+  t_kernel.setArg(10, t_cells.getSeedBuffer());
+  t_kernel.setArg(11, t_cells.getNoCollisionProbabilityBuffer());
 }
 
 /*
@@ -526,73 +561,115 @@ void Simulation::collide(ParticleCollection& particles,
                          cl::Kernel& t_assign_particle_to_collision_cell_kernel,
                          cl::Kernel& t_rotate_momentum_kernel,
                          cl::CommandQueue& cl_queue) {
-  auto start = std::chrono::high_resolution_clock::now();
+#ifdef TIME_COLLIDE_DEBUG
+  auto start = my_clock::now();
+#endif
   cells.generateShiftVector(t_rng);
   cells.writeShiftVectorBuffer(cl_queue);
-  auto stop = std::chrono::high_resolution_clock::now();
-  auto duration =
-      std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-  std::cout << "= Shift vector generation and write time: " << duration.count() << std::endl;
+#ifdef TIME_COLLIDE_DEBUG
+  auto stop = my_clock::now();
+  std::cout << "= Shift vector generation and write time: "
+            << clock_micros(stop - start).count() << std::endl;
   // Assign particles to collision cells
-  start = std::chrono::high_resolution_clock::now();
+  start = my_clock::now();
+#endif
   cl_queue.enqueueNDRangeKernel(t_assign_particle_to_collision_cell_kernel,
                                 cl::NullRange,
                                 cl::NDRange(particles.getParticleCountTotal()));
-  stop = std::chrono::high_resolution_clock::now();
-  duration =
-      std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-  std::cout << "= Collision cell assignation time: " << duration.count()
-            << std::endl;
+#ifdef TIME_COLLIDE_DEBUG
+  stop = my_clock::now();
+  std::cout << "= Collision cell assignation time: "
+            << clock_micros(stop - start).count() << std::endl;
   // Update particle data on CPU
-  start = std::chrono::high_resolution_clock::now();
+  start = my_clock::now();
+#endif
   particles.readParticleCoordinatesBuffer(cl_queue);
   particles.readParticleMomentumsBuffer(cl_queue);
   particles.readParticleEBuffer(cl_queue);
   particles.readParticleCollisionCellIndexBuffer(cl_queue);
   // Calculate COM and genrate rotation matrix for each cell
-  stop = std::chrono::high_resolution_clock::now();
-  duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-  std::cout << "= Read particle data to CPU time: " << duration.count()
-            << std::endl;
-  start = std::chrono::high_resolution_clock::now();
-  cells.recalculate_cells(particles, t_dt, t_tau, t_rng);
-  stop = std::chrono::high_resolution_clock::now();
-  duration =
-      std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-  std::cout << "= Recalculate cell time: " << duration.count()
-            << std::endl;
-  /*start = std::chrono::high_resolution_clock::now();
-  cells.recalculate_cells2(particles);
-  stop = std::chrono::high_resolution_clock::now();
-  duration =
-      std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-  std::cout << "= Recalculate cell2 time: " << duration.count() << std::endl;*/
-  start = std::chrono::high_resolution_clock::now();
-  cells.recalculate_cells3(particles);
-  stop = std::chrono::high_resolution_clock::now();
-  duration =
-      std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-  std::cout << "= Recalculate cell3 time: " << duration.count() << std::endl;
+#ifdef TIME_COLLIDE_DEBUG
+  stop = my_clock::now();
 
-  // Update collision cell data on GPU
-  start = std::chrono::high_resolution_clock::now();
+  std::cout << "= Read particle data to CPU time: "
+            << clock_micros(stop - start).count() << std::endl;
+  start = my_clock::now();
+#endif
+  cells.recalculate_cells(particles, t_dt, t_tau, t_rng);
+#ifdef TIME_COLLIDE_DEBUG
+  stop = my_clock::now();
+  std::cout << "= Recalculate cell time: " << clock_micros(stop - start).count()
+            << std::endl;
+
+  start = my_clock::now();
+#endif
   particles.writeParticleCollisionCellIndexBuffer(cl_queue);
-  cells.writeCollisionCellBuffer(cl_queue);
-  stop = std::chrono::high_resolution_clock::now();
-  duration =
-      std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-  std::cout << "= Write data to GPU time: " << duration.count() << std::endl;
+  // cells.writeCollisionCellBuffer(cl_queue);
+  cells.writeCollisionCellRotationBuffers(cl_queue);
+#ifdef TIME_COLLIDE_DEBUG
+  stop = my_clock::now();
+  std::cout << "= Write data to GPU time: "
+            << clock_micros(stop - start).count() << std::endl;
   // Rotate momentum
-  start = std::chrono::high_resolution_clock::now();
+  start = my_clock::now();
+#endif
   cl_queue.enqueueNDRangeKernel(t_rotate_momentum_kernel, cl::NullRange,
                                 cl::NDRange(particles.getParticleCountTotal()));
-  stop = std::chrono::high_resolution_clock::now();
-  duration =
-      std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-  std::cout << "= Rotation time: " << duration.count() << std::endl;
+#ifdef TIME_COLLIDE_DEBUG
+  stop = my_clock::now();
+  std::cout << "= Rotation time: " << clock_micros(stop - start).count()
+            << std::endl;
+#endif
 }
 
-void Simulation::collide2(
+// void Simulation::collide2(
+//     ParticleCollection& particles, CollisionCellCollection& cells, numType
+//     t_dt, numType t_tau, RandomNumberGeneratorNumType& t_rng_numtype,
+//     RandomNumberGeneratorULong& t_rng_int,
+//     cl::Kernel& t_assign_particle_to_collision_cell_kernel,
+//     cl::Kernel& t_rotate_momentum_kernel,
+//     cl::Kernel& t_reset_collision_cell_kernel,
+//     cl::Kernel& t_generate_collision_cell_kernel, cl::CommandQueue& cl_queue)
+//     {
+//   cells.generateShiftVector(t_rng_numtype);
+//   cells.writeShiftVectorBuffer(cl_queue);
+//   cl_queue.enqueueNDRangeKernel(t_assign_particle_to_collision_cell_kernel,
+//                                 cl::NullRange,
+//                                 cl::NDRange(particles.getParticleCountTotal()));
+//   particles.readParticleCollisionCellIndexBuffer(cl_queue);
+//
+//   cells.calculate_new_no_collision_probability(t_dt, t_tau);
+//   cells.writeNoCollisionProbabilityBuffer(cl_queue);
+//   while (cells.getSeed() == 0) {
+//     cells.generateSeed(t_rng_int);
+//   }
+//   cells.writeSeedBuffer(cl_queue);
+//
+//   cl_queue.enqueueNDRangeKernel(t_reset_collision_cell_kernel, cl::NullRange,
+//                                 cl::NDRange(cells.getCellCount()));
+//   cells.readCollisionCellBuffer(cl_queue);
+//   auto start = my_clock::now();
+//
+//   cells.recalculate_cells2(particles);
+//   auto stop = my_clock::now();
+//   auto duration =
+//       std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+//   std::cout << "= Recalcualte cell time: " << clock_micros(stop -
+//   start).count()
+//             << std::endl;
+//
+//   cells.writeCollisionCellBuffer(cl_queue);
+//
+//   /*cl_queue.enqueueNDRangeKernel(t_sum_collision_cell_kernel, cl::NullRange,
+//                                 cl::NDRange(particles.getParticleCountTotal()));*/
+//   cl_queue.enqueueNDRangeKernel(t_generate_collision_cell_kernel,
+//   cl::NullRange,
+//                                 cl::NDRange(cells.getCellCount()));
+//   cl_queue.enqueueNDRangeKernel(t_rotate_momentum_kernel, cl::NullRange,
+//                                 cl::NDRange(particles.getParticleCountTotal()));
+// }
+
+void Simulation::collide3(
     ParticleCollection& particles, CollisionCellCollection& cells, numType t_dt,
     numType t_tau, RandomNumberGeneratorNumType& t_rng_numtype,
     RandomNumberGeneratorULong& t_rng_int,
@@ -600,130 +677,93 @@ void Simulation::collide2(
     cl::Kernel& t_rotate_momentum_kernel,
     cl::Kernel& t_reset_collision_cell_kernel,
     cl::Kernel& t_generate_collision_cell_kernel, cl::CommandQueue& cl_queue) {
-  cells.generateShiftVector(t_rng_numtype);
-  cells.writeShiftVectorBuffer(cl_queue);
-  cl_queue.enqueueNDRangeKernel(t_assign_particle_to_collision_cell_kernel,
-                                cl::NullRange,
-                                cl::NDRange(particles.getParticleCountTotal()));
-  particles.readParticleCollisionCellIndexBuffer(cl_queue);
-
-  cells.calculate_new_no_collision_probability(t_dt, t_tau);
-  cells.writeNoCollisionProbabilityBuffer(cl_queue);
-  while (cells.getSeed() == 0) {
-    cells.generateSeed(t_rng_int);
-  }
-  cells.writeSeedBuffer(cl_queue);
-
-  cl_queue.enqueueNDRangeKernel(t_reset_collision_cell_kernel, cl::NullRange,
-                                cl::NDRange(cells.getCellCount()));
-  cells.readCollisionCellBuffer(cl_queue);
-  auto start = std::chrono::high_resolution_clock::now();
-
-  cells.recalculate_cells2(particles);
-  auto stop = std::chrono::high_resolution_clock::now();
-  auto duration =
-      std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-  std::cout << "= Recalcualte cell time: " << duration.count()
-            << std::endl;
-
-  cells.writeCollisionCellBuffer(cl_queue);
-  
-  /*cl_queue.enqueueNDRangeKernel(t_sum_collision_cell_kernel, cl::NullRange,
-                                cl::NDRange(particles.getParticleCountTotal()));*/
-  cl_queue.enqueueNDRangeKernel(t_generate_collision_cell_kernel, cl::NullRange,
-                                cl::NDRange(cells.getCellCount()));
-  cl_queue.enqueueNDRangeKernel(t_rotate_momentum_kernel, cl::NullRange,
-                                cl::NDRange(particles.getParticleCountTotal()));
-}
-
-
-void Simulation::collide3(ParticleCollection& particles, CollisionCellCollection& cells,
-    numType t_dt, numType t_tau,
-    RandomNumberGeneratorNumType& t_rng_numtype,
-    RandomNumberGeneratorULong& t_rng_int,
-    cl::Kernel& t_assign_particle_to_collision_cell_kernel,
-    cl::Kernel& t_rotate_momentum_kernel,
-    cl::Kernel& t_reset_collision_cell_kernel,
-    cl::Kernel& t_generate_collision_cell_kernel,
-    cl::CommandQueue& cl_queue) {
-
-  auto start = std::chrono::high_resolution_clock::now();
-  auto stop = std::chrono::high_resolution_clock::now();
-  auto duration =
-      std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-
+#ifdef TIME_COLLIDE_DEBUG
+  auto start = my_clock::now();
+  auto stop = my_clock::now();
+#endif
   u_int cell_count;
   // Generate shift vector
   /*cells.generateShiftVector(t_rng_numtype);
   cells.writeShiftVectorBuffer(cl_queue);
   */
-  start = std::chrono::high_resolution_clock::now();
+#ifdef TIME_COLLIDE_DEBUG
+  start = my_clock::now();
+#endif
   cl_queue.enqueueNDRangeKernel(t_assign_particle_to_collision_cell_kernel,
                                 cl::NullRange,
                                 cl::NDRange(particles.getParticleCountTotal()));
   particles.readParticleCollisionCellIndexBuffer(cl_queue);
-  stop = std::chrono::high_resolution_clock::now();
-   duration =
-      std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-  std::cout << "= Cell assignment to particle and read: " << duration.count() << std::endl;
+#ifdef TIME_COLLIDE_DEBUG
+  stop = my_clock::now();
+  std::cout << "= Cell assignment to particle and read: "
+            << clock_micros(stop - start).count() << std::endl;
   // Generate probabilty that collision does not happen
-  start = std::chrono::high_resolution_clock::now();
+  start = my_clock::now();
+#endif
   cells.calculate_new_no_collision_probability(t_dt, t_tau);
   cells.writeNoCollisionProbabilityBuffer(cl_queue);
-  stop = std::chrono::high_resolution_clock::now();
-   duration =
-      std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-  std::cout << "= No collision probability and write: " << duration.count() << std::endl;
+#ifdef TIME_COLLIDE_DEBUG
+  stop = my_clock::now();
+  std::cout << "= No collision probability and write: "
+            << clock_micros(stop - start).count() << std::endl;
   // Generate new seed (seed!=0 as algo does not work in that case)
-  start = std::chrono::high_resolution_clock::now();
+  start = my_clock::now();
+#endif
   while (cells.getSeed() == 0) {
     cells.generateSeed(t_rng_int);
   }
   cells.writeSeedBuffer(cl_queue);
-  stop = std::chrono::high_resolution_clock::now();
-   duration =
-      std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-  std::cout << "= Seed and write: " << duration.count()
+#ifdef TIME_COLLIDE_DEBUG
+  stop = my_clock::now();
+
+  std::cout << "= Seed and write: " << clock_micros(stop - start).count()
             << std::endl;
-  start = std::chrono::high_resolution_clock::now();
+  start = my_clock::now();
+#endif
   // Reset collision cells
   cl_queue.enqueueNDRangeKernel(t_reset_collision_cell_kernel, cl::NullRange,
                                 cl::NDRange(cells.getCellCount()));
-  stop = std::chrono::high_resolution_clock::now();
-   duration =
-      std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-  std::cout << "= Collision cell reset: " << duration.count() << std::endl;
-  start = std::chrono::high_resolution_clock::now();
-  cells.readCollisionCellBuffer(cl_queue);
-  auto start2 = std::chrono::high_resolution_clock::now();
-  cell_count = cells.recalculate_cells3(particles);
-  auto stop2 = std::chrono::high_resolution_clock::now();
-  auto duration2 =
-      std::chrono::duration_cast<std::chrono::microseconds>(stop2 - start2);
-  std::cout << "== Recalculate collision cells: "
-            << duration2.count() << std::endl;
-  cells.writeCollisionCellBuffer(cl_queue, cell_count);
-  stop = std::chrono::high_resolution_clock::now();
-  duration =
-      std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-  std::cout << "= Recalculate collision cells, read and write: " << duration.count() << std::endl;
-  start = std::chrono::high_resolution_clock::now();
+#ifdef TIME_COLLIDE_DEBUG
+  stop = my_clock::now();
 
+  std::cout << "= Collision cell reset: " << clock_micros(stop - start).count()
+            << std::endl;
+  start = my_clock::now();
+#endif
+  cells.readCollisionCellBuffers(cl_queue);
+#ifdef TIME_COLLIDE_DEBUG
+  auto start2 = my_clock::now();
+#endif
+  cell_count = cells.recalculate_cells3(particles);
+#ifdef TIME_COLLIDE_DEBUG
+  auto stop2 = my_clock::now();
+  std::cout << "== Recalculate collision cells: "
+            << clock_micros(stop2 - start2).count() << std::endl;
+#endif
+  // Possible addition. Only write cell_count of values.
+  cells.writeCollisionCellBuffers(cl_queue);
+#ifdef TIME_COLLIDE_DEBUG
+  stop = my_clock::now();
+  std::cout << "= Recalculate collision cells, read and write: "
+            << clock_micros(stop - start).count() << std::endl;
+  start = my_clock::now();
+#endif
   cl_queue.enqueueNDRangeKernel(t_generate_collision_cell_kernel, cl::NullRange,
                                 cl::NDRange(cells.getCellCount()));
-  stop = std::chrono::high_resolution_clock::now();
-  duration =
-      std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-  std::cout << "= Generate collision cells: "
-            << duration.count() << std::endl;
-  start = std::chrono::high_resolution_clock::now();
+#ifdef TIME_COLLIDE_DEBUG
+  stop = my_clock::now();
 
+  std::cout << "= Generate collision cells: "
+            << clock_micros(stop - start).count() << std::endl;
+  start = my_clock::now();
+#endif
   cl_queue.enqueueNDRangeKernel(t_rotate_momentum_kernel, cl::NullRange,
                                 cl::NDRange(particles.getParticleCountTotal()));
-  stop = std::chrono::high_resolution_clock::now();
-  duration =
-      std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-  std::cout << "= Rotate particles' momentum: " << duration.count() << std::endl;
+#ifdef TIME_COLLIDE_DEBUG
+  stop = my_clock::now();
+  std::cout << "= Rotate particles' momentum: "
+            << clock_micros(stop - start).count() << std::endl;
+#endif
 }
 
 void Simulation::stepParticleCollisionBoundary(
@@ -738,54 +778,60 @@ void Simulation::stepParticleCollisionBoundary(
   // m_timestepAdapter.calculateNewTimeStep(bubble);
   m_dt_current = m_timestepAdapter.getTimestep();
   writedtBuffer(cl_queue);
-  auto start = std::chrono::high_resolution_clock::now();
+#ifdef TIME_COLLIDE_DEBUG
+  auto start = my_clock::now();
+#endif
   cl_queue.enqueueNDRangeKernel(t_particle_step_kernel, cl::NullRange,
                                 cl::NDRange(particles.getParticleCountTotal()));
-  auto stop = std::chrono::high_resolution_clock::now();
-  auto duration =
-      std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-  std::cout << "Step time: " << duration.count() << std::endl;
-  start = std::chrono::high_resolution_clock::now();
+#ifdef TIME_COLLIDE_DEBUG
+  auto stop = my_clock::now();
+  print_timer_info("Step time: ", clock_micros(stop - start).count());
+  start = my_clock::now();
+#endif
   cl_queue.enqueueNDRangeKernel(t_particle_boundary_check_kernel, cl::NullRange,
                                 cl::NDRange(particles.getParticleCountTotal()));
-   stop = std::chrono::high_resolution_clock::now();
-   duration =
-      std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-  std::cout << "Boundary check time: " << duration.count() << std::endl;
-   start = std::chrono::high_resolution_clock::now();
-  /*collide(particles, cells, m_dt_current, getTau(), t_rng_numtype,
-          t_assign_particle_to_collision_cell_kernel, t_rotate_momentum_kernel,
-          cl_queue);*/
+#ifdef TIME_COLLIDE_DEBUG
+  stop = my_clock::now();
+  print_timer_info("Boundary check time: ", clock_micros(stop - start).count());
 
+  start = my_clock::now();
+#endif
+  collide(particles, cells, m_dt_current, getTau(), t_rng_numtype,
+          t_assign_particle_to_collision_cell_kernel, t_rotate_momentum_kernel,
+          cl_queue);
   /*collide2(particles, cells, m_dt_current, getTau(), t_rng_numtype, t_rng_int,
            t_assign_particle_to_collision_cell_kernel, t_rotate_momentum_kernel,
            t_reset_collision_cell_kernel, t_generate_collision_cell_kernel,
            cl_queue);*/
-   collide3(particles, cells, m_dt_current, getTau(), t_rng_numtype, t_rng_int,
-            t_assign_particle_to_collision_cell_kernel,
-            t_rotate_momentum_kernel, t_reset_collision_cell_kernel,
-            t_generate_collision_cell_kernel, cl_queue);
+  /*collide3(particles, cells, m_dt_current, getTau(), t_rng_numtype, t_rng_int,
+           t_assign_particle_to_collision_cell_kernel, t_rotate_momentum_kernel,
+           t_reset_collision_cell_kernel, t_generate_collision_cell_kernel,
+           cl_queue);*/
+#ifdef TIME_COLLIDE_DEBUG
+  stop = my_clock::now();
+  print_timer_info("Collision time: ", clock_micros(stop - start).count());
 
-   stop = std::chrono::high_resolution_clock::now();
-   duration =
-      std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-   std::cout << "Collision time: " << duration.count() << std::endl;
-   start = std::chrono::high_resolution_clock::now();
+  start = my_clock::now();
+#endif
   particles.readParticleEBuffer(cl_queue);
-   stop = std::chrono::high_resolution_clock::now();
-   duration =
-       std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-   std::cout << "Particle Energy read time: " << duration.count() << std::endl;
-   start = std::chrono::high_resolution_clock::now();
+#ifdef TIME_COLLIDE_DEBUG
+  stop = my_clock::now();
+  print_timer_info("Particle Energy read time: ",
+                   clock_micros(stop - start).count());
+
+  start = my_clock::now();
+#endif
   numType currentTotalEnergy = 0.;
   for (size_t i = 0; i < particles.getParticleCountTotal(); i++) {
     currentTotalEnergy += particles.returnParticleE(i);
   }
-  stop = std::chrono::high_resolution_clock::now();
-  duration =
-      std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-  std::cout << "Particle Energy count time: " << duration.count() << std::endl;
+#ifdef TIME_COLLIDE_DEBUG
+  stop = my_clock::now();
+  print_timer_info("Particle Energy count time: ",
+                   clock_micros(stop - start).count());
+
   std::cout << std::endl;
+#endif
   m_totalEnergy = currentTotalEnergy;
   m_time += m_dt_current;
   m_step_count += 1;
@@ -809,21 +855,21 @@ void Simulation::stepParticleBubbleCollisionBoundary(
                                 cl::NDRange(particles.getParticleCountTotal()));
   cl_queue.enqueueNDRangeKernel(t_particle_boundary_check_kernel, cl::NullRange,
                                 cl::NDRange(particles.getParticleCountTotal()));
-  auto start = std::chrono::high_resolution_clock::now();
-  /*collide(particles, cells, m_dt_current, getTau(), t_rng_numtype,
+#ifdef TIME_COLLIDE_DEBUG
+  auto start = my_clock::now();
+#endif
+  collide(particles, cells, m_dt_current, getTau(), t_rng_numtype,
           t_assign_particle_to_collision_cell_kernel, t_rotate_momentum_kernel,
-          cl_queue);*/
-  collide2(particles, cells, m_dt_current, getTau(), t_rng_numtype, t_rng_int,
-           t_assign_particle_to_collision_cell_kernel, t_rotate_momentum_kernel,
-           t_reset_collision_cell_kernel,
-           t_generate_collision_cell_kernel, cl_queue);
+          cl_queue);
 
   particles.readParticleEBuffer(cl_queue);
   particles.readdPBuffer(cl_queue);
-  auto stop = std::chrono::high_resolution_clock::now();
+#ifdef TIME_COLLIDE_DEBUG
+  auto stop = my_clock::now();
   auto duration =
       std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-  std::cout << duration.count() << std::endl;
+  std::cout << clock_micros(stop - start).count() << std::endl;
+#endif
   m_dP = 0.;
   numType currentTotalEnergy = 0.;
   for (size_t i = 0; i < particles.getParticleCountTotal(); i++) {

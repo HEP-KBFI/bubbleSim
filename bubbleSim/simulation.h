@@ -9,6 +9,8 @@
 #include "opencl_kernels.h"
 #include "timestep.h"
 
+using my_clock = std::chrono::steady_clock;
+
 class Simulation {
  public:
   Simulation() { m_seed = 0; }
@@ -65,7 +67,7 @@ class Simulation {
   void setBuffersLabelParticleInBubbleMass(ParticleCollection& t_particles,
                                            cl::Kernel& t_kernel);
 
-  void setBuffersCollisionCellReset(CollisionCellCollection t_cells,
+  void setBuffersCollisionCellReset(CollisionCellCollection& t_cells,
                                     cl::Kernel& t_kernel);
 
   void setBuffersCollisionCellCalculateSummation(

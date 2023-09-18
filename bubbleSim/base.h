@@ -7,18 +7,21 @@
 
 #include <CL/cl.hpp>
 #include <array>
+#include <chrono>
 #include <cmath>
 #include <cstdio>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
-#include <sstream>
-#include <vector>
 #include <map>
+#include <sstream>
 #include <unordered_map>
 #include <unordered_set>
+#include <vector>
+
 #include "ankerl/ankerl_map.hpp"
 
+//#define TIME_COLLIDE_DEBUG
 // #define LOG_DEBUG
 
 typedef cl_double cl_numType;

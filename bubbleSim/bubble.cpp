@@ -12,8 +12,6 @@ PhaseBubble::PhaseBubble(numType t_initialRadius, numType t_initialSpeed,
    cl_double gamma;
    cl_double gammaXspeed;  // gamma * speed
   */
-  int openCLerrNum;
-
   // m_gamma = 1/sqrt(1-v^2) = 1/exp(log1p(-v^2)*0.5)
   numType radius2 = std::pow(t_initialRadius, 2);
   numType gamma =
