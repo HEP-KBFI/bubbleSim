@@ -33,7 +33,7 @@
         "N_true": 0
     },
     "collision": {
-        "collision_on": false,
+        "collision_on": true,
         "N_cells": 61,
         "cell_length": 2.2623
     },

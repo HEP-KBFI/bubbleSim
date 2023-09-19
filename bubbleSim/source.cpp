@@ -3,88 +3,17 @@
 
 using std::chrono::duration;
 using std::chrono::duration_cast;
-using std::chrono::high_resolution_clock;
 using std::chrono::seconds;
 
 // Collision is in development
-std::string createFileNameFromCurrentDate() {
-  static std::random_device rd;
-  static std::mt19937 gen(rd());
-  static std::uniform_int_distribution<> dis(0, 15);
-  static std::uniform_int_distribution<> dis2(8, 11);
-
-  char c_name[18];
-
-  int i;
-  std::stringstream ss;
-  std::string result;
-
-  std::time_t t_cur = time(NULL);
-  const auto* t_local = localtime(&t_cur);
-  std::strftime(c_name, 18, "%j_%Y_%H_%M_%S", t_local);
-
-  ss << std::hex;
-  for (i = 0; i < 8; i++) {
-    ss << dis(gen);
-  }
-  result = std::string(c_name) + "_" + ss.str();
-  return result;
-}
-
-std::filesystem::path createSimulationFilePath(std::string& t_dataPath,
-                                               std::string& t_fileName) {
-  std::filesystem::path dataPath(t_dataPath);
-  std::filesystem::path filePath = dataPath / t_fileName;
-  if (!std::filesystem::is_directory(dataPath) ||
-      !std::filesystem::exists(dataPath)) {       // Check if src folder exists
-    std::filesystem::create_directory(dataPath);  // create src folder
-  }
-  if (!std::filesystem::is_directory(filePath) ||
-      !std::filesystem::exists(filePath)) {       // Check if src folder exists
-    std::filesystem::create_directory(filePath);  // create src folder
-  }
-  return filePath;
-}
-
-void createSimulationInfoFile(std::ofstream& infoStream,
-                              std::filesystem::path& filePath,
-                              ConfigReader& t_config, numType t_dV) {
-  infoStream << "file_name,seed,alpha,eta,upsilon,tau,m-,T-,N-,m+,T+,N+,"
-                "bubbleInteraction,selfInteraction,"
-                "radius,speed,Rb,Rc,"
-                "dV,deltaN,runtime"
-             << std::endl;
-  numType critical_radius =
-      2 * t_config.parameterUpsilon * t_config.bubbleInitialRadius;
-
-  infoStream << filePath.filename() << "," << t_config.m_seed << ","
-             << t_config.parameterAlpha << "," << t_config.parameterEta << ",";
-  infoStream << t_config.parameterUpsilon << "," << t_config.parameterTau;
-  infoStream << t_config.particleMassFalse << ","
-             << t_config.particleTemperatureFalse << ","
-             << t_config.particleCountFalse << ",";
-  infoStream << t_config.particleMassTrue << ","
-             << t_config.particleTemperatureTrue << ","
-             << t_config.particleCountTrue << ",";
-  infoStream << t_config.bubbleInteractionsOn << "," << t_config.collision_on
-             << ",";
-  infoStream << t_config.bubbleInitialRadius << ","
-             << t_config.bubbleInitialSpeed << ","
-             << t_config.cyclicBoundaryRadius * t_config.cyclicBoundaryOn << ","
-             << critical_radius << ",";
-  infoStream << t_dV << ",";
-}
-void appendSimulationInfoFile(std::ofstream& infoStream,
-                              int t_postionDifference, int t_programRuntime) {
-  infoStream << t_postionDifference << "," << t_programRuntime << std::endl;
-}
 
 int main(int argc, char* argv[]) {
   if (argc != 3) {
     std::cerr << "Usage: bubbleSim.exe config.json kernel.cl" << std::endl;
     exit(0);
   }
-  auto program_start_time = high_resolution_clock::now();
+  auto program_start_time = my_clock::now();
+  auto program_end_time = my_clock::now();
   // auto program_second_time = high_resolution_clock::now();
 
   // Read configs and kernel file
@@ -202,14 +131,16 @@ int main(int argc, char* argv[]) {
           : config.particleMassTrue;
   if (config.SIMULATION_SETTINGS.isFlagSet(SIMULATION_BOUNDARY_ON |
                                            BUBBLE_ON)) {
-    simulation_parameters =
-        SimulationParameters(dt, particle_mass_in, particle_mass_out, config.cyclicBoundaryRadius,
+    simulation_parameters = SimulationParameters(
+        dt, particle_mass_in, particle_mass_out, config.cyclicBoundaryRadius,
         buffer_flags, kernels.getContext());
   } else if (config.SIMULATION_SETTINGS.isFlagSet(BUBBLE_ON)) {
-    simulation_parameters = SimulationParameters(dt, particle_mass_in, particle_mass_out,
+    simulation_parameters =
+        SimulationParameters(dt, particle_mass_in, particle_mass_out,
                              buffer_flags, kernels.getContext());
   } else {
-    simulation_parameters = SimulationParameters(dt, buffer_flags, kernels.getContext());
+    simulation_parameters =
+        SimulationParameters(dt, buffer_flags, kernels.getContext());
   }
   simulation = Simulation(config.m_seed, dt, simulation_parameters,
                           kernels.getContext());
@@ -338,13 +269,16 @@ int main(int argc, char* argv[]) {
   int stepsSinceLastStream = 0;
   std::cout << "=============== Simulation ===============" << std::endl;
   std::cout << std::setprecision(6) << std::fixed << std::showpoint;
-  auto program_second_time = high_resolution_clock::now();
+  program_end_time = my_clock::now();
   std::cout << "Step: " << simulation.getStep()
             << ", Time: " << simulation.getTime()
-            << ", R: " << bubble.getRadius() << ", V: " << bubble.getSpeed()
+            << ", R: " << bubble.getRadius()
+            << ", R/Rc: " << bubble.getRadius() / critical_radius
+            << ", V: " << bubble.getSpeed()
             << ", dP: " << simulation.get_dP() / simulation.get_dt_currentStep()
             << ", E: "
             << simulation.getTotalEnergy() / simulation.getInitialTotalEnergy()
+            << ", time: " << convertTimeToHMS(program_end_time - program_start_time)
             << std::endl;
 
   // auto streamEndTime = high_resolution_clock::now();
@@ -389,7 +323,7 @@ int main(int argc, char* argv[]) {
     if (i % 100 == 0) {
       streamer.stream(simulation, particles, bubble, log_scale_on,
                       kernels.getCommandQueue());
-
+      program_end_time = my_clock::now();
       std::cout << "Step: " << simulation.getStep()
                 << ", Time: " << simulation.getTime()
                 << ", R: " << bubble.getRadius()
@@ -399,6 +333,8 @@ int main(int argc, char* argv[]) {
                 << ", E: "
                 << simulation.getTotalEnergy() /
                        simulation.getInitialTotalEnergy()
+                << ", time: "
+                << convertTimeToHMS(program_end_time - program_start_time)
                 << std::endl;
     }
 
@@ -465,9 +401,9 @@ int main(int argc, char* argv[]) {
                   kernels.getCommandQueue());
 
   // Measure runtime
-  auto programEndTime = high_resolution_clock::now();
+  program_end_time = my_clock::now();
   auto ms_int = std::chrono::duration_cast<std::chrono::seconds>(
-      programEndTime - program_start_time);
+      program_end_time - program_start_time);
 
   appendSimulationInfoFile(infoStream, 0, (int)ms_int.count());
 }
