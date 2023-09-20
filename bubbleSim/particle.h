@@ -75,6 +75,8 @@ class ParticleCollection {
   std::vector<int8_t> m_interacted_bubble_true_state_copy;
   cl::Buffer m_interacted_bubble_true_state_buffer;
 
+
+
  public:
   /*
    * NB!!! When initializing the vectors and buffers it is important
@@ -83,6 +85,8 @@ class ParticleCollection {
    * runtime, vector data address also changes and buffer has wrong
    * memory address
    */
+  std::vector<numType> m_mean_free_path;
+
   ParticleCollection(unsigned int t_particleCountTrue,
                      unsigned int t_particleCountFalse,
                      bool t_bubbleIsTrueVacuum, std::uint32_t& t_buffer_flags,

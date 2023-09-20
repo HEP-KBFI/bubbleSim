@@ -445,6 +445,8 @@ ParticleCollection::ParticleCollection(unsigned int t_particleCountTrue,
   m_particle_E.reserve(m_particleCountTotal);
   m_particle_M.reserve(m_particleCountTotal);
 
+  m_mean_free_path.resize(m_particleCountTotal);
+
   m_particle_X_buffer =
       cl::Buffer(cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
                  m_particleCountTotal * sizeof(numType), m_particle_X.data(),

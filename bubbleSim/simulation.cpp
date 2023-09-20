@@ -21,7 +21,7 @@ Simulation::Simulation(int t_seed, numType t_max_dt,
   m_dt_max = t_max_dt;
   m_parameters = t_simulation_parameters;
   m_dP = 0.;
-  }
+}
 
 /*
  * ================================================================
@@ -47,7 +47,7 @@ void Simulation::stepParticleBubble(ParticleCollection& particles,
   m_parameters.writeDtBuffer(t_kernels.getCommandQueue());
   t_kernels.getCommandQueue().enqueueNDRangeKernel(
       t_kernels.m_particleStepWithBubbleKernel.getKernel(), cl::NullRange,
-                                cl::NDRange(particles.getParticleCountTotal()));
+      cl::NDRange(particles.getParticleCountTotal()));
   particles.readParticleEBuffer(t_kernels.getCommandQueue());
   particles.readdPBuffer(t_kernels.getCommandQueue());
 
@@ -72,7 +72,7 @@ void Simulation::stepParticleBubble(ParticleCollection& particles,
 
     exit(0);
   }*/
-  
+
   m_dP = m_dP / bubble.calculateArea();
   bubble.evolveWall(m_dt_current, m_dP);
   currentTotalEnergy += bubble.calculateEnergy();
@@ -134,14 +134,14 @@ void Simulation::stepParticleBubble(ParticleCollection& particles,
 }
 
 // Step with bubble kernel and boundary condition
-void Simulation::stepParticleBubbleBoundary(
-    ParticleCollection& particles, PhaseBubble& bubble,
+void Simulation::stepParticleBubbleBoundary(ParticleCollection& particles,
+                                            PhaseBubble& bubble,
                                             OpenCLLoader& t_kernels) {
   Simulation::stepParticleBubble(particles, bubble, t_kernels);
 
   t_kernels.getCommandQueue().enqueueNDRangeKernel(
       t_kernels.m_particleBoundaryKernel.getKernel(), cl::NullRange,
-                                cl::NDRange(particles.getParticleCountTotal()));
+      cl::NDRange(particles.getParticleCountTotal()));
 }
 
 // Step for only calculating bubble
@@ -167,9 +167,8 @@ void Simulation::collide(ParticleCollection& particles,
   start = my_clock::now();
 #endif
   t_kernels.getCommandQueue().enqueueNDRangeKernel(
-      t_kernels.m_cellAssignmentKernel.getKernel(),
-                                cl::NullRange,
-                                cl::NDRange(particles.getParticleCountTotal()));
+      t_kernels.m_cellAssignmentKernel.getKernel(), cl::NullRange,
+      cl::NDRange(particles.getParticleCountTotal()));
 #ifdef TIME_COLLIDE_DEBUG
   stop = my_clock::now();
   std::cout << "= Collision cell assignation time: "
@@ -181,6 +180,7 @@ void Simulation::collide(ParticleCollection& particles,
   particles.readParticleMomentumsBuffer(t_kernels.getCommandQueue());
   particles.readParticleEBuffer(t_kernels.getCommandQueue());
   particles.readParticleCollisionCellIndexBuffer(t_kernels.getCommandQueue());
+
   // Calculate COM and genrate rotation matrix for each cell
 #ifdef TIME_COLLIDE_DEBUG
   stop = my_clock::now();
@@ -190,6 +190,7 @@ void Simulation::collide(ParticleCollection& particles,
   start = my_clock::now();
 #endif
   cells.recalculate_cells(particles, t_dt, t_tau, t_rng);
+
 #ifdef TIME_COLLIDE_DEBUG
   stop = my_clock::now();
   std::cout << "= Recalculate cell time: " << clock_micros(stop - start).count()
@@ -200,6 +201,7 @@ void Simulation::collide(ParticleCollection& particles,
   particles.writeParticleCollisionCellIndexBuffer(t_kernels.getCommandQueue());
   // cells.writeCollisionCellBuffer(cl_queue);
   cells.writeCollisionCellRotationBuffers(t_kernels.getCommandQueue());
+
 #ifdef TIME_COLLIDE_DEBUG
   stop = my_clock::now();
   std::cout << "= Write data to GPU time: "
@@ -209,7 +211,8 @@ void Simulation::collide(ParticleCollection& particles,
 #endif
   t_kernels.getCommandQueue().enqueueNDRangeKernel(
       t_kernels.m_rotationKernel.getKernel(), cl::NullRange,
-                                cl::NDRange(particles.getParticleCountTotal()));
+      cl::NDRange(particles.getParticleCountTotal()));
+
 #ifdef TIME_COLLIDE_DEBUG
   stop = my_clock::now();
   std::cout << "= Rotation time: " << clock_micros(stop - start).count()
@@ -264,10 +267,11 @@ void Simulation::collide(ParticleCollection& particles,
 //                                 cl::NDRange(particles.getParticleCountTotal()));
 // }
 
-void Simulation::collide3(
-    ParticleCollection& particles, CollisionCellCollection& cells, numType t_dt,
-    numType t_tau, RandomNumberGeneratorNumType& t_rng_numtype,
-    RandomNumberGeneratorULong& t_rng_int,
+void Simulation::collide3(ParticleCollection& particles,
+                          CollisionCellCollection& cells, numType t_dt,
+                          numType t_tau,
+                          RandomNumberGeneratorNumType& t_rng_numtype,
+                          RandomNumberGeneratorULong& t_rng_int,
                           OpenCLLoader& t_kernels) {
 #ifdef TIME_COLLIDE_DEBUG
   auto start = my_clock::now();
@@ -281,9 +285,8 @@ void Simulation::collide3(
   start = my_clock::now();
 #endif
   t_kernels.getCommandQueue().enqueueNDRangeKernel(
-      t_kernels.m_cellAssignmentKernel.getKernel(),
-                                cl::NullRange,
-                                cl::NDRange(particles.getParticleCountTotal()));
+      t_kernels.m_cellAssignmentKernel.getKernel(), cl::NullRange,
+      cl::NDRange(particles.getParticleCountTotal()));
   particles.readParticleCollisionCellIndexBuffer(t_kernels.getCommandQueue());
 #ifdef TIME_COLLIDE_DEBUG
   stop = my_clock::now();
@@ -315,7 +318,7 @@ void Simulation::collide3(
   // Reset collision cells
   t_kernels.getCommandQueue().enqueueNDRangeKernel(
       t_kernels.m_collisionCellResetKernel.getKernel(), cl::NullRange,
-                                cl::NDRange(cells.getCellCount()));
+      cl::NDRange(cells.getCellCount()));
 #ifdef TIME_COLLIDE_DEBUG
   stop = my_clock::now();
 
@@ -343,8 +346,7 @@ void Simulation::collide3(
 #endif
   t_kernels.getCommandQueue().enqueueNDRangeKernel(
       t_kernels.m_collisionCellCalculateGenerationKernel.getKernel(),
-      cl::NullRange,
-                                cl::NDRange(cells.getCellCount()));
+      cl::NullRange, cl::NDRange(cells.getCellCount()));
 #ifdef TIME_COLLIDE_DEBUG
   stop = my_clock::now();
 
@@ -354,7 +356,7 @@ void Simulation::collide3(
 #endif
   t_kernels.getCommandQueue().enqueueNDRangeKernel(
       t_kernels.m_rotationKernel.getKernel(), cl::NullRange,
-                                cl::NDRange(particles.getParticleCountTotal()));
+      cl::NDRange(particles.getParticleCountTotal()));
 #ifdef TIME_COLLIDE_DEBUG
   stop = my_clock::now();
   std::cout << "= Rotate particles' momentum: "
@@ -365,18 +367,17 @@ void Simulation::collide3(
 void Simulation::stepParticleCollisionBoundary(
     ParticleCollection& particles, CollisionCellCollection& cells,
     RandomNumberGeneratorNumType& t_rng_numtype,
-    RandomNumberGeneratorULong& t_rng_int,
-    OpenCLLoader& t_kernels) {
+    RandomNumberGeneratorULong& t_rng_int, OpenCLLoader& t_kernels) {
   // m_timestepAdapter.calculateNewTimeStep(bubble);
   m_dt_current = m_parameters.getTimestepAdapter().getTimestep();
-  std::cout << m_dt_current << std::endl;
   m_parameters.writeDtBuffer(t_kernels.getCommandQueue());
+
 #ifdef TIME_COLLIDE_DEBUG
   auto start = my_clock::now();
 #endif
   t_kernels.getCommandQueue().enqueueNDRangeKernel(
       t_kernels.m_particleLinearStepKernel.getKernel(), cl::NullRange,
-                                cl::NDRange(particles.getParticleCountTotal()));
+      cl::NDRange(particles.getParticleCountTotal()));
 #ifdef TIME_COLLIDE_DEBUG
   auto stop = my_clock::now();
   print_timer_info("Step time: ", clock_micros(stop - start).count());
@@ -384,15 +385,14 @@ void Simulation::stepParticleCollisionBoundary(
 #endif
   t_kernels.getCommandQueue().enqueueNDRangeKernel(
       t_kernels.m_particleBoundaryKernel.getKernel(), cl::NullRange,
-                                cl::NDRange(particles.getParticleCountTotal()));
+      cl::NDRange(particles.getParticleCountTotal()));
 #ifdef TIME_COLLIDE_DEBUG
   stop = my_clock::now();
   print_timer_info("Boundary check time: ", clock_micros(stop - start).count());
-
   start = my_clock::now();
 #endif
-  collide(particles, cells, m_dt_current, getTau(), t_rng_numtype,
-          t_kernels);
+
+  collide(particles, cells, m_dt_current, getTau(), t_rng_numtype, t_kernels);
   /*collide2(particles, cells, m_dt_current, getTau(), t_rng_numtype, t_rng_int,
            t_assign_particle_to_collision_cell_kernel, t_rotate_momentum_kernel,
            t_reset_collision_cell_kernel, t_generate_collision_cell_kernel,
@@ -408,6 +408,7 @@ void Simulation::stepParticleCollisionBoundary(
   start = my_clock::now();
 #endif
   particles.readParticleEBuffer(t_kernels.getCommandQueue());
+
 #ifdef TIME_COLLIDE_DEBUG
   stop = my_clock::now();
   print_timer_info("Particle Energy read time: ",
@@ -419,6 +420,7 @@ void Simulation::stepParticleCollisionBoundary(
   for (size_t i = 0; i < particles.getParticleCountTotal(); i++) {
     currentTotalEnergy += particles.returnParticleE(i);
   }
+
 #ifdef TIME_COLLIDE_DEBUG
   stop = my_clock::now();
   print_timer_info("Particle Energy count time: ",
@@ -442,15 +444,14 @@ void Simulation::stepParticleBubbleCollisionBoundary(
 
   t_kernels.getCommandQueue().enqueueNDRangeKernel(
       t_kernels.m_particleStepWithBubbleKernel.getKernel(), cl::NullRange,
-                                cl::NDRange(particles.getParticleCountTotal()));
+      cl::NDRange(particles.getParticleCountTotal()));
   t_kernels.getCommandQueue().enqueueNDRangeKernel(
       t_kernels.m_particleBoundaryKernel.getKernel(), cl::NullRange,
-                                cl::NDRange(particles.getParticleCountTotal()));
+      cl::NDRange(particles.getParticleCountTotal()));
 #ifdef TIME_COLLIDE_DEBUG
   auto start = my_clock::now();
 #endif
-  collide(particles, cells, m_dt_current, getTau(), t_rng_numtype,
-          t_kernels);
+  collide(particles, cells, m_dt_current, getTau(), t_rng_numtype, t_kernels);
 
   particles.readParticleEBuffer(t_kernels.getCommandQueue());
   particles.readdPBuffer(t_kernels.getCommandQueue());

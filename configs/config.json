@@ -19,7 +19,7 @@
     },
     "bubble": {
         "bubble_on": true,
-        "initial_radius": 1.0,
+        "initial_radius": 1,
         "initial_speed": 0,
         "is_true_vacuum": true,
         "interaction_on": true
@@ -45,7 +45,7 @@
         "stream_data": true,
         "stream_density_profile": true,
         "steam_energy_profile": true,
-        "stream_momentum": false,
+        "stream_momentum": true,
         "stream_momentumIn_profile": true,
         "stream_momentumOut_profile": true,
         "stream_radial_velocity": true,

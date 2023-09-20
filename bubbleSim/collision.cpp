@@ -156,8 +156,18 @@ void CollisionCellCollection::recalculate_cells(
     if (collision_cell_index == 0) {
       continue;
     }
-
-    cell_values[collision_cell_index][0] += t_particles.returnParticlepX(i);
+    if (collision_cell_index >
+        t_particles.getParticleCollisionCellIndex().size()) {
+      std::cerr << "In recalculate_cell algorithm occured collision cell index "
+                   "then maximum number of cells. (Particle id: "
+                << i << ", cell id: " << collision_cell_index << ")"
+                << std::endl;
+      std::exit(0);
+    }
+    
+    
+    cell_values[collision_cell_index][0] +=
+        t_particles.returnParticlepX(i);
     cell_values[collision_cell_index][1] += t_particles.returnParticlepY(i);
     cell_values[collision_cell_index][2] += t_particles.returnParticlepZ(i);
     cell_values[collision_cell_index][3] += t_particles.returnParticleE(i);
@@ -165,7 +175,6 @@ void CollisionCellCollection::recalculate_cells(
     cell_values[collision_cell_index][5] +=
         std::log(t_particles.returnParticleE(i));
   }
-
   /*
    * Calculate velocities for each collision cell
    */
@@ -198,11 +207,11 @@ void CollisionCellCollection::recalculate_cells(
 
     double fix_constant = 1;
     // This requires that generated probaility < no_collision_probability_cell
-    no_collision_probability_cell =
-        std::exp(
-            -std::exp(cell_values[i][4] * (std::log(cell_values[i][3]) -
-                                           std::log( 3*cell_values[i][4])) -
-                      cell_values[i][5] - std::log(fix_constant)));
+
+    no_collision_probability_cell = std::exp(
+        -std::exp(cell_values[i][4] * (std::log(cell_values[i][3]) -
+                                       std::log(3 * cell_values[i][4])) -
+                  cell_values[i][5] - std::log(fix_constant)));
     /*std::cout << "Particle count: " << cell_values[i][4]
               << ", No collision: " << no_collision_probability_cell
               << ", E: " << cell_values[i][3]
@@ -241,27 +250,28 @@ void CollisionCellCollection::recalculate_cells(
   // exit(0);
 }
 
-//void CollisionCellCollection::recalculate_cells2(
-//    ParticleCollection& t_particles) {
-//  int collision_cell_index;
+// void CollisionCellCollection::recalculate_cells2(
+//     ParticleCollection& t_particles) {
+//   int collision_cell_index;
 //
-//  for (size_t i = 0; i < t_particles.getParticleCountTotal(); i++) {
-//    collision_cell_index = t_particles.returnCollisionCellIndex(i);
-//    if (collision_cell_index == 0) {
-//      continue;
-//    }
-//    m_collisionCells[collision_cell_index].pX +=
-//        t_particles.returnParticlepX(i);
-//    m_collisionCells[collision_cell_index].pY +=
-//        t_particles.returnParticlepY(i);
-//    m_collisionCells[collision_cell_index].pZ +=
-//        t_particles.returnParticlepZ(i);
-//    m_collisionCells[collision_cell_index].pE += t_particles.returnParticleE(i);
-//    m_collisionCells[collision_cell_index].particle_count += (cl_uint)1;
-//    m_collisionCells[collision_cell_index].total_mass +=
-//        std::log(t_particles.returnParticleE(i));
-//  }
-//}
+//   for (size_t i = 0; i < t_particles.getParticleCountTotal(); i++) {
+//     collision_cell_index = t_particles.returnCollisionCellIndex(i);
+//     if (collision_cell_index == 0) {
+//       continue;
+//     }
+//     m_collisionCells[collision_cell_index].pX +=
+//         t_particles.returnParticlepX(i);
+//     m_collisionCells[collision_cell_index].pY +=
+//         t_particles.returnParticlepY(i);
+//     m_collisionCells[collision_cell_index].pZ +=
+//         t_particles.returnParticlepZ(i);
+//     m_collisionCells[collision_cell_index].pE +=
+//     t_particles.returnParticleE(i);
+//     m_collisionCells[collision_cell_index].particle_count += (cl_uint)1;
+//     m_collisionCells[collision_cell_index].total_mass +=
+//         std::log(t_particles.returnParticleE(i));
+//   }
+// }
 
 u_int CollisionCellCollection::recalculate_cells3(
     ParticleCollection& t_particles) {
@@ -304,7 +314,8 @@ u_int CollisionCellCollection::recalculate_cells3(
       m_cell_pX[cell_index_particle] += t_particles.returnParticlepX(i);
       m_cell_pY[cell_index_particle] += t_particles.returnParticlepY(i);
       m_cell_pZ[cell_index_particle] += t_particles.returnParticlepZ(i);
-      m_cell_logE[cell_index_particle] += std::log(t_particles.returnParticleE(i));
+      m_cell_logE[cell_index_particle] +=
+          std::log(t_particles.returnParticleE(i));
       m_cell_particle_count[cell_index_particle] += 1;
     }
   }

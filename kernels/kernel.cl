@@ -919,7 +919,10 @@ __kernel void rotate_momentum(
   // If in bubble then cell number is doubled and second half is in bubble
   // cells.
   uint cell_idx = particle_collision_cell_index[gid];
-  if (cell_collide_boolean[cell_idx]) {
+  if (!cell_collide_boolean[cell_idx]) {
+    particle_collision_cell_index[gid] = 0;
+  }
+  else {
     // === Collision cell variables
     double x = sin(cell_phi_axis[cell_idx]) * cos(cell_theta_axis[cell_idx]);
     double y = sin(cell_phi_axis[cell_idx]) * sin(cell_theta_axis[cell_idx]);
@@ -1043,7 +1046,6 @@ __kernel void assign_particle_to_collision_cell(
     __global const unsigned int *maxCellIndexInAxis,
     __global const double *cellLength, __global const double *cuboidShift) {
   size_t gid = get_global_id(0);
-
   // Find cell numbers
   int x_index = (int)((particles_X[gid] + cellLength[0] * maxCellIndexInAxis[0] / 2. +
                        cuboidShift[0]) /
@@ -1084,7 +1086,6 @@ __kernel void assign_particle_to_collision_cell_two_state(
 
 ) {
   size_t gid = get_global_id(0);
-
   // Find cell numbers
   int a = (int)((particles_X[gid] + cuboidShift[0]) / cellLength[0]);
   int b = (int)((particles_Y[gid] + cuboidShift[1]) / cellLength[1]);
