@@ -43,6 +43,11 @@ void Simulation::stepParticleBubble(ParticleCollection& particles,
                                     PhaseBubble& bubble,
                                     OpenCLLoader& t_kernels) {
   numType dE;
+
+  numType initial_particle_energy = 0.;
+  for (size_t i = 0; i < particles.getParticleCountTotal(); i++) {
+    initial_particle_energy += particles.returnParticleE(i);
+  }
   // m_dt_current = m_parameters.getTimestepAdapter().getTimestep();
   m_parameters.writeDtBuffer(t_kernels.getCommandQueue());
   t_kernels.getCommandQueue().enqueueNDRangeKernel(
@@ -58,43 +63,20 @@ void Simulation::stepParticleBubble(ParticleCollection& particles,
     currentTotalEnergy += particles.returnParticleE(i);
   }
   dE = -m_dP * bubble.getSpeed();
-  /*if (m_dP != 0) {
-    std::cout << "dP: " << m_dP << std::endl;
-
-    PhaseBubble testBubble(55.456826, 0.23236236, 2.83371e-05, 0.000345447);
-    std::cout << "Energy change (bubble): " << -m_dP * testBubble.getSpeed()
-              << std::endl;
-    testBubble.evolveWall(0.975251, m_dP / testBubble.calculateArea());
-    std::cout << testBubble.getRadius() << ", "
-              << testBubble.getSpeed() * 0.975251
-              << std::endl;
-
-
-    exit(0);
-  }*/
-
   m_dP = m_dP / bubble.calculateArea();
+  numType initial_bubble_energy = bubble.calculateEnergy();
   bubble.evolveWall(m_dt_current, m_dP);
+  if (m_dP != 0) { 
+      std::cout << "dP/dV: " << m_dP / (m_dt_current * bubble.getdV())
+              << std::endl;
+    std::cout << "dE: " << dE << ", Bubble energy change: "
+              << bubble.calculateEnergy() - initial_bubble_energy
+              << ", Particle energy change: "
+              << currentTotalEnergy - initial_particle_energy << std::endl;
+  }
   currentTotalEnergy += bubble.calculateEnergy();
   // bubble.evolveWall2(m_dt_current, dE);
   // currentTotalEnergy += bubble.getEnergy();
-
-  // std::cout << "= = = = = = = = = =" << std::endl;
-  // std::cout << "Eb: " << bubble.calculateEnergy() << ", dt: " << m_dt_current
-  // << std::endl; std::cout << "Velocity: "
-  //           << std::sqrt(1 - std::pow(4 * M_PI * bubble.getSigma() *
-  //                             std::pow(bubble.getRadius(), 2.) /
-  //                             (bubble.calculateEnergy() +
-  //                              4 * M_PI / 3 *
-  //                              std::pow(bubble.getRadius(), 3.) *
-  //                                  bubble.getdV()), 2.))
-  //           << std::endl;
-  // std::cout << "dP: " << m_dP << std::endl;
-  // std::cout << "dV - dP: " << bubble.getdV() - m_dP / m_dt_current
-  //           << std::endl;
-  // std::cout << "V_b (before): " << bubble.getSpeed() << std::endl;
-  // std::cout << "V_b (after): " << bubble.getSpeed() << std::endl;
-  // std::cout << "= = = = = = = = = =" << std::endl;
 
   bubble.writeBubbleBuffer(t_kernels.getCommandQueue());
 
@@ -467,6 +449,7 @@ void Simulation::stepParticleBubbleCollisionBoundary(
     m_dP += particles.returnParticledP(i);
     currentTotalEnergy += particles.returnParticleE(i);
   }
+
   // Calculate energy change for bubble (m_dP is ~ energy change for particles)
   dE = -m_dP * bubble.getSpeed();
   m_dP = m_dP / bubble.calculateArea();

@@ -200,7 +200,6 @@ void ParticleStepWithBubbleKernel::setBuffers(
     SimulationParameters& t_simulation_parameters,
     ParticleCollection& t_particles, PhaseBubble& t_bubble) {
   int errNum;
-  std::cout << &m_kernel << std::endl;
   errNum = m_kernel.setArg(0, t_particles.getParticleXBuffer());
   if (errNum != CL_SUCCESS) {
     std::cerr << "Couldn't initialize Particle X coordinate buffer."

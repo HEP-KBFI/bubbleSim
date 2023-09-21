@@ -115,7 +115,6 @@ class Simulation {
 
   numType getTau() { return m_tau; }
 
-
   size_t getParticleCount() { return m_particleCount; }
 
   numType getTotalEnergy() { return m_totalEnergy; }
@@ -123,6 +122,11 @@ class Simulation {
   numType getInitialTotalEnergy() { return m_initialTotalEnergy; }
 
   numType getInitialCompactnes() { return m_initialCompactness; }
+
+  numType returnCumulativeDP() { 
+      numType dP = m_cumulative_dP;
+    m_cumulative_dP = 0.;
+      return dP; }
 
   SimulationParameters& getSimulationParameters() { return m_parameters; }
 
@@ -148,6 +152,7 @@ class Simulation {
 
   // Current simulation state values
   numType m_dP = 0.;
+  numType m_cumulative_dP = 0.;
 
   size_t m_particleCount;
   /*

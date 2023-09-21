@@ -107,15 +107,18 @@ double calculateTimeToWall_DEBUG(double x, double y, double z, double E,
   // Calculate two solutions
   time1 = (-b - sqrt(d)) / a;
   time2 = (-b + sqrt(d)) / a;
-  printf("Time1: %.20f, Time2: %.20f\n", time1, time2);
+  printf("Time1: %.20f, Time2: %.20f", time1, time2);
   if ((0 < time1) && (time1 <= t_dt)) {
+    printf(", Selected: %.20f\n", time1);
     return time1;
   } else if ((0 < time2) && (time2 <= t_dt)) {
+    printf(", Selected: %.20f\n", time2);
     return time2;
   }
   // Solution might exist but not for current step -> no solution between 0 <
   // time < dt
   else {
+    printf(", Selected: %.20f\n", 0.);
     return 0.;
   }
 }
@@ -197,8 +200,8 @@ __kernel void particle_step_with_bubble(
 
   double M_in = t_m_in[0];
   double M_out = t_m_out[0];
-
   double Delta_M2 = t_delta_m2[0];
+
   double dt = t_dt[0];
   // Particle velocity
   double vX = pX / E;
@@ -318,7 +321,7 @@ __kernel void particle_step_with_bubble(
       else {
         double nX, nY, nZ;
         double time_to_wall, np;
-        time_to_wall = calculateTimeToWall(x, y, z, E, pX, pY, pZ, bubble, dt);
+        time_to_wall = calculateTimeToWall_DEBUG(x, y, z, E, pX, pY, pZ, bubble, dt);
         x = moveLinear(x, vX, time_to_wall);
         y = moveLinear(y, vY, time_to_wall);
         z = moveLinear(z, vZ, time_to_wall);
@@ -335,11 +338,8 @@ __kernel void particle_step_with_bubble(
 
         X2 = calculateDistanceSquaredFromCenter(x, y, z);
         calculateNormal(&nX, &nY, &nZ, x, y, z, bubble, X2);
-        // nX = -nX;
-        // nY = -nY;
-        // nZ = -nZ;
-        np = bubble.speed * bubble.gamma * E - nX * pX - nY * pY - nZ * pZ;
 
+        np = bubble.speed * bubble.gamma * E - nX * pX - nY * pY - nZ * pZ;
         // Particle bounces back from the bubble wall
         if (np < 0) {
           printf("ERROR: np < 0, gid %i\n", gid);
@@ -357,20 +357,21 @@ __kernel void particle_step_with_bubble(
           // change (bubble): %.6f\n", -t_dE[gid]*bubble.speed); printf("dP:
           // %.5f\n", t_dE[gid]);
           E = calculateParticleEnergy(pX, pY, pZ, M_out);
-          np = bubble.speed * bubble.gamma * E - nX * pX - nY * pY - nZ * pZ;
+          // np = bubble.speed * bubble.gamma * E - nX * pX - nY * pY - nZ * pZ;
           t_interactedFalse[gid] += 1;
         }
         // Particle penetrates the bubble wall
         else {
           // printf("Osake liigub sisse, np: %.6f\n", np);
           particles_M[gid] = M_in;
-          pX = fma((np - sqrt(pow(np, 2.) - Delta_M2)), nX, pX);
-          pY = fma((np - sqrt(pow(np, 2.) - Delta_M2)), nY, pY);
-          pZ = fma((np - sqrt(pow(np, 2.) - Delta_M2)), nZ, pZ);
-          // pX = fma(np * (1. - sqrt(1. - Delta_M2 / pow(np, 2.))), nX, pX);
-          // pY = fma(np * (1. - sqrt(1. - Delta_M2 / pow(np, 2.))), nY, pY);
-          // pZ = fma(np * (1. - sqrt(1. - Delta_M2 / pow(np, 2.))), nZ, pZ);
-          t_dE[gid] = bubble.gamma * (np - sqrt(pow(np, 2) - Delta_M2));
+          // pX = fma((np - sqrt(np * np - Delta_M2)), nX, pX);
+          // pY = fma((np - sqrt(np * np - Delta_M2)), nY, pY);
+          // pZ = fma((np - sqrt(np * np - Delta_M2)), nZ, pZ);
+          // t_dE[gid] = bubble.gamma * (np - sqrt(np*np - Delta_M2));
+          pX = fma(np * (1. - sqrt(1. - Delta_M2 / pow(np, 2.))), nX, pX);
+          pY = fma(np * (1. - sqrt(1. - Delta_M2 / pow(np, 2.))), nY, pY);
+          pZ = fma(np * (1. - sqrt(1. - Delta_M2 / pow(np, 2.))), nZ, pZ);
+          t_dE[gid] = bubble.gamma * np * (1 - sqrt(1-Delta_M2 / pow(np, 2.)));
           // printf("Energy change: %.6f\n", E - calculateParticleEnergy(pX, pY,
           // pZ, M_out)); printf("Energy change: %.6f\n",
           // -t_dE[gid]*bubble.speed); printf("dP: %.5f\n", t_dE[gid]);
@@ -408,12 +409,13 @@ __kernel void particle_step_with_bubble(
         calculateNormal(&nX, &nY, &nZ, x, y, z, bubble, X2);
         np = bubble.speed * bubble.gamma * E - nX * pX - nY * pY - nZ * pZ;
         particles_M[gid] = M_out;
-        pX = fma((np - sqrt(pow(np, 2.) + Delta_M2)), nX, pX);
-        pY = fma((np - sqrt(pow(np, 2.) + Delta_M2)), nY, pY);
-        pZ = fma((np - sqrt(pow(np, 2.) + Delta_M2)), nZ, pZ);
-        // pX = fma(np * (1. - sqrt(1. + Delta_M2 / pow(np, 2.))), nX, pX);
-        // pY = fma(np * (1. - sqrt(1. + Delta_M2 / pow(np, 2.))), nY, pY);
-        // pZ = fma(np * (1. - sqrt(1. + Delta_M2 / pow(np, 2.))), nZ, pZ);
+        // pX = fma((np - sqrt(pow(np, 2.) + Delta_M2)), nX, pX);
+        // pY = fma((np - sqrt(pow(np, 2.) + Delta_M2)), nY, pY);
+        // pZ = fma((np - sqrt(pow(np, 2.) + Delta_M2)), nZ, pZ);
+        // t_dE[gid] = bubble.gamma * (np - sqrt(np*np. + Delta_M2));
+        pX = fma(np * (1. - sqrt(1. + Delta_M2 / pow(np, 2.))), nX, pX);
+        pY = fma(np * (1. - sqrt(1. + Delta_M2 / pow(np, 2.))), nY, pY);
+        pZ = fma(np * (1. - sqrt(1. + Delta_M2 / pow(np, 2.))), nZ, pZ);
         t_dE[gid] =
             bubble.gamma * np * (1. - sqrt(1. + Delta_M2 / pow(np, 2.)));
         E = calculateParticleEnergy(pX, pY, pZ, M_out);

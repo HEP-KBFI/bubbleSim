@@ -34,7 +34,6 @@ void ParticleGenerator::calculateCPDBoltzmann(numType t_temperature,
     lastCPFValue = m_cumulativeProbabilityFunction[0][i];
     lastMomentumValue = m_cumulativeProbabilityFunction[1][i];
   }
-
   for (size_t i = 0; i < vectorSize; i++) {
     m_cumulativeProbabilityFunction[0][i] =
         m_cumulativeProbabilityFunction[0][i] / lastCPFValue;
@@ -280,6 +279,9 @@ numType ParticleGenerator::generateNParticlesInCube(
     // Generates 3D space coordinates and pushes to m_P vector
     generateParticleMomentum(p_x, p_y, p_z, pValue, t_generator);
     E = std::sqrt(m2 + pow(pValue, (numType)2.));
+    if (i == 0) {
+      std::cout << E << ", " << p_x << ", " << p_y << ", " << p_z << std::endl;
+    }
     totalEnergy += E;
     t_particles.getParticleX().push_back(x);
     t_particles.getParticleY().push_back(y);

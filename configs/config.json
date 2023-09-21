@@ -5,35 +5,35 @@
     "simulation": {
         "seed": 1,
         "dt": 0.01,
-        "max_steps": 1000000,
+        "max_steps": 100000,
         "max_time": 50,
         "cyclic_boundary_on": true,
         "cyclic_boundary_radius": 69
     },
     "parameters": {
         "alpha": 0.6,
-        "eta": 3,
-        "upsilon": 0.4,
+        "eta": 3.3331666624997918,
+        "upsilon": 2,
         "tau": 0.001,
         "dV": 0.16
     },
     "bubble": {
         "bubble_on": true,
         "initial_radius": 1,
-        "initial_speed": 0,
+        "initial_speed": 0.6,
         "is_true_vacuum": true,
         "interaction_on": true
     },
     "particles": {
-        "mass_false": 0.00,
-        "T_false": 0.03,
+        "mass_false": 0.0,
+        "T_false": 0.3,
         "N_false": 750000,
         "mass_true": 1,
         "T_true": 0.0,
         "N_true": 0
     },
     "collision": {
-        "collision_on": true,
+        "collision_on": false,
         "N_cells": 61,
         "cell_length": 2.2623
     },
