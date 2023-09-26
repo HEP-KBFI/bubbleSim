@@ -21,16 +21,24 @@ using my_clock = std::chrono::steady_clock;
 template <class Rep, std::intmax_t num, std::intmax_t denom>
 std::string convertTimeToHMS(
     std::chrono::duration<Rep, std::ratio<num, denom>> d) {
-  //auto h = std::chrono::duration_cast<std::chrono::hours>(d);
-  //d -= h;
-  //auto m = std::chrono::duration_cast<std::chrono::minutes>(d);
-  //d -= m;
+  auto h = std::chrono::duration_cast<std::chrono::hours>(d);
+  d -= h;
+  auto m = std::chrono::duration_cast<std::chrono::minutes>(d);
+  d -= m;
   auto s = std::chrono::duration_cast<std::chrono::seconds>(d);
-  //std::string result = std::to_string(h.count()) + ":" + std::to_string(m.count()) + ":" + std::to_string(s.count()) + "s";
-  std::string result = std::format("{:%T}", s);
+  // std::string result = std::to_string(h.count()) + ":" +
+  // std::to_string(m.count()) + ":" + std::to_string(s.count()) + "s";
+  
+  std::string hh =
+      (h.count() < 10) ? "0" + std::to_string(int(h.count())) : std::to_string(int(h.count()));
+  std::string mm = (m.count() < 10) ? "0" + std::to_string(int(m.count()))
+                                    : std::to_string(int(m.count()));
+  std::string ss = (s.count() < 10) ? "0" + std::to_string(int(s.count()))
+                                    : std::to_string(int(s.count()));
+
+  std::string result = hh + ":" + mm + ":" + ss;  // std::format("{:%T}", s);
   return result;
 }
-
 
 std::string createFileNameFromCurrentDate() {
   static std::random_device rd;
@@ -104,4 +112,3 @@ void appendSimulationInfoFile(std::ofstream& infoStream,
                               int t_postionDifference, int t_programRuntime) {
   infoStream << t_postionDifference << "," << t_programRuntime << std::endl;
 }
-

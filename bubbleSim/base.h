@@ -29,33 +29,35 @@ typedef double numType;
 typedef unsigned int u_int;
 
 enum SimulationFlags : std::uint32_t {
-  BUBBLE_ON =               0b00000000000000000000000000000001,
-  TRUE_VACUUM_BUBBLE_ON =   0b00000000000000000000000000000010,
-  BUBBLE_INTERACTION_ON =   0b00000000000000000000000000000100,
-  COLLISION_ON =            0b00000000000000000000000000001000,
-  SIMULATION_BOUNDARY_ON =  0b00000000000000000000000000010000,
-  MEASURE_MFP_ON =          0b00000000000000000000000000100000
+  BUBBLE_ON =                           0b00000000000000000000000000000001,
+  TRUE_VACUUM_BUBBLE_ON =               0b00000000000000000000000000000010,
+  BUBBLE_INTERACTION_ON =               0b00000000000000000000000000000100,
+  COLLISION_ON =                        0b00000000000000000000000000001000,
+  SIMULATION_BOUNDARY_ON =              0b00000000000000000000000000010000,
+  COLLISION_MASS_STATE_ON =             0b00000000000000000000000000100000,
+
 };
 
 inline SimulationFlags operator|(SimulationFlags a, SimulationFlags b) {
-  return static_cast<SimulationFlags>(static_cast<int>(a) |
-                                      static_cast<int>(b));
+  return static_cast<SimulationFlags>(static_cast<std::uint32_t>(a) |
+                                      static_cast<std::uint32_t>(b));
 }
 
 enum StreamFlags : std::uint32_t {
-  STREAM_ON = 0b00000000000000000000000000000001,
-  STREAM_DATA = 0b00000000000000000000000000000010,
-  STREAM_NUMBER_DENSITY = 0b00000000000000000000000000000100,
-  STREAM_ENERGY_DENSITY = 0b00000000000000000000000000001000,
-  STREAM_MOMENTUM = 0b00000000000000000000000000010000,
-  STREAM_MOMENTUM_IN = 0b00000000000000000000000000100000,
-  STREAM_MOMENTUM_OUT = 0b00000000000000000000000001000000,
-  STREAM_RADIAL_VELOCITY = 0b00000000000000000000000010000000,
-  STREAM_TANGENTIAL_VELOCITY = 0b00000000000000000000000100000000
+  STREAM_ON =                   0b00000000000000000000000000000001,
+  STREAM_DATA =                 0b00000000000000000000000000000010,
+  STREAM_NUMBER_DENSITY =       0b00000000000000000000000000000100,
+  STREAM_ENERGY_DENSITY =       0b00000000000000000000000000001000,
+  STREAM_MOMENTUM =             0b00000000000000000000000000010000,
+  STREAM_MOMENTUM_IN =          0b00000000000000000000000000100000,
+  STREAM_MOMENTUM_OUT =         0b00000000000000000000000001000000,
+  STREAM_RADIAL_VELOCITY =      0b00000000000000000000000010000000,
+  STREAM_TANGENTIAL_VELOCITY =  0b00000000000000000000000100000000
 };
 
 inline StreamFlags operator|(StreamFlags a, StreamFlags b) {
-  return static_cast<StreamFlags>(static_cast<int>(a) | static_cast<int>(b));
+  return static_cast<StreamFlags>(static_cast<std::uint32_t>(a) |
+                                  static_cast<std::uint32_t>(b));
 }
 
 enum SimulationBufferFlags : std::uint64_t {
@@ -99,6 +101,6 @@ enum SimulationBufferFlags : std::uint64_t {
 
 inline SimulationBufferFlags operator|(SimulationBufferFlags a,
                                        SimulationBufferFlags b) {
-  return static_cast<SimulationBufferFlags>(static_cast<int>(a) |
-                                            static_cast<int>(b));
+  return static_cast<SimulationBufferFlags>(static_cast<std::uint64_t>(a) |
+                                            static_cast<std::uint64_t>(b));
 }

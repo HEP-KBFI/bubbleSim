@@ -4,8 +4,9 @@
 
 class CollisionCellCollection {
  public:
+  CollisionCellCollection(){};
   CollisionCellCollection(numType t_meanFreePath, unsigned int t_cellCount,
-                          bool t_doubleCellCount, std::uint32_t& t_buffer_flags,
+                          bool t_two_mass_state_on, std::uint64_t& t_buffer_flags,
                           cl::Context& cl_context);
 
   void recalculate_cells(ParticleCollection& t_particles, numType t_dt,
@@ -50,6 +51,9 @@ class CollisionCellCollection {
 
   int64_t getSeed() { return m_seed_int64; }
 
+  bool getTwoMassStateOn() { return m_two_mass_state_on; }
+
+  uint64_t getCollisionCount() { return m_collision_count; }
 
 
   cl::Buffer& getCellLengthBuffer() { return m_cellLengthBuffer; }
@@ -204,7 +208,7 @@ class CollisionCellCollection {
 
   void writeCellParticleCountBuffer(cl::CommandQueue& cl_queue) {
     cl_queue.enqueueWriteBuffer(m_cell_particle_count_buffer, CL_TRUE, 0,
-                                m_cellCount * sizeof(uint32_t),
+                                m_cellCount * sizeof(uint64_t),
                                 m_cell_particle_count.data());
   }
   /////////////////////////////
@@ -325,7 +329,7 @@ class CollisionCellCollection {
 
   void readCellParticleCountBuffer(cl::CommandQueue& cl_queue) {
     cl_queue.enqueueReadBuffer(m_cell_particle_count_buffer, CL_TRUE, 0,
-                               m_cellCount * sizeof(uint32_t),
+                               m_cellCount * sizeof(uint64_t),
                                m_cell_particle_count.data());
   }
 
@@ -369,7 +373,7 @@ class CollisionCellCollection {
   cl::Buffer m_cell_pZ_buffer;
   std::vector<cl_char> m_cell_collide_boolean;
   cl::Buffer m_cell_collide_boolean_buffer;
-  std::vector<uint32_t> m_cell_particle_count;
+  std::vector<uint64_t> m_cell_particle_count;
   cl::Buffer m_cell_particle_count_buffer;
 
 
@@ -391,12 +395,12 @@ class CollisionCellCollection {
 
   double m_no_collision_probability;
   cl::Buffer m_no_collision_probability_buffer;
-
+  uint64_t m_collision_count;
   /*
    * Cell counts should be odd to have nice symmetry.
    * (x/2 + 1, y/2 + 1, z/2 + 1) CollisionCell should be centered
    * such that coordinate (0,0,0) is in the center of that cell
    */
 
-  bool m_doubleCellCount;
+  bool m_two_mass_state_on;
 };

@@ -9,6 +9,7 @@ class SimulationSettings {
   void setFlag(SimulationFlags flag) { flags |= flag; }
   void removeFlag(SimulationFlags flag) { flags &= ~flag; }
   std::uint32_t getFlag() { return flags; }
+
  private:
   std::uint32_t flags = 0b00000000000000000000000000000000;
 };
@@ -19,6 +20,7 @@ class StreamSettings {
   void setFlag(StreamFlags flag) { flags |= flag; }
   void removeFlag(StreamFlags flag) { flags &= ~flag; }
   std::uint32_t getFlag() { return flags; }
+
  private:
   std::uint32_t flags = 0b00000000000000000000000000000000;
 };
@@ -27,7 +29,6 @@ class ConfigReader {
  public:
   SimulationSettings SIMULATION_SETTINGS = SimulationSettings();
   StreamSettings STREAM_SETTINGS = StreamSettings();
-  std::string kernelName;
   int m_seed;
   u_int m_maxSteps;
   numType dt;
@@ -56,8 +57,9 @@ class ConfigReader {
    * Collision parameters
    */
   bool collision_on;
+  bool collision_two_mass_state_on;
   unsigned int collision_cell_count;
-  numType collision_cell_length;
+
   /*
    * Bubble parameters
    */
@@ -100,7 +102,6 @@ class ConfigReader {
     std::ifstream configStream(configPath);
     nlohmann::json config = nlohmann::json::parse(configStream);
 
-    kernelName = config["kernel"]["name"];
     m_seed = config["simulation"]["seed"];
     m_maxSteps = config["simulation"]["max_steps"];
     if (m_maxSteps == 0) {
@@ -139,11 +140,16 @@ class ConfigReader {
     /*
      * Collisions
      */
-    if (config["collision"]["collision_on"])
+    if (config["collision"]["collision_on"]) {
       SIMULATION_SETTINGS.setFlag(COLLISION_ON);
+    }
     collision_on = config["collision"]["collision_on"];
+    if (config["collision"]["two_mass_state_on"]) {
+      SIMULATION_SETTINGS.setFlag(COLLISION_MASS_STATE_ON);
+    }
+    collision_two_mass_state_on = config["collision"]["two_mass_state_on"];
     collision_cell_count = config["collision"]["N_cells"];
-    collision_cell_length = config["collision"]["cell_length"];
+
     /*
      * Bubble parameters
      */
@@ -164,7 +170,6 @@ class ConfigReader {
     /*
      * Streaming parameters
      */
-
 
     if (config["stream"]["stream"]) {
       STREAM_SETTINGS.setFlag(STREAM_ON);

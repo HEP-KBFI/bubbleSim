@@ -65,15 +65,22 @@ void Simulation::stepParticleBubble(ParticleCollection& particles,
   dE = -m_dP * bubble.getSpeed();
   m_dP = m_dP / bubble.calculateArea();
   numType initial_bubble_energy = bubble.calculateEnergy();
-  bubble.evolveWall(m_dt_current, m_dP);
-  if (m_dP != 0) { 
-      std::cout << "dP/dV: " << m_dP / (m_dt_current * bubble.getdV())
+  /*if (m_dP != 0) {
+    std::cout << "dP: " << m_dP
+              << ", dP/dV: " << m_dP / (m_dt_current * bubble.getdV())
+              << ", dP/dV: "
+              << dE /
+                     (bubble.calculateArea() *
+  bubble.getSpeed()*m_dt_current*bubble.getdV())
               << std::endl;
+  }*/
+  bubble.evolveWall(m_dt_current, m_dP);
+  /*if (m_dP != 0) {
     std::cout << "dE: " << dE << ", Bubble energy change: "
               << bubble.calculateEnergy() - initial_bubble_energy
               << ", Particle energy change: "
               << currentTotalEnergy - initial_particle_energy << std::endl;
-  }
+  }*/
   currentTotalEnergy += bubble.calculateEnergy();
   // bubble.evolveWall2(m_dt_current, dE);
   // currentTotalEnergy += bubble.getEnergy();
@@ -141,6 +148,7 @@ void Simulation::collide(ParticleCollection& particles,
 #endif
   cells.generateShiftVector(t_rng);
   cells.writeShiftVectorBuffer(t_kernels.getCommandQueue());
+
 #ifdef TIME_COLLIDE_DEBUG
   auto stop = my_clock::now();
   std::cout << "= Shift vector generation and write time: "
@@ -148,9 +156,18 @@ void Simulation::collide(ParticleCollection& particles,
   // Assign particles to collision cells
   start = my_clock::now();
 #endif
-  t_kernels.getCommandQueue().enqueueNDRangeKernel(
-      t_kernels.m_cellAssignmentKernel.getKernel(), cl::NullRange,
-      cl::NDRange(particles.getParticleCountTotal()));
+  if (cells.getTwoMassStateOn()) {
+    t_kernels.getCommandQueue().enqueueNDRangeKernel(
+        t_kernels.m_particleInBubbleKernel.getKernel(), cl::NullRange,
+        cl::NDRange(particles.getParticleCountTotal()));
+    t_kernels.getCommandQueue().enqueueNDRangeKernel(
+        t_kernels.m_cellAssignmentKernelTwoMassState.getKernel(), cl::NullRange,
+        cl::NDRange(particles.getParticleCountTotal()));
+  } else {
+    t_kernels.getCommandQueue().enqueueNDRangeKernel(
+        t_kernels.m_cellAssignmentKernel.getKernel(), cl::NullRange,
+        cl::NDRange(particles.getParticleCountTotal()));
+  }
 #ifdef TIME_COLLIDE_DEBUG
   stop = my_clock::now();
   std::cout << "= Collision cell assignation time: "

@@ -25,7 +25,7 @@ class PhaseBubble {
   numType getEnergy() { return m_energy; }
   PhaseBubble(){};
   PhaseBubble(numType t_initialRadius, numType t_initialSpeed, numType t_dV,
-              numType t_sigma, std::uint32_t& t_buffer_flags,
+              numType t_sigma, std::uint64_t& t_buffer_flags,
               cl::Context& cl_context);
   PhaseBubble(numType t_initialRadius, numType t_initialSpeed, numType t_dV,
               numType t_sigma);

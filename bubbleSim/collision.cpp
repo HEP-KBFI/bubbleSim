@@ -4,12 +4,12 @@
 
 CollisionCellCollection::CollisionCellCollection(
     numType t_cellLength, unsigned int t_cellCountInOneAxis,
-    bool t_doubleCellCount, std::uint32_t& t_buffer_flags,
+    bool t_two_mass_state_on, std::uint64_t& t_buffer_flags,
     cl::Context& cl_context) {
   /*
   TODO:
     Differentiate if particle is inside or outside the bubble. (Different
-  collision cells) Change name of t_doubleCellCount to more accurate name.
+  collision cells) Change name of t_two_mass_state_on to more accurate name.
 
   */
   int openCLerrNum;
@@ -19,8 +19,10 @@ CollisionCellCollection::CollisionCellCollection(
               << ")" << std::endl;
     std::terminate();
   }
+  m_collision_count = 0;
 
-  if (t_doubleCellCount) {
+  m_two_mass_state_on = t_two_mass_state_on;
+  if (t_two_mass_state_on) {
     m_cellCount = 2 * (unsigned int)std::pow(t_cellCountInOneAxis, 3) + 1;
   } else {
     m_cellCount = (unsigned int)std::pow(t_cellCountInOneAxis, 3) + 1;
@@ -74,14 +76,13 @@ CollisionCellCollection::CollisionCellCollection(
                  m_cellCount * sizeof(cl_char), m_cell_collide_boolean.data(),
                  &openCLerrNum);
   t_buffer_flags |= CELL_COLLIDE_BUFFER;
-  m_cell_particle_count.resize(m_cellCount, (uint32_t)0);
+  m_cell_particle_count.resize(m_cellCount, (uint64_t)0);
   m_cell_particle_count_buffer =
       cl::Buffer(cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                 m_cellCount * sizeof(uint32_t), m_cell_particle_count.data(),
+                 m_cellCount * sizeof(uint64_t), m_cell_particle_count.data(),
                  &openCLerrNum);
   t_buffer_flags |= CELL_PARTICLE_COUNT_BUFFER;
 
-  m_doubleCellCount = t_doubleCellCount;
 
   m_cellCountInOneAxis = t_cellCountInOneAxis;
   m_cellCountInOneAxisBuffer =
@@ -134,6 +135,7 @@ void CollisionCellCollection::recalculate_cells(
    * 4 index: Particle count in a cell
    * 5 index: Prod(E_i) in a cell
    */
+  m_collision_count = (uint64_t)0;
   std::vector<std::array<cl_numType, 6>> cell_values(m_cellCount,
                                                      {
                                                          (cl_numType)0.,
@@ -226,8 +228,10 @@ void CollisionCellCollection::recalculate_cells(
       m_cell_collide_boolean[i] = (cl_char)0;
       continue;
     }
+
+    m_collision_count += m_cell_particle_count[i];
     m_cell_collide_boolean[i] = (cl_char)1;
-    m_cell_particle_count[i] = (uint32_t)cell_values[i][4];
+    m_cell_particle_count[i] = (uint64_t)cell_values[i][4];
 
     m_cell_pX[i] = cell_values[i][0];
     m_cell_pY[i] = cell_values[i][1];

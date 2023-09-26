@@ -321,24 +321,26 @@ __kernel void particle_step_with_bubble(
       else {
         double nX, nY, nZ;
         double time_to_wall, np;
-        time_to_wall = calculateTimeToWall_DEBUG(x, y, z, E, pX, pY, pZ, bubble, dt);
+        time_to_wall = calculateTimeToWall(x, y, z, E, pX, pY, pZ, bubble, dt);
         x = moveLinear(x, vX, time_to_wall);
         y = moveLinear(y, vY, time_to_wall);
         z = moveLinear(z, vZ, time_to_wall);
 
-        // x = 27.164266;
-        // y = -20.401635;
-        // z = 44.015562;
-        // bubble.speed = 0.23236236;
-        // bubble.gamma = 1.0281409;
-        // E = 0.23647691;
-        // pX = -0.13745723;
-        // pY = -0.13456866;
-        // pZ = -0.13717914;
-
+        // x = 0.672283;
+        // y = 56.043979;
+        // z = -18.621177;
+        // bubble.speed = 0.100000;
+        // bubble.gamma = 1.005038;
+        // E = 0.342819;
+        // pX = 0.073634;
+        // pY = -0.105717;
+        // pZ = 0.317532;
         X2 = calculateDistanceSquaredFromCenter(x, y, z);
+        // printf("Energy-momentum: %.6f\n", E*E - pX*pX - pY*pY - pZ*pZ);
+        // printf("V: %.5f\n", bubble.speed);
         calculateNormal(&nX, &nY, &nZ, x, y, z, bubble, X2);
-
+        // printf("n0: %.6f, nX: %.6f, nY: %.6f, nZ: %.6f\n",
+        // bubble.speed*bubble.gamma, nX, nY, nZ);
         np = bubble.speed * bubble.gamma * E - nX * pX - nY * pY - nZ * pZ;
         // Particle bounces back from the bubble wall
         if (np < 0) {
@@ -348,15 +350,23 @@ __kernel void particle_step_with_bubble(
         if (np * np < Delta_M2) {
           // printf("Osake põrkub, np: %.6f\n", np);
           particles_M[gid] = M_out;
+          // printf("X: %.6f, Y: %.6f, Z: %.6f\n", x, y, z);
+          // printf("Initial: E: %.6f, pX: %.6f, pY: %.6f, pZ: %.6f\n", E, pX,
+          // pY, pZ);
+
           pX = fma(np * 2., nX, pX);
           pY = fma(np * 2., nY, pY);
           pZ = fma(np * 2., nZ, pZ);
           t_dE[gid] = bubble.gamma * np * 2.;
+
           // printf("Energy change (particle): %.6f\n",
           // calculateParticleEnergy(pX, pY, pZ, M_out) - E); printf("Energy
           // change (bubble): %.6f\n", -t_dE[gid]*bubble.speed); printf("dP:
           // %.5f\n", t_dE[gid]);
           E = calculateParticleEnergy(pX, pY, pZ, M_out);
+          // printf("End: E: %.6f, pX: %.6f, pY: %.6f, pZ: %.6f\n", E, pX, pY,
+          // pZ); printf("dE: %.5f\n", t_dE[gid]*bubble.speed);
+
           // np = bubble.speed * bubble.gamma * E - nX * pX - nY * pY - nZ * pZ;
           t_interactedFalse[gid] += 1;
         }
@@ -368,14 +378,19 @@ __kernel void particle_step_with_bubble(
           // pY = fma((np - sqrt(np * np - Delta_M2)), nY, pY);
           // pZ = fma((np - sqrt(np * np - Delta_M2)), nZ, pZ);
           // t_dE[gid] = bubble.gamma * (np - sqrt(np*np - Delta_M2));
+          // printf("Initial: E: %.6f, pX: %.6f, pY: %.6f, pZ: %.6f\n", E, pX,
+          // pY, pZ);
           pX = fma(np * (1. - sqrt(1. - Delta_M2 / pow(np, 2.))), nX, pX);
           pY = fma(np * (1. - sqrt(1. - Delta_M2 / pow(np, 2.))), nY, pY);
           pZ = fma(np * (1. - sqrt(1. - Delta_M2 / pow(np, 2.))), nZ, pZ);
-          t_dE[gid] = bubble.gamma * np * (1 - sqrt(1-Delta_M2 / pow(np, 2.)));
+          t_dE[gid] =
+              bubble.gamma * np * (1 - sqrt(1 - Delta_M2 / pow(np, 2.)));
           // printf("Energy change: %.6f\n", E - calculateParticleEnergy(pX, pY,
           // pZ, M_out)); printf("Energy change: %.6f\n",
           // -t_dE[gid]*bubble.speed); printf("dP: %.5f\n", t_dE[gid]);
           E = calculateParticleEnergy(pX, pY, pZ, M_in);
+          // printf("End: E: %.6f, pX: %.6f, pY: %.6f, pZ: %.6f\n", E, pX, pY,
+          // pZ); printf("dE: %.5f\n", t_dE[gid]*bubble.speed);
           t_interactedFalse[gid] += 1;
           t_passedFalse[gid] += 1;
         }
@@ -835,19 +850,19 @@ __kernel void collision_cell_reset(
 //     __global double *particles_pY, __global double *particles_pZ,
 //     __global unsigned int *particle_collision_cell_index,
 //     __global CollisionCell *t_cells) {
-  // Loop over particles and sum neccessary values
-  // size_t gid = get_global_id(0);
-  // atomic_add_d(&t_cells[particle_collision_cell_index[gid]].E,
-  // particles_E[gid]);
-  // atomic_add_d(&t_cells[particle_collision_cell_index[gid]].pX,
-  // particles_pX[gid]);
-  // atomic_add_d(&t_cells[particle_collision_cell_index[gid]].pY,
-  // particles_pY[gid]);
-  // atomic_add_d(&t_cells[particle_collision_cell_index[gid]].pZ,
-  // particles_pZ[gid]);
-  // atomic_add_d(&t_cells[particle_collision_cell_index[gid]].mass,
-  // log(particles_E[gid]));
-  // atomic_inc(&t_cells[particle_collision_cell_index[gid]].particle_count);
+// Loop over particles and sum neccessary values
+// size_t gid = get_global_id(0);
+// atomic_add_d(&t_cells[particle_collision_cell_index[gid]].E,
+// particles_E[gid]);
+// atomic_add_d(&t_cells[particle_collision_cell_index[gid]].pX,
+// particles_pX[gid]);
+// atomic_add_d(&t_cells[particle_collision_cell_index[gid]].pY,
+// particles_pY[gid]);
+// atomic_add_d(&t_cells[particle_collision_cell_index[gid]].pZ,
+// particles_pZ[gid]);
+// atomic_add_d(&t_cells[particle_collision_cell_index[gid]].mass,
+// log(particles_E[gid]));
+// atomic_inc(&t_cells[particle_collision_cell_index[gid]].particle_count);
 // }
 
 __kernel void collision_cell_calculate_generation(
@@ -923,8 +938,7 @@ __kernel void rotate_momentum(
   uint cell_idx = particle_collision_cell_index[gid];
   if (!cell_collide_boolean[cell_idx]) {
     particle_collision_cell_index[gid] = 0;
-  }
-  else {
+  } else {
     // === Collision cell variables
     double x = sin(cell_phi_axis[cell_idx]) * cos(cell_theta_axis[cell_idx]);
     double y = sin(cell_phi_axis[cell_idx]) * sin(cell_theta_axis[cell_idx]);
@@ -936,7 +950,9 @@ __kernel void rotate_momentum(
     double vZ = cell_pZ[cell_idx] / E_cell;
 
     double v2 = fma(vX, vX, fma(vY, vY, vZ * vZ));  // v^2
-    //printf("%.5f, %.5f, %.5f, %.5f, %.5f, %i\n", E_cell, cell_pX[gid], cell_pY[gid], cell_pZ[gid], v2, cell_collide_boolean[particle_collision_cell_index[gid]]);
+    // printf("%.5f, %.5f, %.5f, %.5f, %.5f, %i\n", E_cell, cell_pX[gid],
+    // cell_pY[gid], cell_pZ[gid], v2,
+    // cell_collide_boolean[particle_collision_cell_index[gid]]);
     double gamma = 1 / sqrt(1 - v2);
     double gamma_minus_one = gamma - 1;
     double gamma_minus_one_divided_cell_v2 = gamma_minus_one / v2;
@@ -1026,10 +1042,9 @@ __kernel void label_particles_position_by_coordinate(
   double x = particles_X[gid];
   double y = particles_Y[gid];
   double z = particles_Z[gid];
-
   // If R_b^2 > R_x^2 then particle is inside the bubble
   particles_bool_in_bubble[gid] =
-      fma(x, x, fma(y, y, z * z)) < t_bubble[0].radius2;
+      (char)(fma(x, x, fma(y, y, z * z)) < t_bubble[0].radius2);
 }
 
 __kernel void label_particles_position_by_mass(
@@ -1049,28 +1064,27 @@ __kernel void assign_particle_to_collision_cell(
     __global const double *cellLength, __global const double *cuboidShift) {
   size_t gid = get_global_id(0);
   // Find cell numbers
-  int x_index = (int)((particles_X[gid] + cellLength[0] * maxCellIndexInAxis[0] / 2. +
-                       cuboidShift[0]) /
-                      cellLength[0]);
-  int y_index = (int)((particles_Y[gid] + cellLength[0] * maxCellIndexInAxis[0] / 2. +
-                       cuboidShift[1]) /
-                      cellLength[0]);
-  int z_index = (int)((particles_Z[gid] + cellLength[0] * maxCellIndexInAxis[0] / 2. +
-                       cuboidShift[2]) /
-                      cellLength[0]);
+  int x_index =
+      (int)((particles_X[gid] + cellLength[0] * maxCellIndexInAxis[0] / 2. +
+             cuboidShift[0]) /
+            cellLength[0]);
+  int y_index =
+      (int)((particles_Y[gid] + cellLength[0] * maxCellIndexInAxis[0] / 2. +
+             cuboidShift[1]) /
+            cellLength[0]);
+  int z_index =
+      (int)((particles_Z[gid] + cellLength[0] * maxCellIndexInAxis[0] / 2. +
+             cuboidShift[2]) /
+            cellLength[0]);
   // Idx = 0 -> if particle is outside of the cuboid cell structure
   // Convert cell number into 1D vector
 
   if ((x_index < 0) || (x_index >= maxCellIndexInAxis[0])) {
     m_particle_collision_cell_index[gid] = 0;
-    // printf("X. %i", x_index);
   } else if ((y_index < 0) || (y_index >= maxCellIndexInAxis[0])) {
     m_particle_collision_cell_index[gid] = 0;
-    // printf("Y. %i", y_index);
   } else if ((z_index < 0) || (z_index >= maxCellIndexInAxis[0])) {
     m_particle_collision_cell_index[gid] = 0;
-    // printf("Z. %i", z_index);
-
   } else {
     m_particle_collision_cell_index[gid] =
         1 + x_index + y_index * maxCellIndexInAxis[0] +
@@ -1082,30 +1096,41 @@ __kernel void assign_particle_to_collision_cell_two_state(
     __global double *particles_X, __global double *particles_Y,
     __global double *particles_Z,
     __global unsigned int *m_particle_collision_cell_index,
-    __global char *particles_bool_in_bubble, __global const int *maxCellIndex,
-    __global const double *cellLength,
+    __global char *particles_bool_in_bubble,
+    __global const int *maxCellIndexInAxis, __global const double *cellLength,
     __global const double *cuboidShift  // Random particle location shift
 
 ) {
   size_t gid = get_global_id(0);
+
   // Find cell numbers
-  int a = (int)((particles_X[gid] + cuboidShift[0]) / cellLength[0]);
-  int b = (int)((particles_Y[gid] + cuboidShift[1]) / cellLength[1]);
-  int c = (int)((particles_Z[gid] + cuboidShift[2]) / cellLength[2]);
+  int x_index =
+      (int)((particles_X[gid] + cellLength[0] * maxCellIndexInAxis[0] / 2. +
+             cuboidShift[0]) /
+            cellLength[0]);
+  int y_index =
+      (int)((particles_Y[gid] + cellLength[0] * maxCellIndexInAxis[0] / 2. +
+             cuboidShift[1]) /
+            cellLength[0]);
+  int z_index =
+      (int)((particles_Z[gid] + cellLength[0] * maxCellIndexInAxis[0] / 2. +
+             cuboidShift[2]) /
+            cellLength[0]);
   // Idx = 0 -> if particle is outside of the cuboid cell structure
   // Convert cell number into 1D vector. First half of the vector is for outisde
   // the bubble and second half is inside the bubble
-  if ((a < 0) || (a >= maxCellIndex[0])) {
+  if ((x_index < 0) || (x_index >= maxCellIndexInAxis[0])) {
     m_particle_collision_cell_index[gid] = 0;
-  } else if ((b < 0) || (b >= maxCellIndex[1])) {
+  } else if ((y_index < 0) || (y_index >= maxCellIndexInAxis[0])) {
     m_particle_collision_cell_index[gid] = 0;
-  } else if ((c < 0) || (c >= maxCellIndex[2])) {
+  } else if ((z_index < 0) || (z_index >= maxCellIndexInAxis[0])) {
     m_particle_collision_cell_index[gid] = 0;
   } else {
     m_particle_collision_cell_index[gid] =
-        1 + a + b * maxCellIndex[0] + c * maxCellIndex[0] * maxCellIndex[1] +
-        particles_bool_in_bubble[gid] * maxCellIndex[0] * maxCellIndex[1] *
-            maxCellIndex[2];
+        1 + x_index + y_index * maxCellIndexInAxis[0] +
+        z_index * maxCellIndexInAxis[0] * maxCellIndexInAxis[0] +
+        particles_bool_in_bubble[gid] * maxCellIndexInAxis[0] *
+            maxCellIndexInAxis[0] * maxCellIndexInAxis[0];
   }
 }
 

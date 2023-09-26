@@ -44,12 +44,14 @@ class OpenCLLoader {
   cl::Kernel m_kernel;
 
   ParticleStepLinearKernel m_particleLinearStepKernel;
+  AssignParticleToCollisionCellTwoMassStateKernel m_cellAssignmentKernelTwoMassState;
   AssignParticleToCollisionCellKernel m_cellAssignmentKernel;
   MomentumRotationKernel m_rotationKernel;
   ParticleBoundaryCheckKernel m_particleBoundaryKernel;
   ParticleStepWithBubbleKernel m_particleStepWithBubbleKernel;
   CollisionCellResetKernel m_collisionCellResetKernel;
   CollisionCellGenerationKernel m_collisionCellCalculateGenerationKernel;
+  ParticleLabelByCoordinateKernel m_particleInBubbleKernel;
 
   // cl::Kernel m_collisionCellCalculateSummationKernel;
 

@@ -21,12 +21,12 @@ class SimulationParameters {
  public:
   SimulationParameters(){};
   SimulationParameters(numType t_dt,
-                       std::uint32_t& t_buffer_flags, cl::Context& cl_context);
+                       std::uint64_t& t_buffer_flags, cl::Context& cl_context);
   SimulationParameters(numType t_dt, numType t_mass_in, numType t_mass_out,
-                       std::uint32_t& t_buffer_flags, cl::Context& cl_context);
+                       std::uint64_t& t_buffer_flags, cl::Context& cl_context);
   SimulationParameters(numType t_dt, numType t_mass_in, numType t_mass_out,
                        numType m_boundaryRadius,
-                       std::uint32_t& t_buffer_flags,
+                       std::uint64_t& t_buffer_flags,
                        cl::Context& cl_context);
   numType getDt() { return m_dt; }
   TimestepAdapter& getTimestepAdapter() { return m_timestepAdapter; }

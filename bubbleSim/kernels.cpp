@@ -19,7 +19,7 @@ void MomentumRotationKernel::setBuffers(ParticleCollection& t_particles,
 
 void MomentumRotationKernel::setBuffers(ParticleCollection& t_particles,
                                         CollisionCellCollection& t_cells,
-                                        std::uint32_t t_flags) {
+                                        std::uint64_t t_flags) {
   if (checkFlags(t_flags)) {
     setBuffers(t_particles, t_cells);
   } else {
@@ -42,7 +42,7 @@ void AssignParticleToCollisionCellKernel::setBuffers(
 
 void AssignParticleToCollisionCellKernel::setBuffers(
     ParticleCollection& t_particles, CollisionCellCollection& t_cells,
-    std::uint32_t t_flags) {
+    std::uint64_t t_flags) {
   if (checkFlags(t_flags)) {
     setBuffers(t_particles, t_cells);
   } else {
@@ -53,20 +53,21 @@ void AssignParticleToCollisionCellKernel::setBuffers(
   }
 }
 
-void AssignParticleToCollisionCellTwoPhaseKernel::setBuffers(
+void AssignParticleToCollisionCellTwoMassStateKernel::setBuffers(
     ParticleCollection& t_particles, CollisionCellCollection& t_cells) {
   m_kernel.setArg(0, t_particles.getParticleXBuffer());
   m_kernel.setArg(1, t_particles.getParticleYBuffer());
   m_kernel.setArg(2, t_particles.getParticleZBuffer());
   m_kernel.setArg(3, t_particles.getParticleCollisionCellIndexBuffer());
-  m_kernel.setArg(4, t_cells.getCellCountInOneAxisBuffer());
-  m_kernel.setArg(5, t_cells.getCellLengthBuffer());
-  m_kernel.setArg(6, t_cells.getShiftVectorBuffer());
+  m_kernel.setArg(4, t_particles.getParticleInBubbleBuffer());
+  m_kernel.setArg(5, t_cells.getCellCountInOneAxisBuffer());
+  m_kernel.setArg(6, t_cells.getCellLengthBuffer());
+  m_kernel.setArg(7, t_cells.getShiftVectorBuffer());
 }
 
-void AssignParticleToCollisionCellTwoPhaseKernel::setBuffers(
+void AssignParticleToCollisionCellTwoMassStateKernel::setBuffers(
     ParticleCollection& t_particles, CollisionCellCollection& t_cells,
-    std::uint32_t t_flags) {
+    std::uint64_t t_flags) {
   if (checkFlags(t_flags)) {
     setBuffers(t_particles, t_cells);
   } else {
@@ -95,7 +96,7 @@ void CollisionCellGenerationKernel::setBuffers(
 }
 
 void CollisionCellGenerationKernel::setBuffers(CollisionCellCollection& t_cells,
-                                               std::uint32_t t_flags) {
+                                               std::uint64_t t_flags) {
   if (checkFlags(t_flags)) {
     setBuffers(t_cells);
   } else {
@@ -120,7 +121,7 @@ void CollisionCellResetKernel::setBuffers(CollisionCellCollection& t_cells) {
 }
 
 void CollisionCellResetKernel::setBuffers(CollisionCellCollection& t_cells,
-                                          std::uint32_t t_flags) {
+                                          std::uint64_t t_flags) {
   if (checkFlags(t_flags)) {
     setBuffers(t_cells);
   } else {
@@ -185,7 +186,7 @@ void ParticleStepLinearKernel::setBuffers(
 
 void ParticleStepLinearKernel::setBuffers(
     SimulationParameters& t_simulation_parameters,
-    ParticleCollection& t_particles, std::uint32_t t_flags) {
+    ParticleCollection& t_particles, std::uint64_t t_flags) {
   if (checkFlags(t_flags)) {
     setBuffers(t_simulation_parameters, t_particles);
   } else {
@@ -306,17 +307,14 @@ void ParticleStepWithBubbleKernel::setBuffers(
 void ParticleStepWithBubbleKernel::setBuffers(
     SimulationParameters& t_simulation_parameters,
     ParticleCollection& t_particles, PhaseBubble& t_bubble,
-    std::uint32_t t_flags) {
+    std::uint64_t t_flags) {
   if (checkFlags(t_flags)) {
     setBuffers(t_simulation_parameters, t_particles, t_bubble);
   } else {
-    
     std::cerr << "All buffers for step with bubble are "
-                 "not initialized." 
+                 "not initialized."
               << std::endl;
-    std::cout << std::bitset<64>(t_flags & m_kernel_flags) << std::endl <<
-                           std::bitset<64>(m_kernel_flags) << std::endl;
-    std::exit(1);
+    std::exit(0);
   }
 }
 
@@ -430,7 +428,7 @@ void ParticleStepWithBubbleInvertedKernel::setBuffers(
 void ParticleStepWithBubbleInvertedKernel::setBuffers(
     SimulationParameters& t_simulation_parameters,
     ParticleCollection& t_particles, PhaseBubble& t_bubble,
-    std::uint32_t t_flags) {
+    std::uint64_t t_flags) {
   if (checkFlags(t_flags)) {
     setBuffers(t_simulation_parameters, t_particles, t_bubble);
   } else {
@@ -546,7 +544,7 @@ void ParticleStepWithBubbleReflectKernel::setBuffers(
 void ParticleStepWithBubbleReflectKernel::setBuffers(
     SimulationParameters& t_simulation_parameters,
     ParticleCollection& t_particles, PhaseBubble& t_bubble,
-    std::uint32_t t_flags) {
+    std::uint64_t t_flags) {
   if (checkFlags(t_flags)) {
     setBuffers(t_simulation_parameters, t_particles, t_bubble);
   } else {
@@ -568,7 +566,7 @@ void ParticleBoundaryCheckKernel::setBuffers(
 
 void ParticleBoundaryCheckKernel::setBuffers(
     SimulationParameters& t_simulation_parameters,
-    ParticleCollection& t_particles, std::uint32_t t_flags) {
+    ParticleCollection& t_particles, std::uint64_t t_flags) {
   if (checkFlags(t_flags)) {
     setBuffers(t_simulation_parameters, t_particles);
   } else {
@@ -593,7 +591,7 @@ void ParticleBoundaryCheckMomentumKernel::setBuffers(
 
 void ParticleBoundaryCheckMomentumKernel::setBuffers(
     SimulationParameters& t_simulation_parameters,
-    ParticleCollection& t_particles, std::uint32_t t_flags) {
+    ParticleCollection& t_particles, std::uint64_t t_flags) {
   if (checkFlags(t_flags)) {
     setBuffers(t_simulation_parameters, t_particles);
   } else {
@@ -615,7 +613,7 @@ void ParticleLabelByCoordinateKernel::setBuffers(
 
 void ParticleLabelByCoordinateKernel::setBuffers(
     ParticleCollection& t_particles, PhaseBubble& t_bubble,
-    std::uint32_t t_flags) {
+    std::uint64_t t_flags) {
   if (checkFlags(t_flags)) {
     setBuffers(t_particles, t_bubble);
   } else {
@@ -636,7 +634,7 @@ void ParticleLabelByMassKernel::setBuffers(
 
 void ParticleLabelByMassKernel::setBuffers(
     SimulationParameters& t_simulation_parameters,
-    ParticleCollection& t_particles, std::uint32_t t_flags) {
+    ParticleCollection& t_particles, std::uint64_t t_flags) {
   if (checkFlags(t_flags)) {
     setBuffers(t_simulation_parameters, t_particles);
   } else {

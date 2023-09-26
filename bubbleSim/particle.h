@@ -75,8 +75,6 @@ class ParticleCollection {
   std::vector<int8_t> m_interacted_bubble_true_state_copy;
   cl::Buffer m_interacted_bubble_true_state_buffer;
 
-
-
  public:
   /*
    * NB!!! When initializing the vectors and buffers it is important
@@ -89,7 +87,7 @@ class ParticleCollection {
 
   ParticleCollection(unsigned int t_particleCountTrue,
                      unsigned int t_particleCountFalse,
-                     bool t_bubbleIsTrueVacuum, std::uint32_t& t_buffer_flags,
+                     bool t_bubbleIsTrueVacuum, std::uint64_t& t_buffer_flags,
                      cl::Context& cl_context);
 
   ParticleCollection& operator=(const ParticleCollection& t) { return *this; }
@@ -271,6 +269,13 @@ class ParticleCollection {
                                 m_particle_M.data());
   }
 
+  void writeParticleInBubbleBuffer(cl::CommandQueue& cl_queue) {
+    cl_queue.enqueueWriteBuffer(
+        m_particle_bool_in_bubble_buffer, CL_TRUE, 0,
+        m_particle_bool_in_bubble.size() * sizeof(cl_char),
+        m_particle_bool_in_bubble.data());
+  }
+
   void writeParticleBuffer(cl::CommandQueue& cl_queue) {
     writeParticleCoordinatesBuffer(cl_queue);
     writeParticleMomentumsBuffer(cl_queue);
@@ -300,13 +305,6 @@ class ParticleCollection {
   void writedPBuffer(cl::CommandQueue& cl_queue) {
     cl_queue.enqueueWriteBuffer(m_dP_buffer, CL_TRUE, 0,
                                 m_dP.size() * sizeof(numType), m_dP.data());
-  }
-
-  void writeParticleInBubbelBuffer(cl::CommandQueue& cl_queue) {
-    cl_queue.enqueueWriteBuffer(
-        m_particle_bool_in_bubble_buffer, CL_TRUE, 0,
-        m_particle_bool_in_bubble.size() * sizeof(cl_char),
-        m_particle_bool_in_bubble.data());
   }
 
   void writeParticleCollisionCellIndexBuffer(cl::CommandQueue& cl_queue) {

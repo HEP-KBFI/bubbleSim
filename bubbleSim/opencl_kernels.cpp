@@ -5,6 +5,9 @@ OpenCLLoader::OpenCLLoader(std::string kernelPath) {
   createProgram(m_context, m_deviceUsed, kernelPath);
 
   m_cellAssignmentKernel = AssignParticleToCollisionCellKernel(m_program);
+  m_cellAssignmentKernelTwoMassState =
+      AssignParticleToCollisionCellTwoMassStateKernel(m_program);
+  m_particleInBubbleKernel = ParticleLabelByCoordinateKernel(m_program);
   m_rotationKernel = MomentumRotationKernel(m_program);
   m_particleBoundaryKernel = ParticleBoundaryCheckKernel(m_program);
   m_particleLinearStepKernel = ParticleStepLinearKernel(m_program);
@@ -15,30 +18,6 @@ OpenCLLoader::OpenCLLoader(std::string kernelPath) {
 
   // std::string collisionCellCalculateSummationName =
   // "collision_cell_calculate_summation";
-  // createKernel(m_program, m_collisionCellCalculateSummationKernel,
-  //              collisionCellCalculateSummationName.c_str());
-
-  createQueue(m_context, m_deviceUsed);
-}
-
-OpenCLLoader::OpenCLLoader(std::string kernelPath, std::string kernelName) {
-  createContext(m_devices);
-  createProgram(m_context, m_deviceUsed, kernelPath);
-
-  // For collision
-  m_cellAssignmentKernel = AssignParticleToCollisionCellKernel(m_program);
-  m_rotationKernel = MomentumRotationKernel(m_program);
-  m_particleBoundaryKernel = ParticleBoundaryCheckKernel(m_program);
-  m_particleLinearStepKernel = ParticleStepLinearKernel(m_program);
-  m_particleStepWithBubbleKernel = ParticleStepWithBubbleKernel(m_program);
-  m_collisionCellResetKernel = CollisionCellResetKernel(m_program);
-  m_collisionCellCalculateGenerationKernel =
-      CollisionCellGenerationKernel(m_program);
-
-  // createKernel(m_program, m_kernel, kernelName.c_str());  // cl::Kernel
-
-  // std::string collisionCellCalculateSummationName =
-  //     "collision_cell_calculate_summation";
   // createKernel(m_program, m_collisionCellCalculateSummationKernel,
   //              collisionCellCalculateSummationName.c_str());
 

@@ -1,7 +1,7 @@
 #include "simulation_parameters.h"
 
 SimulationParameters::SimulationParameters(
-    numType t_dt, std::uint32_t& t_buffer_flags,
+    numType t_dt, std::uint64_t& t_buffer_flags,
                                            cl::Context& cl_context) {
   int openCLerrNum = 0;
   m_dt = t_dt;
@@ -14,7 +14,7 @@ SimulationParameters::SimulationParameters(
 SimulationParameters::SimulationParameters(numType t_dt,
     numType t_mass_in,
                                            numType t_mass_out,
-                                           std::uint32_t& t_buffer_flags,
+                                           std::uint64_t& t_buffer_flags,
                                            cl::Context& cl_context)
     : SimulationParameters(t_dt, t_buffer_flags,
                            cl_context) {
@@ -41,7 +41,7 @@ SimulationParameters::SimulationParameters(numType t_dt,
     numType t_mass_in,
     numType t_mass_out,
                                            numType m_boundaryRadius,
-                                           std::uint32_t& t_buffer_flags,
+                                           std::uint64_t& t_buffer_flags,
                                            cl::Context& cl_context)
     : SimulationParameters(t_dt, t_mass_in, t_mass_out, t_buffer_flags,
                            cl_context) {
