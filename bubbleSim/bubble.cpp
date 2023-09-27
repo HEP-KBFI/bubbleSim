@@ -38,6 +38,7 @@ PhaseBubble::PhaseBubble(numType t_initialRadius, numType t_initialSpeed,
 
 PhaseBubble::PhaseBubble(numType t_initialRadius, numType t_initialSpeed,
                          numType t_dV, numType t_sigma,
+                         numType t_critical_radius,
                          std::uint64_t& t_buffer_flags,
                          cl::Context& cl_context) {
   /*
@@ -57,6 +58,8 @@ PhaseBubble::PhaseBubble(numType t_initialRadius, numType t_initialSpeed,
   numType gamma =
       1.0 / std::exp((std::log1p((-t_initialSpeed * t_initialSpeed)) * 0.5));
   numType gammaXspeed = t_initialSpeed * gamma;
+
+
   m_bubble =
       Bubble{t_initialRadius, radius2, t_initialSpeed, gamma, gammaXspeed};
   m_bubble_copy = m_bubble;
@@ -64,11 +67,16 @@ PhaseBubble::PhaseBubble(numType t_initialRadius, numType t_initialSpeed,
       cl::Buffer(cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
                  sizeof(Bubble), &m_bubble, &openCLerrNum);
   t_buffer_flags |= BUBBLE_BUFFER;
+
   m_dV = t_dV;
   m_sigma = t_sigma;
-  m_initialRadius = t_initialRadius;
+
   m_energy = calculateEnergy();
+
+  m_initialRadius = t_initialRadius;
   m_initialEnergy = calculateEnergy();
+  m_criticalRadius = t_critical_radius;
+
 
   if (m_sigma < 0) {
     std::cerr << "sigma < 0" << std::endl;

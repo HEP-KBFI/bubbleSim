@@ -5,6 +5,8 @@ using std::chrono::duration;
 using std::chrono::duration_cast;
 using std::chrono::seconds;
 
+int DEFAULT_COUT_PRECISION = std::cout.precision();
+
 // Collision is in development
 
 numType calculate_boltzmann_number_density(numType T, numType mass) {
@@ -30,6 +32,29 @@ numType calculate_boltzmann_energy_density(numType T, numType mass) {
   return n / (2. * M_PI * M_PI);
 }
 
+void print_simulation_state(ParticleCollection& particles, PhaseBubble& bubble,
+                            CollisionCellCollection& cells,
+                            Simulation& simulation, ConfigReader& config) {
+  std::cout << "Step: " << std::setw(8) << simulation.getStep();
+  std::cout.precision(2);
+  std::cout << ", Sim. time: " << std::setw(8) << simulation.getTime();
+  if (config.SIMULATION_SETTINGS.isFlagSet(BUBBLE_ON)) {
+    std::cout.precision(4);
+    std::cout << ", R: " << std::setw(8) << bubble.getRadius();
+    std::cout << ", R/Rc: " << bubble.getRadius() / bubble.getCriticalRadius();
+    std::cout << ", V: " << std::setw(7) << bubble.getSpeed();
+  }
+  if (config.SIMULATION_SETTINGS.isFlagSet(COLLISION_ON)) {
+    std::cout << ", N_col/N_tot: "
+              << (numType)cells.getCollisionCount() /
+                     particles.getParticleCountTotal();
+  }
+  std::cout.precision(6);
+  std::cout << ", E: "
+            << simulation.getTotalEnergy() / simulation.getInitialTotalEnergy();
+  std::cout.precision(DEFAULT_COUT_PRECISION);
+}
+
 int main(int argc, char* argv[]) {
   if (argc != 3) {
     std::cerr << "Usage: bubbleSim.exe config.json kernel.cl" << std::endl;
@@ -38,15 +63,19 @@ int main(int argc, char* argv[]) {
   auto program_start_time = my_clock::now();
   auto program_end_time = my_clock::now();
 
-  // Read configs and kernel file
   std::string s_configPath = argv[1];  // "config.json"
   std::string s_kernelPath = argv[2];  // "kernel.cl";
   std::uint64_t buffer_flags = 0;
-
   std::cout << "Config path: " << s_configPath << std::endl;
   std::cout << "Kernel path: " << s_kernelPath << std::endl;
   ConfigReader config(s_configPath);
 
+  /* TODO:
+    Tau is defined in config. In current setup dt depends on tau: dt= tau/N.
+    Tau should be representing thermalization time in some sence.
+    In the future dt and tau are separate but probability to collide still
+    depends on exp(-dt/tau).
+  */
   numType tau = config.parameterTau;
   u_int N_steps_tau = 10;
   numType dt = tau / N_steps_tau;
@@ -54,48 +83,45 @@ int main(int argc, char* argv[]) {
   /*
     =============== Initialization ===============
   */
-
-  // 1) Initialize random number generators
   RandomNumberGeneratorNumType rn_generator(config.m_seed);
   RandomNumberGeneratorULong rn_generator_64int(config.m_seed);
 
-  // 2) Initialize openCL (kernels, commandQueues)
+  std::cout << std::endl
+            << "=============== OpenCL initialization ==============="
+            << std::endl;
   OpenCLLoader kernels(s_kernelPath);
 
-  // 3) Generate particles
-  std::cout << std::endl << "=== Simulation initialization: " << std::endl;
-  std::cout << "alpha: " << config.parameterAlpha
-            << ", eta: " << config.parameterEta
-            << ", upsilon: " << config.parameterUpsilon
-            << ", m-: " << config.particleMassFalse
-            << ", m+: " << config.particleMassTrue << std::endl
+  std::cout << std::endl
+            << "=============== Simulation initialization ==============="
             << std::endl;
+  std::cout << std::setprecision(6) << std::fixed << std::showpoint;
 
-  std::cout << "1) Calculate T-" << std::endl;
-
+  numType no_particle_radius = (config.SIMULATION_SETTINGS.isFlagSet(BUBBLE_ON))
+                                   ? config.bubbleInitialRadius
+                                   : 0.;
   numType deltaM = std::sqrt(std::pow(config.particleMassTrue, 2.) -
                              std::pow(config.particleMassFalse, 2.));
   numType particle_temperature_in_false_vacuum =
       std::sqrt(deltaM) / config.parameterEta;
-  std::cout << "T-: " << particle_temperature_in_false_vacuum << ", T-/ m + : "
-            << particle_temperature_in_false_vacuum / config.particleMassTrue
-            << std::endl;
 
-  numType n_minus = calculate_boltzmann_number_density(
+  numType n_boltzmann = calculate_boltzmann_number_density(
       particle_temperature_in_false_vacuum, config.particleMassFalse);
+  numType rho_boltzmann = calculate_boltzmann_energy_density(
+      particle_temperature_in_false_vacuum, config.particleMassFalse);
+
   numType boundaryRadius =
-      std::cbrt(config.particleCountFalse / n_minus +
-                4. * M_PI * std::pow(config.bubbleInitialRadius, 3.) / 3.) /
+      std::cbrt(config.particleCountFalse / n_boltzmann +
+                4. * M_PI * std::pow(no_particle_radius, 3.) / 3.) /
       2.0;
 
-  std::cout << "R_b(t=0): " << config.bubbleInitialRadius
+  std::cout << "T-/ m + : "
+            << particle_temperature_in_false_vacuum / config.particleMassTrue
+            << ", R_b(t=0): " << no_particle_radius
             << ", R(boundary): " << boundaryRadius << std::endl;
 
-  std::cout << "2) Generate particles" << std::endl;
   ParticleGenerator particleGenerator1;
   // ParticleGenerator particleGenerator2;
 
-  // 3.1) Create generator, calculates distribution(s)
   particleGenerator1 = ParticleGenerator(config.particleMassFalse);
   // particleGenerator2 = ParticleGenerator(config.particleMassFalse);
 
@@ -105,16 +131,14 @@ int main(int argc, char* argv[]) {
       1e-5 * particle_temperature_in_false_vacuum);
   // particleGenerator2.calculateCPDBeta(2.5, 1., 2., 2., 0.00001);
 
-  // 3.2) Create particle collection
-
   ParticleCollection particles(
       config.particleCountTrue, config.particleCountFalse,
       config.SIMULATION_SETTINGS.isFlagSet(TRUE_VACUUM_BUBBLE_ON), buffer_flags,
       kernels.getContext());
-  // 3.3) create particles
+
   numType generatedParticleEnergy;
   generatedParticleEnergy = particleGenerator1.generateNParticlesInCube(
-      config.bubbleInitialRadius, boundaryRadius,
+      no_particle_radius, boundaryRadius,
       (u_int)(particles.getParticleCountTotal()), rn_generator, particles);
   /*generatedParticleEnergy += particleGenerator2.generateNParticlesInCube(
       config.bubbleInitialRadius, config.cyclicBoundaryRadius,
@@ -122,18 +146,9 @@ int main(int argc, char* argv[]) {
      particles.getParticleX().size()), rn_generator, particles);*/
   particles.add_to_total_initial_energy(generatedParticleEnergy);
 
-  // Energy and number density
-
-  std::cout << "3) Initialize bubble" << std::endl;
   numType initial_false_vacuum_volume =
       8 * std::pow(boundaryRadius, 3.) -
-      4. * M_PI * std::pow(config.bubbleInitialRadius, 3.) / 3.;
-  std::cout << "V(R_b): " << initial_false_vacuum_volume
-            << ", V(n-): " << config.particleCountFalse / n_minus << std::endl;
-
-  std::cout << "T-: " << particle_temperature_in_false_vacuum << ", <E>/3: "
-            << generatedParticleEnergy / config.particleCountFalse / 3.
-            << std::endl;
+      4. * M_PI * std::pow(no_particle_radius, 3.) / 3.;
 
   numType plasma_energy_density =
       generatedParticleEnergy / initial_false_vacuum_volume;
@@ -143,52 +158,50 @@ int main(int argc, char* argv[]) {
   numType mu = initial_false_vacuum_volume *
                std::pow(particle_temperature_in_false_vacuum, 3.) /
                (config.particleCountFalse * M_PI * M_PI);
-  numType rho_minus = calculate_boltzmann_energy_density(
-      particle_temperature_in_false_vacuum, config.particleMassFalse);
-  std::cout << "Energy density scale: " << mu << std::endl;
-  std::cout << "rho- : " << rho_minus
+
+  std::cout << "Energy density scale factor (m-=0): " << mu << std::endl;
+  std::cout << "rho- : " << rho_boltzmann
             << ", rho(false): " << plasma_energy_density
-            << ", rho(sim)/rho(anal.): " << plasma_energy_density / rho_minus
-            << std::endl;
-  std::cout << "n-: " << n_minus << ", n(false): " << plasma_number_density
-            << ", n(sim)/n(anal.): " << plasma_number_density / n_minus
+            << ", rho(sim)/rho(anal.): "
+            << plasma_energy_density / rho_boltzmann << std::endl;
+  std::cout << "n-: " << n_boltzmann << ", n(false): " << plasma_number_density
+            << ", n(sim)/n(anal.): " << plasma_number_density / n_boltzmann
             << std::endl;
 
   numType alpha = config.parameterAlpha;
   numType dV = (alpha * plasma_energy_density +
                 particle_temperature_in_false_vacuum * plasma_number_density);
 
-  // In development: step revert
+  /* TODO:
+  In development: step revert. Add methdos which save state state after each
+  step and if necessary then take revert step. Currently most of the necessary
+  methods are ready but implementation is poor. Also add option to config to
+  turn it on/off.
+  */
   // particles.makeCopy();
-
-  // 4) Create bubble
-
   numType critical_radius =
       config.bubbleInitialRadius / config.parameterUpsilon;
-  std::cout << "R: " << config.bubbleInitialRadius
-            << ", R_c: " << critical_radius << std::endl;
 
   numType sigma =
       (alpha * plasma_energy_density +
        plasma_number_density * particle_temperature_in_false_vacuum) *
       critical_radius / 2.0;
-  std::cout << "dV: " << dV << ", sigma: " << sigma
-            << ", dV/rho-: " << dV / plasma_energy_density
+  std::cout << "dV/rho-: " << dV / plasma_energy_density
             << ", sigma/(dV*R0): " << sigma / (dV * config.bubbleInitialRadius)
             << std::endl;
 
+  // If bubble is true vacuum then dV is + sign. Otherwise dV sign is -.
   if (!config.SIMULATION_SETTINGS.isFlagSet(TRUE_VACUUM_BUBBLE_ON)) {
-    // If bubble is true vacuum then dV is correct sign. Otherwise dV sign must
-    // be changed.
     dV = -dV;
   }
+
   PhaseBubble bubble;
   if (config.SIMULATION_SETTINGS.isFlagSet(BUBBLE_ON)) {
-    bubble = PhaseBubble(config.bubbleInitialRadius, config.bubbleInitialSpeed,
-                         dV, sigma, buffer_flags, kernels.getContext());
+    bubble =
+        PhaseBubble(config.bubbleInitialRadius, config.bubbleInitialSpeed, dV,
+                    sigma, critical_radius, buffer_flags, kernels.getContext());
   }
 
-  // 5) Initialize Simulation
   SimulationParameters simulation_parameters;
   Simulation simulation;
 
@@ -200,8 +213,6 @@ int main(int argc, char* argv[]) {
       (config.SIMULATION_SETTINGS.isFlagSet(TRUE_VACUUM_BUBBLE_ON))
           ? config.particleMassFalse
           : config.particleMassTrue;
-  std::cout << "Particle mass in: " << particle_mass_in << std::endl;
-  std::cout << "Particle mass out: " << particle_mass_out << std::endl;
 
   if (config.SIMULATION_SETTINGS.isFlagSet(SIMULATION_BOUNDARY_ON)) {
     simulation_parameters = SimulationParameters(
@@ -220,25 +231,24 @@ int main(int argc, char* argv[]) {
                           kernels.getContext());
 
   simulation.setTau(config.parameterTau);
+
   // Add all energy together in simulation for later use
   simulation.addInitialTotalEnergy(particles.getInitialTotalEnergy());
   simulation.addInitialTotalEnergy(bubble.calculateEnergy());
   simulation.setInitialCompactness(simulation.getInitialTotalEnergy() /
                                    bubble.getInitialRadius());
 
-  // 6) Create collision cells
   CollisionCellCollection cells;
   numType collision_cell_length =
       boundaryRadius / config.collision_cell_count + dt;
   if (config.SIMULATION_SETTINGS.isFlagSet(COLLISION_ON)) {
-    cells = CollisionCellCollection(collision_cell_length,
-                                    config.collision_cell_count,
-                                    config.SIMULATION_SETTINGS.isFlagSet(COLLISION_MASS_STATE_ON),
-                                    buffer_flags, kernels.getContext());
+    cells = CollisionCellCollection(
+        collision_cell_length, config.collision_cell_count,
+        config.SIMULATION_SETTINGS.isFlagSet(COLLISION_MASS_STATE_ON),
+        buffer_flags, kernels.getContext());
   }
 
-  // 7) Create buffers and copy data on the GPU
-
+  // Setup buffers for OpenCL
   if (config.SIMULATION_SETTINGS.isFlagSet(BUBBLE_INTERACTION_ON | BUBBLE_ON)) {
     kernels.m_particleStepWithBubbleKernel.setBuffers(
         simulation.getSimulationParameters(), particles, bubble, buffer_flags);
@@ -255,7 +265,8 @@ int main(int argc, char* argv[]) {
 
   if (config.SIMULATION_SETTINGS.isFlagSet(COLLISION_ON)) {
     if (config.SIMULATION_SETTINGS.isFlagSet(COLLISION_MASS_STATE_ON)) {
-      kernels.m_cellAssignmentKernelTwoMassState.setBuffers(particles, cells, buffer_flags);
+      kernels.m_cellAssignmentKernelTwoMassState.setBuffers(particles, cells,
+                                                            buffer_flags);
       kernels.m_particleInBubbleKernel.setBuffers(particles, bubble);
       particles.writeParticleInBubbleBuffer(kernels.getCommandQueue());
     } else {
@@ -272,7 +283,7 @@ int main(int argc, char* argv[]) {
     cells.writeSeedBuffer(kernels.getCommandQueue());
   }
 
-  // Copy data to the GPU
+  // Move data to the GPU
   particles.writeParticleCoordinatesBuffer(kernels.getCommandQueue());
   particles.writeParticleEBuffer(kernels.getCommandQueue());
   particles.writeParticleMomentumsBuffer(kernels.getCommandQueue());
@@ -286,14 +297,15 @@ int main(int argc, char* argv[]) {
   simulation.getSimulationParameters().writeMassOutBuffer(
       kernels.getCommandQueue());
 
-  // 8) Streaming initialization
+  /* TODO
+    Modify streaming process. Make it easier to read. Refactor.
+  */
   std::string dataFolderName = createFileNameFromCurrentDate();
   std::filesystem::path filePath =
       createSimulationFilePath(config.m_dataSavePath, dataFolderName);
   DataStreamer streamer(filePath.string());
 
-  // Momentum streaming is in log scale
-  bool log_scale_on = true;
+  bool momentum_log_scale_on = true;
 
   if (config.STREAM_SETTINGS.isFlagSet(STREAM_DATA)) {
     streamer.initStream_Data();
@@ -316,27 +328,25 @@ int main(int argc, char* argv[]) {
     if (config.STREAM_SETTINGS.isFlagSet(STREAM_MOMENTUM_IN)) {
       streamer.initStream_MomentumIn(config.binsCountMomentumIn,
                                      config.minValueMomentumIn,
-                                     config.maxValueMomentumIn, log_scale_on);
+                                     config.maxValueMomentumIn, momentum_log_scale_on);
     }
     if (config.STREAM_SETTINGS.isFlagSet(STREAM_MOMENTUM_OUT)) {
       streamer.initStream_MomentumOut(config.binsCountMomentumOut,
                                       config.minValueMomentumOut,
-                                      config.maxValueMomentumOut, log_scale_on);
+                                      config.maxValueMomentumOut, momentum_log_scale_on);
     }
   }
-  streamer.stream(simulation, particles, bubble, log_scale_on,
+  streamer.stream(simulation, particles, bubble, momentum_log_scale_on,
                   kernels.getCommandQueue());
-  /*
-   * =============== Display text ===============
-   */
+
   std::cout << std::endl;
   config.print_info();
   std::cout << std::endl;
   bubble.print_info(config);
   std::cout << std::endl;
+  std::cout.precision(DEFAULT_COUT_PRECISION);
 
-  // 9) Streams
-  std::cout << std::setprecision(8) << std::endl;
+std::cout.precision(8);
   // Create simulation info file which includes description of the simulation
   std::ofstream infoStream(filePath / "info.txt",
                            std::ios::out | std::ios::trunc);
@@ -349,16 +359,9 @@ int main(int argc, char* argv[]) {
   numType simTimeSinceLastStream = 0.;
   int stepsSinceLastStream = 0;
   std::cout << "=============== Simulation ===============" << std::endl;
-  std::cout << std::setprecision(6) << std::fixed << std::showpoint;
   program_end_time = my_clock::now();
-  std::cout << "Step: " << simulation.getStep()
-            << ", Time: " << simulation.getTime()
-            << ", R: " << bubble.getRadius()
-            << ", R/Rc: " << bubble.getRadius() / critical_radius
-            << ", V: " << bubble.getSpeed() << ", E: "
-            << simulation.getTotalEnergy() / simulation.getInitialTotalEnergy() << ", N_col/N_tot: "
-            << (numType)cells.getCollisionCount() / particles.getParticleCountTotal()
-            << ", time: "
+  print_simulation_state(particles, bubble, cells, simulation, config);
+  std::cout << ", time: "
             << convertTimeToHMS(program_end_time - program_start_time)
             << std::endl;
   for (u_int i = 1; i <= N_steps_tau * sim_length_in_tau; i++) {
@@ -382,22 +385,12 @@ int main(int argc, char* argv[]) {
       simulation.step(bubble, 0);
     }
 
-    // if (i % N_steps_tau >= 0) {
-    if (i % 100 == 0) {
-      streamer.stream(simulation, particles, bubble, log_scale_on,
+    if (i % config.streamStep == 0) {
+      streamer.stream(simulation, particles, bubble, momentum_log_scale_on,
                       kernels.getCommandQueue());
       program_end_time = my_clock::now();
-      std::cout << "Step: " << simulation.getStep()
-                << ", Time: " << simulation.getTime()
-                << ", R: " << bubble.getRadius()
-                << ", R/Rc: " << bubble.getRadius() / critical_radius
-                << ", V: " << bubble.getSpeed() << ", E: "
-                << simulation.getTotalEnergy() /
-                       simulation.getInitialTotalEnergy()
-                << ", N_col/N_tot: "
-                << (numType)cells.getCollisionCount() /
-                       particles.getParticleCountTotal()
-                << ", time: "
+      print_simulation_state(particles, bubble, cells, simulation, config);
+      std::cout << ", time: "
                 << convertTimeToHMS(program_end_time - program_start_time)
                 << std::endl;
     }
@@ -422,12 +415,8 @@ int main(int argc, char* argv[]) {
     }
   }
 
-  /*
-    =============== End simulation ===============
-  */
-
   // Stream last state
-  streamer.stream(simulation, particles, bubble, log_scale_on,
+  streamer.stream(simulation, particles, bubble, momentum_log_scale_on,
                   kernels.getCommandQueue());
 
   // Measure runtime
@@ -437,4 +426,3 @@ int main(int argc, char* argv[]) {
 
   appendSimulationInfoFile(infoStream, 0, (int)ms_int.count());
 }
-

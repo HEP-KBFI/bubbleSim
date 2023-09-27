@@ -279,9 +279,6 @@ numType ParticleGenerator::generateNParticlesInCube(
     // Generates 3D space coordinates and pushes to m_P vector
     generateParticleMomentum(p_x, p_y, p_z, pValue, t_generator);
     E = std::sqrt(m2 + pow(pValue, (numType)2.));
-    if (i == 0) {
-      std::cout << E << ", " << p_x << ", " << p_y << ", " << p_z << std::endl;
-    }
     totalEnergy += E;
     t_particles.getParticleX().push_back(x);
     t_particles.getParticleY().push_back(y);
