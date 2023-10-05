@@ -107,6 +107,8 @@ class Simulation {
 
   numType getTime() { return m_time; }
 
+  numType &returnTime() { return m_time; }
+
   numType get_dt() { return m_dt; }
 
   numType get_dt_currentStep() { return m_dt_current; }

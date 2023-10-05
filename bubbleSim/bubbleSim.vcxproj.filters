@@ -118,5 +118,8 @@
     <None Include="..\kernels\kernel.cl">
       <Filter>Kernels</Filter>
     </None>
+    <None Include="..\configs\config.json">
+      <Filter>Config</Filter>
+    </None>
   </ItemGroup>
 </Project>

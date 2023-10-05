@@ -1,5 +1,124 @@
 #include "datastreamer.h"
 
+DataStreamerBinary::DataStreamerBinary(std::string t_file_path) {
+  m_file_path = t_file_path;
+}
+void DataStreamerBinary::initStream_Data() {
+  m_stream_Data.open(m_file_path / "data_b.bin",
+                     std::ios::out | std::ios::binary);
+  m_stream_Data2.open(m_file_path / "data_c.bin", std::ios::out);
+  /*
+   * time
+   * dP - Pressure/energy change between particles and bubble
+   * R_b - bubble radius
+   * V_b - bubble speed
+   * E_b - bubble energy
+   * E_p - particles' energy
+   * E_f - particles' energy which are inside the bubble
+   * E - total energy / initial total energy (checking energy conservation)
+   * C_f - particles inside the bubble count
+   * C_if - particles which interacted with bubble form false vacuum (and did
+   not get through) count
+   * C_pf - particles which interacted with bubble form false vacuum (and got
+   through) count
+   * C_it - particles which interacted with bubble from true vacuum count
+   * C - compactness
+   */
+  /*m_stream_Data << "time,dP,R_b,V_b,E_b,E_p,E_f,E,C_f,C_if,C_pf,C_it,C"
+                << std::endl;*/
+}
+
+void DataStreamerBinary::stream_data(Simulation& simulation,
+                                     ParticleCollection& particleCollection,
+                                     PhaseBubble& bubble, bool t_log_scale_on,
+                                     cl::CommandQueue& cl_queue) {
+  particleCollection.readInteractedBubbleFalseStateBuffer(cl_queue);
+  particleCollection.readPassedBubbleFalseStateBuffer(cl_queue);
+  particleCollection.readInteractedBubbleTrueStateBuffer(cl_queue);
+  particleCollection.readParticleCoordinatesBuffer(cl_queue);
+  particleCollection.readParticleMomentumsBuffer(cl_queue);
+  particleCollection.readParticleEBuffer(cl_queue);
+
+  uint32_t particleInCount = 0;
+  uint32_t particleInteractedFalseCount = 0;
+  uint32_t particlePassedFalseCount = 0;
+  uint32_t particleInteractedTrueCount = 0;
+  numType particleInEnergy = 0.;
+  numType particleTotalEnergy = 0.;
+  numType totalEnergy = 0.;
+
+  numType particleRadius = 0.;
+  numType particleMomentum = 0.;
+
+  for (u_int i = 0; i < particleCollection.getParticleCountTotal(); i++) {
+    particleRadius = particleCollection.calculateParticleRadius(i);
+    particleMomentum = particleCollection.calculateParticleMomentum(i);
+
+    if (particleRadius <= bubble.getRadius()) {
+      particleInCount += 1;
+      particleInEnergy += particleCollection.returnParticleE(i);
+    }
+    particleInteractedFalseCount += particleCollection.getInteractedFalse()[i];
+    particlePassedFalseCount += particleCollection.getPassedFalse()[i];
+    particleInteractedTrueCount += particleCollection.getInteractedTrue()[i];
+    particleTotalEnergy += particleCollection.returnParticleE(i);
+  }
+
+  // std::cout << "Data collection: successful!" << std::endl;
+  //  std::cout << "Max momentum: " << maxMomentum << std::endl;
+  totalEnergy = particleTotalEnergy + bubble.calculateEnergy();
+
+  auto program_start_time = my_clock::now();
+  numType time = simulation.getTime();
+  numType dP = simulation.get_dP() / simulation.get_dt_currentStep();
+  numType radius = bubble.getRadius();
+  numType velocity = bubble.getSpeed();
+  numType bubble_E = bubble.calculateEnergy();
+  numType E_conservation = totalEnergy / simulation.getInitialTotalEnergy();
+
+  m_stream_Data.write(reinterpret_cast<char*>(&time), sizeof(numType));
+  m_stream_Data.write(reinterpret_cast<char*>(&dP), sizeof(numType));
+  m_stream_Data.write(reinterpret_cast<char*>(&radius), sizeof(numType));
+  m_stream_Data.write(reinterpret_cast<char*>(&velocity), sizeof(numType));
+  m_stream_Data.write(reinterpret_cast<char*>(&bubble_E), sizeof(numType));
+  m_stream_Data.write(reinterpret_cast<char*>(&particleTotalEnergy),
+                      sizeof(numType));
+  m_stream_Data.write(reinterpret_cast<char*>(&particleInEnergy),
+                      sizeof(numType));
+  m_stream_Data.write(reinterpret_cast<char*>(&E_conservation),
+                      sizeof(numType));
+  m_stream_Data.write(reinterpret_cast<char*>(&particleInCount),
+                      sizeof(uint32_t));
+  m_stream_Data.write(reinterpret_cast<char*>(&particleInteractedFalseCount),
+                      sizeof(uint32_t));
+  m_stream_Data.write(reinterpret_cast<char*>(&particlePassedFalseCount),
+                      sizeof(uint32_t));
+  m_stream_Data.write(reinterpret_cast<char*>(&particleInteractedTrueCount),
+                      sizeof(uint32_t));
+  auto program_end_time = my_clock::now();
+  particleCollection.resetAndWriteInteractedBubbleFalseState(cl_queue);
+  particleCollection.resetAndWritePassedBubbleFalseState(cl_queue);
+  particleCollection.resetAndWriteInteractedBubbleTrueState(cl_queue);
+
+  std::cout << (program_end_time - program_start_time).count() << ", ";
+  program_start_time = my_clock::now();
+
+  std::cout << std::fixed << std::noshowpoint << std::setprecision(8);
+  m_stream_Data2 << simulation.getTime() << ","
+                << simulation.get_dP() / simulation.get_dt_currentStep() << ",";
+  m_stream_Data2 << bubble.getRadius() << "," << bubble.getSpeed() << ",";
+  m_stream_Data2 << bubble.calculateEnergy() << "," << particleTotalEnergy
+                << ",";
+  m_stream_Data2 << particleInEnergy << ","
+                << totalEnergy / simulation.getInitialTotalEnergy() << ",";
+  m_stream_Data2 << particleInCount << "," << particleInteractedFalseCount
+                << ",";
+  m_stream_Data2 << particlePassedFalseCount << ","
+                << particleInteractedTrueCount << std::endl;
+  program_end_time = my_clock::now();
+  std::cout << (program_end_time - program_start_time).count() << std::endl;
+}
+
 DataStreamer::DataStreamer(std::string filePath) { m_filePath = filePath; }
 
 void DataStreamer::initStream_Data() {
@@ -332,7 +451,8 @@ void DataStreamer::stream(Simulation& simulation,
     }
     if (m_initialized_TangentialVelocity &&
         (particleRadius < m_maxRadius_TangentialVelocity)) {
-      bin_index_tangential_velocity = (u_int)(particleRadius / m_dr_TangentialVelocity);
+      bin_index_tangential_velocity =
+          (u_int)(particleRadius / m_dr_TangentialVelocity);
       if (m_initialized_RadialVelocity) {
         particleTangentialVelocity = std::sqrt(1 - particleRadialVelocity);
       } else {

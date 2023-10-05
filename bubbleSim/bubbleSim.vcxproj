@@ -54,6 +54,7 @@
     <ClCompile Include="particle.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\configs\config.json" />
     <None Include="..\kernels\kernel.cl" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

@@ -44,7 +44,8 @@ class DataStreamer {
   void initStream_Momentum(size_t t_binsCount, numType t_maxMomentumValue);
 
   void stream(Simulation& simulation, ParticleCollection& particleCollection,
-              PhaseBubble& bubble, bool t_log_scale_on, cl::CommandQueue& cl_queue);
+              PhaseBubble& bubble, bool t_log_scale_on,
+              cl::CommandQueue& cl_queue);
 
   // These functions are meant to be used if only certain step is wanted to be
   // saved. Because otherwise this would mean different for cycles which makes
@@ -141,4 +142,18 @@ class DataStreamer {
   numType m_dr_EnergyDensity;
   numType m_dr_RadialVelocity;
   numType m_dr_TangentialVelocity;
+};
+
+class DataStreamerBinary {
+  std::filesystem::path m_file_path;
+  std::ofstream m_stream_Data;
+  std::ofstream m_stream_Data2;
+
+ public:
+  DataStreamerBinary(){};
+  DataStreamerBinary(std::string t_file_path);
+  void initStream_Data();
+  void stream_data(Simulation& simulation,
+                   ParticleCollection& particleCollection, PhaseBubble& bubble,
+                   bool t_log_scale_on, cl::CommandQueue& cl_queue);
 };

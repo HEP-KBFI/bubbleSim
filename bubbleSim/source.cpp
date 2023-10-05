@@ -45,6 +45,7 @@ void print_simulation_state(ParticleCollection& particles, PhaseBubble& bubble,
     std::cout << ", V: " << std::setw(7) << bubble.getSpeed();
   }
   if (config.SIMULATION_SETTINGS.isFlagSet(COLLISION_ON)) {
+    std::cout.precision(5);
     std::cout << ", N_col/N_tot: "
               << (numType)cells.getCollisionCount() /
                      particles.getParticleCountTotal();
@@ -108,7 +109,6 @@ int main(int argc, char* argv[]) {
       particle_temperature_in_false_vacuum, config.particleMassFalse);
   numType rho_boltzmann = calculate_boltzmann_energy_density(
       particle_temperature_in_false_vacuum, config.particleMassFalse);
-
   numType boundaryRadius =
       std::cbrt(config.particleCountFalse / n_boltzmann +
                 4. * M_PI * std::pow(no_particle_radius, 3.) / 3.) /
@@ -125,10 +125,15 @@ int main(int argc, char* argv[]) {
   particleGenerator1 = ParticleGenerator(config.particleMassFalse);
   // particleGenerator2 = ParticleGenerator(config.particleMassFalse);
 
-  particleGenerator1.calculateCPDBoltzmann(
+  /*particleGenerator1.calculateCPDBoltzmann(
       particle_temperature_in_false_vacuum,
       30 * particle_temperature_in_false_vacuum,
       1e-5 * particle_temperature_in_false_vacuum);
+  */
+  
+  particleGenerator1.calculateCPDDelta(3 *
+                                       particle_temperature_in_false_vacuum);
+  
   // particleGenerator2.calculateCPDBeta(2.5, 1., 2., 2., 0.00001);
 
   ParticleCollection particles(
@@ -154,6 +159,8 @@ int main(int argc, char* argv[]) {
       generatedParticleEnergy / initial_false_vacuum_volume;
   numType plasma_number_density =
       config.particleCountFalse / initial_false_vacuum_volume;
+
+  numType dperl = 0.;
 
   numType mu = initial_false_vacuum_volume *
                std::pow(particle_temperature_in_false_vacuum, 3.) /
@@ -304,7 +311,8 @@ int main(int argc, char* argv[]) {
   std::filesystem::path filePath =
       createSimulationFilePath(config.m_dataSavePath, dataFolderName);
   DataStreamer streamer(filePath.string());
-
+  DataStreamerBinary streamer2(filePath.string());
+  streamer2.initStream_Data();
   bool momentum_log_scale_on = true;
 
   if (config.STREAM_SETTINGS.isFlagSet(STREAM_DATA)) {
@@ -337,6 +345,8 @@ int main(int argc, char* argv[]) {
     }
   }
   streamer.stream(simulation, particles, bubble, momentum_log_scale_on,
+                  kernels.getCommandQueue());
+  streamer2.stream_data(simulation, particles, bubble, momentum_log_scale_on,
                   kernels.getCommandQueue());
 
   std::cout << std::endl;
@@ -388,8 +398,15 @@ std::cout.precision(8);
     if (i % config.streamStep == 0) {
       streamer.stream(simulation, particles, bubble, momentum_log_scale_on,
                       kernels.getCommandQueue());
+      streamer2.stream_data(simulation, particles, bubble,
+                            momentum_log_scale_on, kernels.getCommandQueue());
       program_end_time = my_clock::now();
       print_simulation_state(particles, bubble, cells, simulation, config);
+      dperl =
+          std::pow(plasma_number_density, -1.0 / 3.0) *
+          cells.getCollisionCount() /
+          (simulation.get_dt_currentStep() * particles.getParticleCountTotal());
+      std::cout << ", d/l: " << dperl;
       std::cout << ", time: "
                 << convertTimeToHMS(program_end_time - program_start_time)
                 << std::endl;
@@ -424,5 +441,5 @@ std::cout.precision(8);
   auto ms_int = std::chrono::duration_cast<std::chrono::seconds>(
       program_end_time - program_start_time);
 
-  appendSimulationInfoFile(infoStream, 0, (int)ms_int.count());
+  appendSimulationInfoFile(infoStream, (int)ms_int.count());
 }

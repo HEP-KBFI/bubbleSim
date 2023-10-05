@@ -2,7 +2,7 @@
 
 ParticleGenerator::ParticleGenerator(numType t_mass) {
   m_mass = t_mass;
-  m_CPD_initialized = true;
+  m_CPD_initialized = false;
 }
 
 void ParticleGenerator::calculateCPDBoltzmann(numType t_temperature,
@@ -38,6 +38,7 @@ void ParticleGenerator::calculateCPDBoltzmann(numType t_temperature,
     m_cumulativeProbabilityFunction[0][i] =
         m_cumulativeProbabilityFunction[0][i] / lastCPFValue;
   }
+  m_CPD_initialized = true;
 }
 
 void ParticleGenerator::calculateCPDDelta(numType t_momentumValue) {
@@ -49,6 +50,7 @@ void ParticleGenerator::calculateCPDDelta(numType t_momentumValue) {
   m_cumulativeProbabilityFunction[1].clear();
   m_cumulativeProbabilityFunction[1] =
       std::vector<numType>{t_momentumValue, t_momentumValue};
+  m_CPD_initialized = true;
 }
 
 void ParticleGenerator::calculateCPDBeta(numType t_shift, numType t_scale,
@@ -101,6 +103,7 @@ By default Beta function is limited between 0-1.
     m_cumulativeProbabilityFunction[0][i] =
         m_cumulativeProbabilityFunction[0][i] / lastCPFValue;
   }
+  m_CPD_initialized = true;
 }
 
 numType ParticleGenerator::interp(numType t_xValue,

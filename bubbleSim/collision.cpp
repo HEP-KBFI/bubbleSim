@@ -83,7 +83,6 @@ CollisionCellCollection::CollisionCellCollection(
                  &openCLerrNum);
   t_buffer_flags |= CELL_PARTICLE_COUNT_BUFFER;
 
-
   m_cellCountInOneAxis = t_cellCountInOneAxis;
   m_cellCountInOneAxisBuffer =
       cl::Buffer(cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
@@ -166,10 +165,8 @@ void CollisionCellCollection::recalculate_cells(
                 << std::endl;
       std::exit(0);
     }
-    
-    
-    cell_values[collision_cell_index][0] +=
-        t_particles.returnParticlepX(i);
+
+    cell_values[collision_cell_index][0] += t_particles.returnParticlepX(i);
     cell_values[collision_cell_index][1] += t_particles.returnParticlepY(i);
     cell_values[collision_cell_index][2] += t_particles.returnParticlepZ(i);
     cell_values[collision_cell_index][3] += t_particles.returnParticleE(i);
@@ -180,7 +177,7 @@ void CollisionCellCollection::recalculate_cells(
   /*
    * Calculate velocities for each collision cell
    */
-
+  double collision_probability_cell = 0.;
   double no_collision_probability_cell = 0.;
   double generated_probability = 0;
   numType no_collision_probability_thermalization = std::exp(-t_dt / t_tau);
@@ -214,17 +211,22 @@ void CollisionCellCollection::recalculate_cells(
         -std::exp(cell_values[i][4] * (std::log(cell_values[i][3]) -
                                        std::log(3 * cell_values[i][4])) -
                   cell_values[i][5] - std::log(fix_constant)));
-    /*std::cout << "Particle count: " << cell_values[i][4]
-              << ", No collision: " << no_collision_probability_cell
-              << ", E: " << cell_values[i][3]
-              << ", log(E): " << std::exp(cell_values[i][5]) << std::endl;*/
+
+    collision_probability_cell =
+        std::exp(cell_values[i][4] * (std::log(cell_values[i][3]) -
+                                      std::log(3. * cell_values[i][4])) -
+                 cell_values[i][5] - std::log(fix_constant)) *
+        cell_values[i][4]/10.;
+    
     // This requires that generated probaility > no_collision_probability_cell
     /*no_collision_probability_cell =
         std::exp(cell_values[i][4] * (std::log(cell_values[i][3]) -
                                       std::log(3 * cell_values[i][4])) -
                  cell_values[i][5] - std::log(1));*/
     generated_probability = t_rng.generate_number();
-    if (generated_probability <= no_collision_probability_cell) {
+    // if (generated_probability <= no_collision_probability_cell) {
+
+    if (generated_probability >= collision_probability_cell) {
       m_cell_collide_boolean[i] = (cl_char)0;
       continue;
     }
