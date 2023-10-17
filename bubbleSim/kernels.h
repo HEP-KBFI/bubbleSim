@@ -68,7 +68,8 @@ class AssignParticleToCollisionCellKernel : public SimulationKernel {
                   CollisionCellCollection &t_cells, std::uint64_t t_flags);
 };
 
-class AssignParticleToCollisionCellTwoMassStateKernel : public SimulationKernel {
+class AssignParticleToCollisionCellTwoMassStateKernel
+    : public SimulationKernel {
  private:
  public:
   AssignParticleToCollisionCellTwoMassStateKernel() : SimulationKernel(){};
@@ -91,7 +92,7 @@ class CollisionCellGenerationKernel : public SimulationKernel {
  public:
   CollisionCellGenerationKernel() : SimulationKernel(){};
   CollisionCellGenerationKernel(cl::Program &t_program)
-      : SimulationKernel(t_program, "collision_cell_calculate_generation") {
+      : SimulationKernel(t_program, "collision_cell_generate_collisions") {
     m_kernel_flags = CELL_THETA_AXIS_BUFFER | CELL_PHI_AXIS_BUFFER |
                      CELL_THETA_ROTATION_BUFFER | CELL_E_BUFFER |
                      CELL_PX_BUFFER | CELL_PY_BUFFER | CELL_PZ_BUFFER |
@@ -117,6 +118,24 @@ class CollisionCellResetKernel : public SimulationKernel {
   };
   void setBuffers(CollisionCellCollection &t_cells);
   void setBuffers(CollisionCellCollection &t_cells, std::uint64_t t_flags);
+};
+
+class CollisionCellSumParticlesKernel : public SimulationKernel {
+ private:
+ public:
+  CollisionCellSumParticlesKernel() : SimulationKernel(){};
+  CollisionCellSumParticlesKernel(cl::Program &t_program)
+      : SimulationKernel(t_program, "collision_cell_sum_particles") {
+    m_kernel_flags = PARTICLE_E_BUFFER | PARTICLE_PX_BUFFER |
+                     PARTICLE_PY_BUFFER | PARTICLE_PZ_BUFFER |
+                     PARTICLE_COLLISION_CELL_IDX_BUFFER | CELL_E_BUFFER |
+                     CELL_PX_BUFFER | CELL_PY_BUFFER | CELL_PZ_BUFFER |
+                     CELL_LOGE_BUFFER | CELL_PARTICLE_COUNT_BUFFER;
+  };
+  void setBuffers(ParticleCollection &t_particles,
+                  CollisionCellCollection &t_cells);
+  void setBuffers(ParticleCollection &t_particles,
+                  CollisionCellCollection &t_cells, std::uint64_t t_flags);
 };
 
 class ParticleStepLinearKernel : public SimulationKernel {

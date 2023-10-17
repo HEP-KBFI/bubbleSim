@@ -40,13 +40,14 @@ SimulationParameters::SimulationParameters(numType t_dt,
 SimulationParameters::SimulationParameters(numType t_dt,
     numType t_mass_in,
     numType t_mass_out,
-                                           numType m_boundaryRadius,
+                                           numType t_boundaryRadius,
                                            std::uint64_t& t_buffer_flags,
                                            cl::Context& cl_context)
     : SimulationParameters(t_dt, t_mass_in, t_mass_out, t_buffer_flags,
                            cl_context) {
   
   int openCLerrNum = 0;
+  m_boundaryRadius = t_boundaryRadius;
   m_boundaryRadiusBuffer =
       cl::Buffer(cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
                  sizeof(numType), &m_boundaryRadius, &openCLerrNum);

@@ -15,11 +15,8 @@ OpenCLLoader::OpenCLLoader(std::string kernelPath) {
   m_collisionCellResetKernel = CollisionCellResetKernel(m_program);
   m_collisionCellCalculateGenerationKernel =
       CollisionCellGenerationKernel(m_program);
-
-  // std::string collisionCellCalculateSummationName =
-  // "collision_cell_calculate_summation";
-  // createKernel(m_program, m_collisionCellCalculateSummationKernel,
-  //              collisionCellCalculateSummationName.c_str());
+  m_collisionCellSumParticlesKernel =
+      CollisionCellSumParticlesKernel(m_program);
 
   createQueue(m_context, m_deviceUsed);
 }

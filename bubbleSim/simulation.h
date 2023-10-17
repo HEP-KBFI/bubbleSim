@@ -12,15 +12,57 @@
 using my_clock = std::chrono::steady_clock;
 
 class Simulation {
+ private:
+  int m_seed;
+
+  SimulationParameters m_parameters;
+
+  // Simulation time state
+  numType m_time = 0.;
+  u_int m_step_count = 0;
+
+  // One step time length
+  numType m_dt;
+  numType m_dt_current;
+  numType m_dt_max;
+  numType m_tau;
+
+  // Simulation values
+  numType m_initialCompactness = 0.;
+  numType m_totalEnergy = 0.;
+  numType m_initialTotalEnergy = 0.;
+
+  // Current simulation state values
+  numType m_dP = 0.;
+  numType m_cumulative_dP = 0.;
+
+  uint32_t m_active_collision_cell_count = 0;
+  uint32_t m_active_colliding_particle_count = 0;
+
+  size_t m_particleCount;
+  /*
+   * Step with given dP value
+   */
+
  public:
   Simulation() { m_seed = 0; }
-  Simulation(int t_seed, numType t_max_dt, SimulationParameters& t_simulation_parameters, cl::Context& cl_context);
+  Simulation(int t_seed, numType t_max_dt,
+             SimulationParameters& t_simulation_parameters,
+             cl::Context& cl_context);
 
   void addInitialTotalEnergy(numType energy) {
     assert(m_time == 0.);
     m_initialTotalEnergy += energy;
     m_totalEnergy += energy;
   }
+
+  void count_collision_cells(CollisionCellCollection& cells,
+                             OpenCLLoader& t_kernels);
+
+  numType calculate_average_particle_count_in_filled_cells(
+      ParticleCollection& t_particles, CollisionCellCollection t_cells,
+      OpenCLLoader& t_kernels);
+
   /*
    * ================================================================
    * ================================================================
@@ -57,15 +99,13 @@ class Simulation {
   void stepParticleCollisionBoundary(
       ParticleCollection& particles, CollisionCellCollection& cells,
       RandomNumberGeneratorNumType& t_rng_numtype,
-      RandomNumberGeneratorULong& t_rng_int,
-      OpenCLLoader& t_kernels);
+      RandomNumberGeneratorULong& t_rng_int, OpenCLLoader& t_kernels);
 
   void stepParticleBubbleCollisionBoundary(
       ParticleCollection& particles, PhaseBubble& bubble,
       CollisionCellCollection& cells,
       RandomNumberGeneratorNumType& t_rng_numtype,
-      RandomNumberGeneratorULong& t_rng_int,
-      OpenCLLoader& t_kernels);
+      RandomNumberGeneratorULong& t_rng_int, OpenCLLoader& t_kernels);
 
   /*
    * ================================================================
@@ -107,7 +147,7 @@ class Simulation {
 
   numType getTime() { return m_time; }
 
-  numType &returnTime() { return m_time; }
+  numType& returnTime() { return m_time; }
 
   numType get_dt() { return m_dt; }
 
@@ -125,39 +165,16 @@ class Simulation {
 
   numType getInitialCompactnes() { return m_initialCompactness; }
 
-  numType returnCumulativeDP() { 
-      numType dP = m_cumulative_dP;
+  u_int getActiveCollidingParticleCount() {
+    return m_active_colliding_particle_count;
+  }
+  u_int getActiveCollisionCellCount() { return m_active_collision_cell_count; }
+
+  numType returnCumulativeDP() {
+    numType dP = m_cumulative_dP;
     m_cumulative_dP = 0.;
-      return dP; }
+    return dP;
+  }
 
   SimulationParameters& getSimulationParameters() { return m_parameters; }
-
- private:
-  int m_seed;
-
-  SimulationParameters m_parameters;
-
-  // Simulation time state
-  numType m_time = 0.;
-  u_int m_step_count = 0;
-
-  // One step time length
-  numType m_dt;
-  numType m_dt_current;
-  numType m_dt_max;
-  numType m_tau;
-
-  // Simulation values
-  numType m_initialCompactness = 0.;
-  numType m_totalEnergy = 0.;
-  numType m_initialTotalEnergy = 0.;
-
-  // Current simulation state values
-  numType m_dP = 0.;
-  numType m_cumulative_dP = 0.;
-
-  size_t m_particleCount;
-  /*
-   * Step with given dP value
-   */
 };

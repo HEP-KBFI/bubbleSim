@@ -24,7 +24,7 @@
     "particles": {
         "mass_false": 0.0,
         "T_false": 0.3,
-        "N_false": 1500000,
+        "N_false": 750000,
         "mass_true": 1,
         "T_true": 0.0,
         "N_true": 0
@@ -32,7 +32,7 @@
     "collision": {
         "collision_on": true,
         "two_mass_state_on" : false,
-        "N_cells": 61
+        "N_cells": 71
     },
     "stream": {
         "stream": true,

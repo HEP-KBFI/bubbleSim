@@ -46,8 +46,11 @@ void print_simulation_state(ParticleCollection& particles, PhaseBubble& bubble,
   }
   if (config.SIMULATION_SETTINGS.isFlagSet(COLLISION_ON)) {
     std::cout.precision(5);
-    std::cout << ", N_col/N_tot: "
-              << (numType)cells.getCollisionCount() /
+    std::cout << ", N_col(cell)/N_tot: "
+              << (numType)simulation.getActiveCollisionCellCount() /
+                     cells.getCellCount()
+              << ", N_col(part.)/N_tot: "
+              << (numType)simulation.getActiveCollidingParticleCount() /
                      particles.getParticleCountTotal();
   }
   std::cout.precision(6);
@@ -81,6 +84,7 @@ int main(int argc, char* argv[]) {
   u_int N_steps_tau = 10;
   numType dt = tau / N_steps_tau;
   u_int sim_length_in_tau = config.m_maxSteps;
+  sim_length_in_tau = 3000;
   /*
     =============== Initialization ===============
   */
@@ -125,15 +129,14 @@ int main(int argc, char* argv[]) {
   particleGenerator1 = ParticleGenerator(config.particleMassFalse);
   // particleGenerator2 = ParticleGenerator(config.particleMassFalse);
 
-  /*particleGenerator1.calculateCPDBoltzmann(
+ /* particleGenerator1.calculateCPDBoltzmann(
       particle_temperature_in_false_vacuum,
       30 * particle_temperature_in_false_vacuum,
-      1e-5 * particle_temperature_in_false_vacuum);
-  */
-  
+      1e-5 * particle_temperature_in_false_vacuum);*/
+
   particleGenerator1.calculateCPDDelta(3 *
                                        particle_temperature_in_false_vacuum);
-  
+
   // particleGenerator2.calculateCPDBeta(2.5, 1., 2., 2., 0.00001);
 
   ParticleCollection particles(
@@ -246,8 +249,12 @@ int main(int argc, char* argv[]) {
                                    bubble.getInitialRadius());
 
   CollisionCellCollection cells;
+  /*
+    Collision cell length is defined by simulation size. Simulation space with = 2 * boundary_radius.
+    Cell length =  2 * boundary_radius / N_collision_cell_count
+  */
   numType collision_cell_length =
-      boundaryRadius / config.collision_cell_count + dt;
+      2.*boundaryRadius / config.collision_cell_count;
   if (config.SIMULATION_SETTINGS.isFlagSet(COLLISION_ON)) {
     cells = CollisionCellCollection(
         collision_cell_length, config.collision_cell_count,
@@ -279,7 +286,8 @@ int main(int argc, char* argv[]) {
     } else {
       kernels.m_cellAssignmentKernel.setBuffers(particles, cells, buffer_flags);
     }
-
+    kernels.m_collisionCellSumParticlesKernel.setBuffers(particles, cells,
+                                                         buffer_flags);
     kernels.m_rotationKernel.setBuffers(particles, cells, buffer_flags);
     kernels.m_collisionCellResetKernel.setBuffers(cells, buffer_flags);
     kernels.m_collisionCellCalculateGenerationKernel.setBuffers(cells,
@@ -310,44 +318,24 @@ int main(int argc, char* argv[]) {
   std::string dataFolderName = createFileNameFromCurrentDate();
   std::filesystem::path filePath =
       createSimulationFilePath(config.m_dataSavePath, dataFolderName);
-  DataStreamer streamer(filePath.string());
+  // DataStreamer streamer(filePath.string());
+
   DataStreamerBinary streamer2(filePath.string());
   streamer2.initStream_Data();
-  bool momentum_log_scale_on = true;
 
-  if (config.STREAM_SETTINGS.isFlagSet(STREAM_DATA)) {
-    streamer.initStream_Data();
-  }
-  if (config.STREAM_SETTINGS.isFlagSet(STREAM_RADIAL_VELOCITY)) {
-    streamer.initStream_RadialVelocity(config.binsCountRadialVelocity,
-                                       boundaryRadius);
-  }
-  if (config.STREAM_SETTINGS.isFlagSet(STREAM_TANGENTIAL_VELOCITY)) {
-    streamer.initStream_TangentialVelocity(config.binsCountTangentialVelocity,
-                                           boundaryRadius);
-  }
-  if (config.STREAM_SETTINGS.isFlagSet(STREAM_NUMBER_DENSITY)) {
-    streamer.initStream_Density(config.binsCountDensity, boundaryRadius);
-  }
-  if (config.STREAM_SETTINGS.isFlagSet(STREAM_ENERGY_DENSITY)) {
-    streamer.initStream_EnergyDensity(config.binsCountEnergy, boundaryRadius);
-  }
-  if (config.STREAM_SETTINGS.isFlagSet(STREAM_MOMENTUM)) {
-    if (config.STREAM_SETTINGS.isFlagSet(STREAM_MOMENTUM_IN)) {
-      streamer.initStream_MomentumIn(config.binsCountMomentumIn,
-                                     config.minValueMomentumIn,
-                                     config.maxValueMomentumIn, momentum_log_scale_on);
-    }
-    if (config.STREAM_SETTINGS.isFlagSet(STREAM_MOMENTUM_OUT)) {
-      streamer.initStream_MomentumOut(config.binsCountMomentumOut,
-                                      config.minValueMomentumOut,
-                                      config.maxValueMomentumOut, momentum_log_scale_on);
-    }
-  }
-  streamer.stream(simulation, particles, bubble, momentum_log_scale_on,
+  streamer2.initialize_profile_streaming(
+      200 * config.SIMULATION_SETTINGS.isFlagSet(BUBBLE_ON), 200);
+  streamer2.initialize_momentum_streaming(
+      200 * config.SIMULATION_SETTINGS.isFlagSet(BUBBLE_ON), 200,
+      particle_temperature_in_false_vacuum);
+  streamer2.initialize_momentum_radial_profile_streaming(
+      200, 20 * config.SIMULATION_SETTINGS.isFlagSet(BUBBLE_ON), 20,
+      particle_temperature_in_false_vacuum);
+  /*streamer.stream(simulation, particles, bubble, momentum_log_scale_on,
                   kernels.getCommandQueue());
-  streamer2.stream_data(simulation, particles, bubble, momentum_log_scale_on,
-                  kernels.getCommandQueue());
+  */
+  streamer2.stream(simulation, particles, bubble, config.SIMULATION_SETTINGS,
+                   kernels.getCommandQueue());
 
   std::cout << std::endl;
   config.print_info();
@@ -356,7 +344,13 @@ int main(int argc, char* argv[]) {
   std::cout << std::endl;
   std::cout.precision(DEFAULT_COUT_PRECISION);
 
-std::cout.precision(8);
+  std::cout.precision(8);
+
+    std::cout << "Average particle count per cell: "
+            << simulation.calculate_average_particle_count_in_filled_cells(
+                   particles,cells, kernels)
+            << std::endl;
+
   // Create simulation info file which includes description of the simulation
   std::ofstream infoStream(filePath / "info.txt",
                            std::ios::out | std::ios::trunc);
@@ -374,6 +368,10 @@ std::cout.precision(8);
   std::cout << ", time: "
             << convertTimeToHMS(program_end_time - program_start_time)
             << std::endl;
+
+  auto start_time = my_clock::now();
+  auto end_time = my_clock::now();
+
   for (u_int i = 1; i <= N_steps_tau * sim_length_in_tau; i++) {
     if (config.SIMULATION_SETTINGS.isFlagSet(BUBBLE_ON | BUBBLE_INTERACTION_ON |
                                              COLLISION_ON |
@@ -394,17 +392,19 @@ std::cout.precision(8);
     } else {
       simulation.step(bubble, 0);
     }
-
     if (i % config.streamStep == 0) {
-      streamer.stream(simulation, particles, bubble, momentum_log_scale_on,
-                      kernels.getCommandQueue());
-      streamer2.stream_data(simulation, particles, bubble,
-                            momentum_log_scale_on, kernels.getCommandQueue());
+      /*streamer.stream(simulation, particles, bubble, momentum_log_scale_on,
+                      kernels.getCommandQueue());*/
+      simulation.count_collision_cells(cells, kernels);
+      streamer2.stream(simulation, particles, bubble,
+                       config.SIMULATION_SETTINGS, kernels.getCommandQueue());
       program_end_time = my_clock::now();
+      
+
       print_simulation_state(particles, bubble, cells, simulation, config);
       dperl =
           std::pow(plasma_number_density, -1.0 / 3.0) *
-          cells.getCollisionCount() /
+          simulation.getActiveCollidingParticleCount() /
           (simulation.get_dt_currentStep() * particles.getParticleCountTotal());
       std::cout << ", d/l: " << dperl;
       std::cout << ", time: "
@@ -433,8 +433,10 @@ std::cout.precision(8);
   }
 
   // Stream last state
-  streamer.stream(simulation, particles, bubble, momentum_log_scale_on,
-                  kernels.getCommandQueue());
+  // streamer.stream(simulation, particles, bubble, momentum_log_scale_on,
+  //                kernels.getCommandQueue());
+  streamer2.stream(simulation, particles, bubble, config.SIMULATION_SETTINGS,
+                   kernels.getCommandQueue());
 
   // Measure runtime
   program_end_time = my_clock::now();

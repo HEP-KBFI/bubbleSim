@@ -132,6 +132,35 @@ void CollisionCellResetKernel::setBuffers(CollisionCellCollection& t_cells,
   }
 }
 
+void CollisionCellSumParticlesKernel::setBuffers(
+    ParticleCollection& t_particles, CollisionCellCollection& t_cells) {
+  cl_int i;
+    i = m_kernel.setArg(0, t_particles.getParticleEBuffer());
+  i = m_kernel.setArg(1, t_particles.getParticlepXBuffer());
+  i = m_kernel.setArg(2, t_particles.getParticlepYBuffer());
+  i = m_kernel.setArg(3, t_particles.getParticlepZBuffer());
+  i = m_kernel.setArg(4, t_particles.getParticleCollisionCellIndexBuffer());
+  i = m_kernel.setArg(5, t_cells.getCellEBuffer());
+  i = m_kernel.setArg(6, t_cells.getCellpXBuffer());
+  i = m_kernel.setArg(7, t_cells.getCellpYBuffer());
+  i = m_kernel.setArg(8, t_cells.getCellpZBuffer());
+  i = m_kernel.setArg(9, t_cells.getCellLogEBuffer());
+  i = m_kernel.setArg(10, t_cells.getCellParticleCountBuffer());
+}
+
+void CollisionCellSumParticlesKernel::setBuffers(
+    ParticleCollection& t_particles, CollisionCellCollection& t_cells,
+    std::uint64_t t_flags) {
+  if (checkFlags(t_flags)) {
+    setBuffers(t_particles, t_cells);
+  } else {
+    std::cerr << "All buffers for collision cell sum are "
+                 "not initialized."
+              << std::endl;
+    std::exit(1);
+  }
+}
+
 void ParticleStepLinearKernel::setBuffers(
     SimulationParameters& t_simulation_parameters,
     ParticleCollection& t_particles) {

@@ -25,10 +25,11 @@ class SimulationParameters {
   SimulationParameters(numType t_dt, numType t_mass_in, numType t_mass_out,
                        std::uint64_t& t_buffer_flags, cl::Context& cl_context);
   SimulationParameters(numType t_dt, numType t_mass_in, numType t_mass_out,
-                       numType m_boundaryRadius,
+                       numType t_boundaryRadius,
                        std::uint64_t& t_buffer_flags,
                        cl::Context& cl_context);
   numType getDt() { return m_dt; }
+  numType getBoundaryRadius() { return m_boundaryRadius; }
   TimestepAdapter& getTimestepAdapter() { return m_timestepAdapter; }
   cl::Buffer &getDtBuffer() { return m_dtBuffer; }
   cl::Buffer &getBoundaryBuffer() { return m_boundaryRadiusBuffer; }
