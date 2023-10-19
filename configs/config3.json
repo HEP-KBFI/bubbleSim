@@ -8,8 +8,8 @@
         "cyclic_boundary_radius": 324.81475913099746
     },
     "parameters": {
-        "alpha": 0.6,
-        "eta": 3.3333333333333333,
+        "alpha": 0.2,
+        "eta": 3.4482758620689657,
         "upsilon": 2,
         "tau": 0.01,
         "dV": 0.16
@@ -25,7 +25,7 @@
         "mass_false": 0.0,
         "T_false": 0.3,
         "N_false": 750000,
-        "mass_true": 1,
+        "mass_true": 1.0,
         "T_true": 0.0,
         "N_true": 0
     },

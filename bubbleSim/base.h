@@ -22,7 +22,8 @@
 #include "ankerl/ankerl_map.hpp"
 
 // #define TIME_COLLIDE_DEBUG
-//  #define LOG_DEBUG
+// #define LOG_DEBUG
+// #define DEBUG_OPENCL_KERNEL_RUNTIME_PROFILE
 
 typedef cl_double cl_numType;
 typedef double numType;

@@ -81,17 +81,17 @@ std::filesystem::path createSimulationFilePath(std::string& t_dataPath,
 
 void createSimulationInfoFile(std::ofstream& infoStream,
                               std::filesystem::path& filePath,
-                              ConfigReader& t_config, numType t_dV) {
+                              ConfigReader& t_config, numType t_dV, numType boundary) {
   infoStream << "file_name,seed,alpha,eta,upsilon,tau,m-,T-,N-,m+,T+,N+,"
-                "bubbleInteraction,selfInteraction,N_cells,"
-                "radius,speed,dV,runtime"
+                "bubbleInteraction,selfInteraction,collisionSeparateBubble,NcellsAxis,"
+                "initial_radius,initial_speed,boundary_radius,dV,runtime"
              << std::endl;
   numType critical_radius =
       2 * t_config.parameterUpsilon * t_config.bubbleInitialRadius;
 
   infoStream << filePath.filename() << "," << t_config.m_seed << ","
              << t_config.parameterAlpha << "," << t_config.parameterEta << ",";
-  infoStream << t_config.parameterUpsilon << "," << t_config.parameterTau;
+  infoStream << t_config.parameterUpsilon << "," << t_config.parameterTau << ",";
   infoStream << t_config.particleMassFalse << ","
              << t_config.particleTemperatureFalse << ","
              << t_config.particleCountFalse << ",";
@@ -99,9 +99,10 @@ void createSimulationInfoFile(std::ofstream& infoStream,
              << t_config.particleTemperatureTrue << ","
              << t_config.particleCountTrue << ",";
   infoStream << t_config.bubbleInteractionsOn << "," << t_config.collision_on
+             << "," << t_config.collision_two_mass_state_on
              << "," << t_config.collision_cell_count << ",";
   infoStream << t_config.bubbleInitialRadius << ","
-             << t_config.bubbleInitialSpeed << ",";
+             << t_config.bubbleInitialSpeed << "," << boundary << ",";
   infoStream << t_dV << ",";
 }
 

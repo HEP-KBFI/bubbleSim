@@ -21,8 +21,8 @@ numType DataStreamerBinary::calculateParticlePolarMomentum(
 
 numType DataStreamerBinary::calculateParticleAzimuthalMomentum(
     ParticleCollection& particles, numType& phi, size_t i) {
-  return cos(phi) * particles.returnParticlepX(i) -
-         sin(phi) * particles.returnParticlepZ(i);
+  return cos(phi) * particles.returnParticlepY(i) -
+         sin(phi) * particles.returnParticlepX(i);
 }
 
 void DataStreamerBinary::initStream_Data() {
@@ -132,7 +132,8 @@ void DataStreamerBinary::initialize_momentum_radial_profile_streaming(
 
   std::ofstream momentum_info(m_file_path / "README.md",
                               std::ios::out | std::ios_base::app);
-  momentum_info << "Momentum_profile: Momentum_profile_momentum_N_bins=" << t_N_momentum_bins
+  momentum_info << "Momentum_profile: Momentum_profile_momentum_N_bins="
+                << t_N_momentum_bins
                 << "; Momentum_profile_radius_in_N_bins=" << t_N_radius_bins_in
                 << "; Momentum_profile_radius_out_N_bins="
                 << t_N_radius_bins_out << "; scale=" << scale
@@ -167,8 +168,10 @@ void DataStreamerBinary::stream(Simulation& simulation,
   m_stream_data_particle_interacted_false_count = (uint32_t)0;
   m_stream_data_particle_passed_false_count = (uint32_t)0;
   m_stream_data_particle_interacted_true_count = (uint32_t)0;
-  m_stream_data_active_particles_in_collision = simulation.getActiveCollidingParticleCount();
-  m_stream_data_active_cells_in_collision = simulation.getActiveCollisionCellCount();
+  m_stream_data_active_particles_in_collision =
+      simulation.getActiveCollidingParticleCount();
+  m_stream_data_active_cells_in_collision =
+      simulation.getActiveCollisionCellCount();
 
   if (settings.isFlagSet(BUBBLE_INTERACTION_ON)) {
     particleCollection.readInteractedBubbleFalseStateBuffer(cl_queue);
@@ -291,6 +294,9 @@ void DataStreamerBinary::stream(Simulation& simulation,
                 particleCollection.returnParticleX(i));
     theta = acos(particleCollection.returnParticleZ(i) / radius);
 
+    
+
+
     p_R = calculateParticleRadialMomentum(particleCollection, radius, i);
     p_theta = calculateParticlePolarMomentum(particleCollection, theta, phi, i);
     p_phi = calculateParticleAzimuthalMomentum(particleCollection, phi, i);
@@ -299,14 +305,22 @@ void DataStreamerBinary::stream(Simulation& simulation,
     m_particle_count[index] += 1;
     m_T00[index] += energy;
     m_T01[index] += p_R;
-    m_T02[index] += p_theta;
+    m_T02[index] += theta;
+    m_T03[index] += phi;
+    m_T11[index] += pow(p_R, 2.) / energy;
+    m_T22[index] += pow(theta, 2.) / energy;
+    m_T33[index] += pow(phi, 2.) / energy;
+    m_T12[index] += p_R * theta / energy;
+    m_T13[index] += p_R * phi / energy;
+    m_T23[index] += phi * theta / energy;
+    /*m_T02[index] += p_theta;
     m_T03[index] += p_phi;
     m_T11[index] += pow(p_R, 2.) / energy;
     m_T22[index] += pow(p_theta, 2.) / energy;
     m_T33[index] += pow(p_phi, 2.) / energy;
     m_T12[index] += p_R * p_theta / energy;
     m_T13[index] += p_R * p_phi / energy;
-    m_T23[index] += p_phi * p_theta / energy;
+    m_T23[index] += p_phi * p_theta / energy;*/
     m_radial_velocity[index] += p_R / energy;
   }
 

@@ -84,7 +84,6 @@ int main(int argc, char* argv[]) {
   u_int N_steps_tau = 10;
   numType dt = tau / N_steps_tau;
   u_int sim_length_in_tau = config.m_maxSteps;
-  sim_length_in_tau = 3000;
   /*
     =============== Initialization ===============
   */
@@ -129,13 +128,13 @@ int main(int argc, char* argv[]) {
   particleGenerator1 = ParticleGenerator(config.particleMassFalse);
   // particleGenerator2 = ParticleGenerator(config.particleMassFalse);
 
- /* particleGenerator1.calculateCPDBoltzmann(
+  particleGenerator1.calculateCPDBoltzmann(
       particle_temperature_in_false_vacuum,
       30 * particle_temperature_in_false_vacuum,
-      1e-5 * particle_temperature_in_false_vacuum);*/
+      1e-5 * particle_temperature_in_false_vacuum);
 
-  particleGenerator1.calculateCPDDelta(3 *
-                                       particle_temperature_in_false_vacuum);
+  /*particleGenerator1.calculateCPDDelta(3 *
+                                       particle_temperature_in_false_vacuum);*/
 
   // particleGenerator2.calculateCPDBeta(2.5, 1., 2., 2., 0.00001);
 
@@ -250,11 +249,13 @@ int main(int argc, char* argv[]) {
 
   CollisionCellCollection cells;
   /*
-    Collision cell length is defined by simulation size. Simulation space with = 2 * boundary_radius.
-    Cell length =  2 * boundary_radius / N_collision_cell_count
+    Collision cell length is defined by simulation size. Simulation space with =
+    2 * boundary_radius. Cell length =  2 * boundary_radius /
+    N_collision_cell_count
   */
   numType collision_cell_length =
-      2.*boundaryRadius / config.collision_cell_count;
+      boundaryRadius / config.collision_cell_count;
+  std::cout << "Collision cell length: " << collision_cell_length << std::endl;
   if (config.SIMULATION_SETTINGS.isFlagSet(COLLISION_ON)) {
     cells = CollisionCellCollection(
         collision_cell_length, config.collision_cell_count,
@@ -346,15 +347,12 @@ int main(int argc, char* argv[]) {
 
   std::cout.precision(8);
 
-    std::cout << "Average particle count per cell: "
-            << simulation.calculate_average_particle_count_in_filled_cells(
-                   particles,cells, kernels)
-            << std::endl;
-
+  simulation.calculate_average_particle_count_in_filled_cells(particles, cells,
+                                                              kernels);
   // Create simulation info file which includes description of the simulation
   std::ofstream infoStream(filePath / "info.txt",
                            std::ios::out | std::ios::trunc);
-  createSimulationInfoFile(infoStream, filePath, config, dV);
+  createSimulationInfoFile(infoStream, filePath, config, dV, boundaryRadius);
 
   /*
     =============== Run simulation ===============
@@ -393,13 +391,10 @@ int main(int argc, char* argv[]) {
       simulation.step(bubble, 0);
     }
     if (i % config.streamStep == 0) {
-      /*streamer.stream(simulation, particles, bubble, momentum_log_scale_on,
-                      kernels.getCommandQueue());*/
       simulation.count_collision_cells(cells, kernels);
       streamer2.stream(simulation, particles, bubble,
                        config.SIMULATION_SETTINGS, kernels.getCommandQueue());
       program_end_time = my_clock::now();
-      
 
       print_simulation_state(particles, bubble, cells, simulation, config);
       dperl =

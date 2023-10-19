@@ -59,7 +59,7 @@ class Simulation {
   void count_collision_cells(CollisionCellCollection& cells,
                              OpenCLLoader& t_kernels);
 
-  numType calculate_average_particle_count_in_filled_cells(
+  void calculate_average_particle_count_in_filled_cells(
       ParticleCollection& t_particles, CollisionCellCollection t_cells,
       OpenCLLoader& t_kernels);
 

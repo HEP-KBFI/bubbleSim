@@ -23,10 +23,15 @@ CollisionCellCollection::CollisionCellCollection(
 
   m_two_mass_state_on = t_two_mass_state_on;
   if (t_two_mass_state_on) {
-    m_cellCount = 2 * (unsigned int)std::pow(t_cellCountInOneAxis, 3) + 1;
+    // CollisionHack
+    m_cellCount = 50 * 2 * (unsigned int)std::pow(t_cellCountInOneAxis, 3) + 1;
+    //m_cellCount = 2 * (unsigned int)std::pow(t_cellCountInOneAxis, 3) + 1;
   } else {
-    m_cellCount = (unsigned int)std::pow(t_cellCountInOneAxis, 3) + 1;
+    // CollisionHack
+    m_cellCount = 50 * (unsigned int)std::pow(t_cellCountInOneAxis, 3) + 1;
+    //m_cellCount = (unsigned int)std::pow(t_cellCountInOneAxis, 3) + 1;
   }
+
 
   // Collision cell buffers
   m_cell_theta_axis.resize(m_cellCount, 0.);

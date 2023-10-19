@@ -855,12 +855,14 @@ __kernel void collision_cell_sum_particles(
   // Loop over particles and sum neccessary values
   size_t gid = get_global_id(0);
   uint cell_index = particle_collision_cell_index[gid];
-  atomic_add_d(&cell_E[cell_index], particles_E[gid]);
-  atomic_add_d(&cell_pX[cell_index], particles_pX[gid]);
-  atomic_add_d(&cell_pY[cell_index], particles_pY[gid]);
-  atomic_add_d(&cell_pZ[cell_index], particles_pZ[gid]);
-  atomic_add_d(&cell_logE[cell_index], log(particles_E[gid]));
-  atomic_inc(&cell_particle_count[cell_index]);
+  if (cell_index != 0){
+    atomic_add_d(&cell_E[cell_index], particles_E[gid]);
+    atomic_add_d(&cell_pX[cell_index], particles_pX[gid]);
+    atomic_add_d(&cell_pY[cell_index], particles_pY[gid]);
+    atomic_add_d(&cell_pZ[cell_index], particles_pZ[gid]);
+    atomic_add_d(&cell_logE[cell_index], log(particles_E[gid]));
+    atomic_inc(&cell_particle_count[cell_index]);
+  }
 }
 
 __kernel void collision_cell_generate_collisions(
@@ -872,7 +874,7 @@ __kernel void collision_cell_generate_collisions(
     __global ulong *seed, __global double *no_collision_probability) {
 
   size_t gid = get_global_id(0);
-  if (cell_particle_count[gid] != 2) {
+  if (cell_particle_count[gid] != 2 || gid==0) {
     cell_collide_boolean[gid] = (char)0;
   } else {
     double mass = pow(cell_E[gid], 2.) - pow(cell_pX[gid], 2.) -
@@ -898,7 +900,7 @@ __kernel void collision_cell_generate_collisions(
         //         cell_logE[gid])*cell_particle_count[gid]/100.0) {
         if (probability >
             exp((double)cell_particle_count[gid]*(log(cell_E[gid]) - log((double)cell_particle_count[gid])) -
-                cell_logE[gid] - 1.)) {
+                cell_logE[gid] - log(10.))) {
 
           cell_collide_boolean[gid] = (char)0;
         } else {
@@ -1038,13 +1040,15 @@ __kernel void label_particles_position_by_mass(
   particle_in_bubble[gid] = particles_M[gid] == mass_in[0];
 }
 
+// CollisionHack
 __kernel void assign_particle_to_collision_cell(
     __global double *particles_X, __global double *particles_Y,
     __global double *particles_Z,
     __global unsigned int *m_particle_collision_cell_index,
     __global const unsigned int *maxCellIndexInAxis,
-    __global const double *cellLength, __global const double *cuboidShift) {
+    __global const double *cellLength, __global const double *cuboidShift, __global uint *cell_particle_count) {
   size_t gid = get_global_id(0);
+  unsigned int collision_cell_index; 
   // Find cell numbers
   int x_index =
       (int)((particles_X[gid] + cellLength[0] * maxCellIndexInAxis[0] / 2. +
@@ -1061,29 +1065,79 @@ __kernel void assign_particle_to_collision_cell(
   // Idx = 0 -> if particle is outside of the cuboid cell structure
   // Convert cell number into 1D vector
   if ((x_index < 0) || (x_index >= maxCellIndexInAxis[0])) {
-    m_particle_collision_cell_index[gid] = 0;
+    collision_cell_index = 0;
   } else if ((y_index < 0) || (y_index >= maxCellIndexInAxis[0])) {
-    m_particle_collision_cell_index[gid] = 0;
+    collision_cell_index = 0;
   } else if ((z_index < 0) || (z_index >= maxCellIndexInAxis[0])) {
-    m_particle_collision_cell_index[gid] = 0;
+    collision_cell_index = 0;
   } else {
-    m_particle_collision_cell_index[gid] =
+    collision_cell_index =
         1 + x_index + y_index * maxCellIndexInAxis[0] +
         z_index * maxCellIndexInAxis[0] * maxCellIndexInAxis[0];
   }
+
+  // HARD CODED VALUE: SHIFT_MAX = 50
+  if (collision_cell_index!=0){
+    uint old_value = atomic_inc(&cell_particle_count[collision_cell_index]);
+    uint shift_value = old_value / 2;
+    if (shift_value < 50){
+      collision_cell_index += shift_value * 2 * maxCellIndexInAxis[0] * maxCellIndexInAxis[0] * maxCellIndexInAxis[0];
+    }
+    else {
+      collision_cell_index = 0;
+    }
+  }
+
+  m_particle_collision_cell_index[gid] = collision_cell_index;
+
 }
 
+// __kernel void assign_particle_to_collision_cell(
+//     __global double *particles_X, __global double *particles_Y,
+//     __global double *particles_Z,
+//     __global unsigned int *m_particle_collision_cell_index,
+//     __global const unsigned int *maxCellIndexInAxis,
+//     __global const double *cellLength, __global const double *cuboidShift) {
+//   size_t gid = get_global_id(0);
+//   // Find cell numbers
+//   int x_index =
+//       (int)((particles_X[gid] + cellLength[0] * maxCellIndexInAxis[0] / 2. +
+//              cuboidShift[0]) /
+//             cellLength[0]);
+//   int y_index =
+//       (int)((particles_Y[gid] + cellLength[0] * maxCellIndexInAxis[0] / 2. +
+//              cuboidShift[1]) /
+//             cellLength[0]);
+//   int z_index =
+//       (int)((particles_Z[gid] + cellLength[0] * maxCellIndexInAxis[0] / 2. +
+//              cuboidShift[2]) /
+//             cellLength[0]);
+//   // Idx = 0 -> if particle is outside of the cuboid cell structure
+//   // Convert cell number into 1D vector
+//   if ((x_index < 0) || (x_index >= maxCellIndexInAxis[0])) {
+//     m_particle_collision_cell_index[gid] = 0;
+//   } else if ((y_index < 0) || (y_index >= maxCellIndexInAxis[0])) {
+//     m_particle_collision_cell_index[gid] = 0;
+//   } else if ((z_index < 0) || (z_index >= maxCellIndexInAxis[0])) {
+//     m_particle_collision_cell_index[gid] = 0;
+//   } else {
+//     m_particle_collision_cell_index[gid] =
+//         1 + x_index + y_index * maxCellIndexInAxis[0] +
+//         z_index * maxCellIndexInAxis[0] * maxCellIndexInAxis[0];
+//   }
+// }
+
+// CollisionHack
 __kernel void assign_particle_to_collision_cell_two_state(
     __global double *particles_X, __global double *particles_Y,
     __global double *particles_Z,
     __global unsigned int *m_particle_collision_cell_index,
     __global char *particles_bool_in_bubble,
     __global const int *maxCellIndexInAxis, __global const double *cellLength,
-    __global const double *cuboidShift  // Random particle location shift
-
+    __global const double *cuboidShift, __global uint *cell_particle_count
 ) {
   size_t gid = get_global_id(0);
-
+  unsigned int collision_cell_index; 
   // Find cell numbers
   int x_index =
       (int)((particles_X[gid] + cellLength[0] * maxCellIndexInAxis[0] / 2. +
@@ -1101,19 +1155,77 @@ __kernel void assign_particle_to_collision_cell_two_state(
   // Convert cell number into 1D vector. First half of the vector is for outisde
   // the bubble and second half is inside the bubble
   if ((x_index < 0) || (x_index >= maxCellIndexInAxis[0])) {
-    m_particle_collision_cell_index[gid] = 0;
+    collision_cell_index = 0;
   } else if ((y_index < 0) || (y_index >= maxCellIndexInAxis[0])) {
-    m_particle_collision_cell_index[gid] = 0;
+    collision_cell_index = 0;
   } else if ((z_index < 0) || (z_index >= maxCellIndexInAxis[0])) {
-    m_particle_collision_cell_index[gid] = 0;
+    collision_cell_index = 0;
   } else {
-    m_particle_collision_cell_index[gid] =
+    collision_cell_index =
         1 + x_index + y_index * maxCellIndexInAxis[0] +
         z_index * maxCellIndexInAxis[0] * maxCellIndexInAxis[0] +
         particles_bool_in_bubble[gid] * maxCellIndexInAxis[0] *
             maxCellIndexInAxis[0] * maxCellIndexInAxis[0];
   }
+  
+  // HARD CODED VALUE: SHIFT_MAX = 50
+  
+  if (collision_cell_index!=0){
+    uint old_value = atomic_inc(&cell_particle_count[collision_cell_index]);
+    uint shift_value = old_value / 2;
+    if (shift_value < 50){
+      collision_cell_index += shift_value * 2 * maxCellIndexInAxis[0] * maxCellIndexInAxis[0] * maxCellIndexInAxis[0];
+    }
+    else {
+      collision_cell_index = 0;
+    }
+  }
+
+
+  m_particle_collision_cell_index[gid] = collision_cell_index;
 }
+
+// __kernel void assign_particle_to_collision_cell_two_state(
+//     __global double *particles_X, __global double *particles_Y,
+//     __global double *particles_Z,
+//     __global unsigned int *m_particle_collision_cell_index,
+//     __global char *particles_bool_in_bubble,
+//     __global const int *maxCellIndexInAxis, __global const double *cellLength,
+//     __global const double *cuboidShift  // Random particle location shift
+
+// ) {
+//   size_t gid = get_global_id(0);
+
+//   // Find cell numbers
+//   int x_index =
+//       (int)((particles_X[gid] + cellLength[0] * maxCellIndexInAxis[0] / 2. +
+//              cuboidShift[0]) /
+//             cellLength[0]);
+//   int y_index =
+//       (int)((particles_Y[gid] + cellLength[0] * maxCellIndexInAxis[0] / 2. +
+//              cuboidShift[1]) /
+//             cellLength[0]);
+//   int z_index =
+//       (int)((particles_Z[gid] + cellLength[0] * maxCellIndexInAxis[0] / 2. +
+//              cuboidShift[2]) /
+//             cellLength[0]);
+//   // Idx = 0 -> if particle is outside of the cuboid cell structure
+//   // Convert cell number into 1D vector. First half of the vector is for outisde
+//   // the bubble and second half is inside the bubble
+//   if ((x_index < 0) || (x_index >= maxCellIndexInAxis[0])) {
+//     m_particle_collision_cell_index[gid] = 0;
+//   } else if ((y_index < 0) || (y_index >= maxCellIndexInAxis[0])) {
+//     m_particle_collision_cell_index[gid] = 0;
+//   } else if ((z_index < 0) || (z_index >= maxCellIndexInAxis[0])) {
+//     m_particle_collision_cell_index[gid] = 0;
+//   } else {
+//     m_particle_collision_cell_index[gid] =
+//         1 + x_index + y_index * maxCellIndexInAxis[0] +
+//         z_index * maxCellIndexInAxis[0] * maxCellIndexInAxis[0] +
+//         particles_bool_in_bubble[gid] * maxCellIndexInAxis[0] *
+//             maxCellIndexInAxis[0] * maxCellIndexInAxis[0];
+//   }
+// }
 
 /*
 ============================================================================

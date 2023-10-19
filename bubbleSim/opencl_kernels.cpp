@@ -127,6 +127,9 @@ void OpenCLLoader::createQueue(cl::Context& context, cl::Device& device) {
   int errNum;
   cl::CommandQueue queue;
   cl_command_queue_properties properties = 0;
+#ifdef DEBUG_OPENCL_KERNEL_RUNTIME_PROFILE
+  properties = CL_QUEUE_PROFILING_ENABLE; 
+#endif
   m_queue = cl::CommandQueue(context, device, properties, &errNum);
   if (errNum != CL_SUCCESS) {
     std::cerr << "Failed to create a CommandQueue: " << std::endl;
