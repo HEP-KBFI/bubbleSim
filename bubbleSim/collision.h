@@ -13,11 +13,9 @@ class CollisionCellCollection {
   void recalculate_cells(ParticleCollection& t_particles, numType t_dt,
                          numType t_tau, RandomNumberGeneratorNumType& t_rng);
 
-  void recalculate_cells2(ParticleCollection& t_particles);
 
   u_int recalculate_cells3(ParticleCollection& t_particles);
 
-  void generateSeed(RandomNumberGeneratorULong& t_rng);
 
   void resetShiftVector();
 
@@ -27,9 +25,7 @@ class CollisionCellCollection {
     m_no_collision_probability = std::exp(-dt / tau);
   }
 
-  void generate_new_seed(RandomNumberGeneratorULong t_rng) {
-    m_seed_int64 = t_rng.generate_number();
-  }
+  void generate_collision_seeds(RandomNumberGeneratorULong& t_rng);
 
   uint32_t returnParticleCountInCell(u_int i) {
     return m_cell_particle_count[i];
@@ -58,11 +54,9 @@ class CollisionCellCollection {
    */
   std::array<numType, 3>& getShiftVector() { return m_shiftVector; }
 
-  u_int getCellCount() { return m_cellCount; }
+  u_int getCellCount() { return m_cell_count; }
 
   double getNoCollisionProbability() { return m_no_collision_probability; }
-
-  int64_t getSeed() { return m_seed_int64; }
 
   bool getTwoMassStateOn() { return m_two_mass_state_on; }
 
@@ -76,13 +70,13 @@ class CollisionCellCollection {
 
   cl::Buffer& getShiftVectorBuffer() { return m_shiftVectorBuffer; }
 
-  cl::Buffer& getCellCountBuffer() { return m_cellCountBuffer; }
+  cl::Buffer& getCellCountBuffer() { return m_cell_count_buffer; }
 
   cl::Buffer& getNoCollisionProbabilityBuffer() {
     return m_no_collision_probability_buffer;
   }
 
-  cl::Buffer& getSeedBuffer() { return m_seed_int64_buffer; }
+  cl::Buffer& getCollisionSeedsBuffer() { return m_seeds_uint64_buffer; }
 
   cl::Buffer& getCellThetaAxisBuffer() { return m_cell_theta_axis_buffer; }
 
@@ -119,8 +113,8 @@ class CollisionCellCollection {
    */
 
   void writeCellCountBuffer(cl::CommandQueue& cl_queue) {
-    cl_queue.enqueueWriteBuffer(m_cellCountBuffer, CL_TRUE, 0, sizeof(u_int),
-                                &m_cellCount);
+    cl_queue.enqueueWriteBuffer(m_cell_count_buffer, CL_TRUE, 0, sizeof(u_int),
+                                &m_cell_count);
   };
 
   void writeCellCountInOneAxisBuffer(cl::CommandQueue& cl_queue) {
@@ -138,9 +132,10 @@ class CollisionCellCollection {
                                 3 * sizeof(numType), m_shiftVector.data());
   };
 
-  void writeSeedBuffer(cl::CommandQueue& cl_queue) {
-    cl_queue.enqueueWriteBuffer(m_seed_int64_buffer, CL_TRUE, 0,
-                                sizeof(int64_t), &m_seed_int64);
+  void writeCollisionSeedsBuffer(cl::CommandQueue& cl_queue) {
+    cl_queue.enqueueWriteBuffer(m_seeds_uint64_buffer, CL_TRUE, 0,
+                                m_cell_count * sizeof(uint64_t),
+                                m_seeds_uint64.data());
   }
 
   void writeNoCollisionProbabilityBuffer(cl::CommandQueue& cl_queue) {
@@ -150,60 +145,61 @@ class CollisionCellCollection {
 
   void writeCellThetaAxisBuffer(cl::CommandQueue& cl_queue) {
     cl_queue.enqueueWriteBuffer(m_cell_theta_axis_buffer, CL_TRUE, 0,
-                                m_cellCount * sizeof(numType),
+                                m_cell_count * sizeof(numType),
                                 m_cell_theta_axis.data());
   }
 
   void writeCellPhiAxisBuffer(cl::CommandQueue& cl_queue) {
     cl_queue.enqueueWriteBuffer(m_cell_phi_axis_buffer, CL_TRUE, 0,
-                                m_cellCount * sizeof(numType),
+                                m_cell_count * sizeof(numType),
                                 m_cell_phi_axis.data());
   }
 
   void writeCellThetaRotationBuffer(cl::CommandQueue& cl_queue) {
     cl_queue.enqueueWriteBuffer(m_cell_theta_rotation_buffer, CL_TRUE, 0,
-                                m_cellCount * sizeof(numType),
+                                m_cell_count * sizeof(numType),
                                 m_cell_theta_rotation.data());
   }
 
   void writeCellEBuffer(cl::CommandQueue& cl_queue) {
     cl_queue.enqueueWriteBuffer(m_cell_E_buffer, CL_TRUE, 0,
-                                m_cellCount * sizeof(numType), m_cell_E.data());
+                                m_cell_count * sizeof(numType),
+                                m_cell_E.data());
   }
 
   void writeCellLogEBuffer(cl::CommandQueue& cl_queue) {
     cl_queue.enqueueWriteBuffer(m_cell_logE_buffer, CL_TRUE, 0,
-                                m_cellCount * sizeof(numType),
+                                m_cell_count * sizeof(numType),
                                 m_cell_logE.data());
   }
 
   void writeCellpXBuffer(cl::CommandQueue& cl_queue) {
     cl_queue.enqueueWriteBuffer(m_cell_pX_buffer, CL_TRUE, 0,
-                                m_cellCount * sizeof(numType),
+                                m_cell_count * sizeof(numType),
                                 m_cell_pX.data());
   }
 
   void writeCellpYBuffer(cl::CommandQueue& cl_queue) {
     cl_queue.enqueueWriteBuffer(m_cell_pY_buffer, CL_TRUE, 0,
-                                m_cellCount * sizeof(numType),
+                                m_cell_count * sizeof(numType),
                                 m_cell_pY.data());
   }
 
   void writeCellpZBuffer(cl::CommandQueue& cl_queue) {
     cl_queue.enqueueWriteBuffer(m_cell_pZ_buffer, CL_TRUE, 0,
-                                m_cellCount * sizeof(numType),
+                                m_cell_count * sizeof(numType),
                                 m_cell_pZ.data());
   }
 
   void writeCellCollideBooleanBuffer(cl::CommandQueue& cl_queue) {
     cl_queue.enqueueWriteBuffer(m_cell_collide_boolean_buffer, CL_TRUE, 0,
-                                m_cellCount * sizeof(cl_char),
+                                m_cell_count * sizeof(cl_char),
                                 m_cell_collide_boolean.data());
   }
 
   void writeCellParticleCountBuffer(cl::CommandQueue& cl_queue) {
     cl_queue.enqueueWriteBuffer(m_cell_particle_count_buffer, CL_TRUE, 0,
-                                m_cellCount * sizeof(uint32_t),
+                                m_cell_count * sizeof(uint32_t),
                                 m_cell_particle_count.data());
   }
   /////////////////////////////
@@ -267,63 +263,66 @@ class CollisionCellCollection {
   };
 
   void readCellCountBuffer(cl::CommandQueue& cl_queue) {
-    cl_queue.enqueueReadBuffer(m_cellCountBuffer, CL_TRUE, 0,
-                               sizeof(unsigned int), &m_cellCount);
+    cl_queue.enqueueReadBuffer(m_cell_count_buffer, CL_TRUE, 0,
+                               sizeof(unsigned int), &m_cell_count);
   };
 
   void readCellThetaAxisBuffer(cl::CommandQueue& cl_queue) {
     cl_queue.enqueueReadBuffer(m_cell_theta_axis_buffer, CL_TRUE, 0,
-                               m_cellCount * sizeof(numType),
+                               m_cell_count * sizeof(numType),
                                m_cell_theta_axis.data());
   }
 
   void readCellPhiAxisBuffer(cl::CommandQueue& cl_queue) {
     cl_queue.enqueueReadBuffer(m_cell_phi_axis_buffer, CL_TRUE, 0,
-                               m_cellCount * sizeof(numType),
+                               m_cell_count * sizeof(numType),
                                m_cell_phi_axis.data());
   }
 
   void readCellThetaRotationBuffer(cl::CommandQueue& cl_queue) {
     cl_queue.enqueueReadBuffer(m_cell_theta_rotation_buffer, CL_TRUE, 0,
-                               m_cellCount * sizeof(numType),
+                               m_cell_count * sizeof(numType),
                                m_cell_theta_rotation.data());
   }
 
   void readCellEBuffer(cl::CommandQueue& cl_queue) {
     cl_queue.enqueueReadBuffer(m_cell_E_buffer, CL_TRUE, 0,
-                               m_cellCount * sizeof(numType), m_cell_E.data());
+                               m_cell_count * sizeof(numType), m_cell_E.data());
   }
 
   void readCellLogEBuffer(cl::CommandQueue& cl_queue) {
     cl_queue.enqueueReadBuffer(m_cell_logE_buffer, CL_TRUE, 0,
-                               m_cellCount * sizeof(numType),
+                               m_cell_count * sizeof(numType),
                                m_cell_logE.data());
   }
 
   void readCellpXBuffer(cl::CommandQueue& cl_queue) {
     cl_queue.enqueueReadBuffer(m_cell_pX_buffer, CL_TRUE, 0,
-                               m_cellCount * sizeof(numType), m_cell_pX.data());
+                               m_cell_count * sizeof(numType),
+                               m_cell_pX.data());
   }
 
   void readCellpYBuffer(cl::CommandQueue& cl_queue) {
     cl_queue.enqueueReadBuffer(m_cell_pY_buffer, CL_TRUE, 0,
-                               m_cellCount * sizeof(numType), m_cell_pY.data());
+                               m_cell_count * sizeof(numType),
+                               m_cell_pY.data());
   }
 
   void readCellpZBuffer(cl::CommandQueue& cl_queue) {
     cl_queue.enqueueReadBuffer(m_cell_pZ_buffer, CL_TRUE, 0,
-                               m_cellCount * sizeof(numType), m_cell_pZ.data());
+                               m_cell_count * sizeof(numType),
+                               m_cell_pZ.data());
   }
 
   void readCellCollideBooleanBuffer(cl::CommandQueue& cl_queue) {
     cl_queue.enqueueReadBuffer(m_cell_collide_boolean_buffer, CL_TRUE, 0,
-                               m_cellCount * sizeof(cl_char),
+                               m_cell_count * sizeof(cl_char),
                                m_cell_collide_boolean.data());
   }
 
   void readCellParticleCountBuffer(cl::CommandQueue& cl_queue) {
     cl_queue.enqueueReadBuffer(m_cell_particle_count_buffer, CL_TRUE, 0,
-                               m_cellCount * sizeof(uint32_t),
+                               m_cell_count * sizeof(uint32_t),
                                m_cell_particle_count.data());
   }
 
@@ -376,14 +375,14 @@ class CollisionCellCollection {
   u_int m_cellCountInOneAxis;
   cl::Buffer m_cellCountInOneAxisBuffer;
 
-  u_int m_cellCount;
-  cl::Buffer m_cellCountBuffer;
+  u_int m_cell_count;
+  cl::Buffer m_cell_count_buffer;
 
   std::array<numType, 3> m_shiftVector;
   cl::Buffer m_shiftVectorBuffer;
 
-  int64_t m_seed_int64;
-  cl::Buffer m_seed_int64_buffer;
+  std::vector<uint64_t> m_seeds_uint64;
+  cl::Buffer m_seeds_uint64_buffer;
 
   double m_no_collision_probability;
   cl::Buffer m_no_collision_probability_buffer;

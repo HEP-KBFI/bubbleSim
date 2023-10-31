@@ -93,7 +93,7 @@ void CollisionCellGenerationKernel::setBuffers(
   m_kernel.setArg(7, t_cells.getCellCollideBooleanBuffer());
   m_kernel.setArg(8, t_cells.getCellLogEBuffer());
   m_kernel.setArg(9, t_cells.getCellParticleCountBuffer());
-  m_kernel.setArg(10, t_cells.getSeedBuffer());
+  m_kernel.setArg(10, t_cells.getCollisionSeedsBuffer());
   m_kernel.setArg(11, t_cells.getNoCollisionProbabilityBuffer());
 }
 

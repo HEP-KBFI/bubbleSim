@@ -363,11 +363,6 @@ void Simulation::collide2(ParticleCollection& particles,
   cells.calculate_new_no_collision_probability(t_dt, t_tau);
   cells.writeNoCollisionProbabilityBuffer(t_kernels.getCommandQueue());
 
-  while (cells.getSeed() == 0) {
-    cells.generateSeed(t_rng_int);
-  }
-  cells.writeSeedBuffer(t_kernels.getCommandQueue());
-
  #ifdef DEBUG_OPENCL_KERNEL_RUNTIME_PROFILE
   t_kernels.getCommandQueue().enqueueNDRangeKernel(
       t_kernels.m_collisionCellResetKernel.getKernel(), cl::NullRange,
@@ -472,10 +467,6 @@ void Simulation::collide3(ParticleCollection& particles,
   // Generate new seed (seed!=0 as algo does not work in that case)
   start = my_clock::now();
 #endif
-  while (cells.getSeed() == 0) {
-    cells.generateSeed(t_rng_int);
-  }
-  cells.writeSeedBuffer(t_kernels.getCommandQueue());
 #ifdef TIME_COLLIDE_DEBUG
   stop = my_clock::now();
 

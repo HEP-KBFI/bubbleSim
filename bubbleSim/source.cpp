@@ -88,7 +88,7 @@ int main(int argc, char* argv[]) {
     =============== Initialization ===============
   */
   RandomNumberGeneratorNumType rn_generator(config.m_seed);
-  RandomNumberGeneratorULong rn_generator_64int(config.m_seed);
+  RandomNumberGeneratorULong rn_generator_64uint(config.m_seed);
 
   std::cout << std::endl
             << "=============== OpenCL initialization ==============="
@@ -261,6 +261,7 @@ int main(int argc, char* argv[]) {
         collision_cell_length, config.collision_cell_count,
         config.SIMULATION_SETTINGS.isFlagSet(COLLISION_MASS_STATE_ON),
         buffer_flags, kernels.getContext());
+    cells.generate_collision_seeds(rn_generator_64uint);
   }
 
   // Setup buffers for OpenCL
@@ -296,7 +297,7 @@ int main(int argc, char* argv[]) {
 
     cells.writeAllBuffersToKernel(kernels.getCommandQueue());
     cells.writeNoCollisionProbabilityBuffer(kernels.getCommandQueue());
-    cells.writeSeedBuffer(kernels.getCommandQueue());
+    cells.writeCollisionSeedsBuffer(kernels.getCommandQueue());
   }
 
   // Move data to the GPU
@@ -375,7 +376,7 @@ int main(int argc, char* argv[]) {
                                              COLLISION_ON |
                                              SIMULATION_BOUNDARY_ON)) {
       simulation.stepParticleBubbleCollisionBoundary(
-          particles, bubble, cells, rn_generator, rn_generator_64int, kernels);
+          particles, bubble, cells, rn_generator, rn_generator_64uint, kernels);
     } else if (config.SIMULATION_SETTINGS.isFlagSet(BUBBLE_ON |
                                                     BUBBLE_INTERACTION_ON |
                                                     SIMULATION_BOUNDARY_ON)) {
@@ -386,7 +387,7 @@ int main(int argc, char* argv[]) {
     } else if (!config.SIMULATION_SETTINGS.isFlagSet(BUBBLE_ON) &&
                config.SIMULATION_SETTINGS.isFlagSet(COLLISION_ON)) {
       simulation.stepParticleCollisionBoundary(particles, cells, rn_generator,
-                                               rn_generator_64int, kernels);
+                                               rn_generator_64uint, kernels);
     } else {
       simulation.step(bubble, 0);
     }

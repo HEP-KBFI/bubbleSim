@@ -36,14 +36,14 @@ class RandomNumberGeneratorULong {
       m_generator = std::default_random_engine(t_seed);
     }
     m_distribution =
-        std::uniform_int_distribution<int64_t>(0, std::numeric_limits<int64_t>::max());
+        std::uniform_int_distribution<uint64_t>(0, std::numeric_limits<uint64_t>::max());
   }
 
-  int64_t generate_number() { return m_distribution(m_generator); }
+  uint64_t generate_number() { return m_distribution(m_generator); }
 
  private:
   int m_seed = 1;
   std::random_device m_randDev;
   std::default_random_engine m_generator;
-  std::uniform_int_distribution<int64_t> m_distribution;
+  std::uniform_int_distribution<uint64_t> m_distribution;
 };

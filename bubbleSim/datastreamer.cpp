@@ -305,22 +305,14 @@ void DataStreamerBinary::stream(Simulation& simulation,
     m_particle_count[index] += 1;
     m_T00[index] += energy;
     m_T01[index] += p_R;
-    m_T02[index] += theta;
-    m_T03[index] += phi;
-    m_T11[index] += pow(p_R, 2.) / energy;
-    m_T22[index] += pow(theta, 2.) / energy;
-    m_T33[index] += pow(phi, 2.) / energy;
-    m_T12[index] += p_R * theta / energy;
-    m_T13[index] += p_R * phi / energy;
-    m_T23[index] += phi * theta / energy;
-    /*m_T02[index] += p_theta;
+    m_T02[index] += p_theta;
     m_T03[index] += p_phi;
     m_T11[index] += pow(p_R, 2.) / energy;
     m_T22[index] += pow(p_theta, 2.) / energy;
     m_T33[index] += pow(p_phi, 2.) / energy;
     m_T12[index] += p_R * p_theta / energy;
     m_T13[index] += p_R * p_phi / energy;
-    m_T23[index] += p_phi * p_theta / energy;*/
+    m_T23[index] += p_phi * p_theta / energy;
     m_radial_velocity[index] += p_R / energy;
   }
 

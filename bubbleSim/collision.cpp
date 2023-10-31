@@ -24,67 +24,66 @@ CollisionCellCollection::CollisionCellCollection(
   m_two_mass_state_on = t_two_mass_state_on;
   if (t_two_mass_state_on) {
     // CollisionHack
-    m_cellCount = 50 * 2 * (unsigned int)std::pow(t_cellCountInOneAxis, 3) + 1;
-    //m_cellCount = 2 * (unsigned int)std::pow(t_cellCountInOneAxis, 3) + 1;
+    m_cell_count = 50 * 2 * (unsigned int)std::pow(t_cellCountInOneAxis, 3) + 1;
+    // m_cell_count = 2 * (unsigned int)std::pow(t_cellCountInOneAxis, 3) + 1;
   } else {
     // CollisionHack
-    m_cellCount = 50 * (unsigned int)std::pow(t_cellCountInOneAxis, 3) + 1;
-    //m_cellCount = (unsigned int)std::pow(t_cellCountInOneAxis, 3) + 1;
+    m_cell_count = 50 * (unsigned int)std::pow(t_cellCountInOneAxis, 3) + 1;
+    // m_cell_count = (unsigned int)std::pow(t_cellCountInOneAxis, 3) + 1;
   }
 
-
   // Collision cell buffers
-  m_cell_theta_axis.resize(m_cellCount, 0.);
+  m_cell_theta_axis.resize(m_cell_count, 0.);
   m_cell_theta_axis_buffer = cl::Buffer(
       cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-      m_cellCount * sizeof(numType), m_cell_theta_axis.data(), &openCLerrNum);
+      m_cell_count * sizeof(numType), m_cell_theta_axis.data(), &openCLerrNum);
   t_buffer_flags |= CELL_THETA_AXIS_BUFFER;
-  m_cell_phi_axis.resize(m_cellCount, 0.);
+  m_cell_phi_axis.resize(m_cell_count, 0.);
   m_cell_phi_axis_buffer = cl::Buffer(
       cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-      m_cellCount * sizeof(numType), m_cell_phi_axis.data(), &openCLerrNum);
+      m_cell_count * sizeof(numType), m_cell_phi_axis.data(), &openCLerrNum);
   t_buffer_flags |= CELL_PHI_AXIS_BUFFER;
-  m_cell_theta_rotation.resize(m_cellCount, 0.);
+  m_cell_theta_rotation.resize(m_cell_count, 0.);
   m_cell_theta_rotation_buffer =
       cl::Buffer(cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                 m_cellCount * sizeof(numType), m_cell_theta_rotation.data(),
+                 m_cell_count * sizeof(numType), m_cell_theta_rotation.data(),
                  &openCLerrNum);
   t_buffer_flags |= CELL_THETA_ROTATION_BUFFER;
-  m_cell_E.resize(m_cellCount, 0.);
-  m_cell_E_buffer =
-      cl::Buffer(cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                 m_cellCount * sizeof(numType), m_cell_E.data(), &openCLerrNum);
+  m_cell_E.resize(m_cell_count, 0.);
+  m_cell_E_buffer = cl::Buffer(
+      cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+      m_cell_count * sizeof(numType), m_cell_E.data(), &openCLerrNum);
   t_buffer_flags |= CELL_E_BUFFER;
-  m_cell_logE.resize(m_cellCount, 0.);
+  m_cell_logE.resize(m_cell_count, 0.);
   m_cell_logE_buffer = cl::Buffer(
       cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-      m_cellCount * sizeof(numType), m_cell_logE.data(), &openCLerrNum);
+      m_cell_count * sizeof(numType), m_cell_logE.data(), &openCLerrNum);
   t_buffer_flags |= CELL_LOGE_BUFFER;
-  m_cell_pX.resize(m_cellCount, 0.);
+  m_cell_pX.resize(m_cell_count, 0.);
   m_cell_pX_buffer = cl::Buffer(
       cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-      m_cellCount * sizeof(numType), m_cell_pX.data(), &openCLerrNum);
+      m_cell_count * sizeof(numType), m_cell_pX.data(), &openCLerrNum);
   t_buffer_flags |= CELL_PX_BUFFER;
-  m_cell_pY.resize(m_cellCount, 0.);
+  m_cell_pY.resize(m_cell_count, 0.);
   m_cell_pY_buffer = cl::Buffer(
       cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-      m_cellCount * sizeof(numType), m_cell_pY.data(), &openCLerrNum);
+      m_cell_count * sizeof(numType), m_cell_pY.data(), &openCLerrNum);
   t_buffer_flags |= CELL_PY_BUFFER;
-  m_cell_pZ.resize(m_cellCount, 0.);
+  m_cell_pZ.resize(m_cell_count, 0.);
   m_cell_pZ_buffer = cl::Buffer(
       cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-      m_cellCount * sizeof(numType), m_cell_pZ.data(), &openCLerrNum);
+      m_cell_count * sizeof(numType), m_cell_pZ.data(), &openCLerrNum);
   t_buffer_flags |= CELL_PZ_BUFFER;
-  m_cell_collide_boolean.resize(m_cellCount, (cl_char)0);
+  m_cell_collide_boolean.resize(m_cell_count, (cl_char)0);
   m_cell_collide_boolean_buffer =
       cl::Buffer(cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                 m_cellCount * sizeof(cl_char), m_cell_collide_boolean.data(),
+                 m_cell_count * sizeof(cl_char), m_cell_collide_boolean.data(),
                  &openCLerrNum);
   t_buffer_flags |= CELL_COLLIDE_BUFFER;
-  m_cell_particle_count.resize(m_cellCount, (uint32_t)0);
+  m_cell_particle_count.resize(m_cell_count, (uint32_t)0);
   m_cell_particle_count_buffer =
       cl::Buffer(cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                 m_cellCount * sizeof(uint32_t), m_cell_particle_count.data(),
+                 m_cell_count * sizeof(uint32_t), m_cell_particle_count.data(),
                  &openCLerrNum);
   t_buffer_flags |= CELL_PARTICLE_COUNT_BUFFER;
 
@@ -104,10 +103,12 @@ CollisionCellCollection::CollisionCellCollection(
       cl::Buffer(cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
                  3 * sizeof(numType), m_shiftVector.data(), &openCLerrNum);
   t_buffer_flags |= CELL_SHIFT_VECTOR_BUFFER;
-  m_seed_int64 = (int64_t)0;
-  m_seed_int64_buffer =
-      cl::Buffer(cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
-                 sizeof(int64_t), &m_seed_int64, &openCLerrNum);
+
+  m_seeds_uint64.reserve(m_cell_count);
+  m_seeds_uint64_buffer = cl::Buffer(
+      cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
+      m_cell_count * sizeof(uint64_t), m_seeds_uint64.data(), &openCLerrNum);
+
   t_buffer_flags |= CELL_SEED_INT64_BUFFER;
   m_no_collision_probability = 0.;
   m_no_collision_probability_buffer =
@@ -116,8 +117,20 @@ CollisionCellCollection::CollisionCellCollection(
   t_buffer_flags |= CELL_NO_COLLISION_PROBABILITY_BUFFER;
 }
 
-void CollisionCellCollection::generateSeed(RandomNumberGeneratorULong& t_rng) {
-  m_seed_int64 = t_rng.generate_number();
+void CollisionCellCollection::generate_collision_seeds(
+    RandomNumberGeneratorULong& t_rng) {
+  if (m_seeds_uint64.size() > 0) {
+    std::cerr << "Sice of seed vector is already generated (size > 0)"
+              << std::endl;
+    std::exit(0);
+  }
+  uint64_t seed;
+  for (u_int i = 0; i < m_cell_count; i++) {
+    do {
+      seed = t_rng.generate_number();
+    } while (seed == 0);
+    m_seeds_uint64.push_back(seed);
+  }
 }
 
 void CollisionCellCollection::resetShiftVector() {
@@ -144,7 +157,7 @@ void CollisionCellCollection::recalculate_cells(
    * 5 index: Prod(E_i) in a cell
    */
   m_collision_count = (uint32_t)0;
-  std::vector<std::array<cl_numType, 6>> cell_values(m_cellCount,
+  std::vector<std::array<cl_numType, 6>> cell_values(m_cell_count,
                                                      {
                                                          (cl_numType)0.,
                                                          (cl_numType)0.,
@@ -191,7 +204,7 @@ void CollisionCellCollection::recalculate_cells(
   double no_collision_probability_cell = 0.;
   double generated_probability = 0;
   numType no_collision_probability_thermalization = std::exp(-t_dt / t_tau);
-  for (size_t i = 1; i < m_cellCount; i++) {
+  for (size_t i = 1; i < m_cell_count; i++) {
     m_cell_particle_count[i] = (cl_uint)cell_values[i][4];
     if ((cl_uint)cell_values[i][4] < 2) {
       m_cell_collide_boolean[i] = (cl_char)0;
@@ -211,16 +224,16 @@ void CollisionCellCollection::recalculate_cells(
 
     // This requires that generated probaility < no_collision_probability_cell
 
-    no_collision_probability_cell = std::exp(
-        -std::exp(cell_values[i][4] * (std::log(cell_values[i][3]) -
-                                       std::log(cell_values[i][4])) -
-                  cell_values[i][5]));
+    no_collision_probability_cell =
+        std::exp(-std::exp(cell_values[i][4] * (std::log(cell_values[i][3]) -
+                                                std::log(cell_values[i][4])) -
+                           cell_values[i][5]));
 
     collision_probability_cell =
         std::exp(cell_values[i][4] * (std::log(cell_values[i][3]) -
                                       std::log(cell_values[i][4])) -
                  cell_values[i][5]) *
-        cell_values[i][4]/30.;
+        cell_values[i][4] / 30.;
 
     generated_probability = t_rng.generate_number();
 
@@ -326,4 +339,3 @@ u_int CollisionCellCollection::recalculate_cells3(
   }
   return cell_index_new;
 }
-
