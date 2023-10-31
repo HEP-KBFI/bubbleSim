@@ -1176,7 +1176,8 @@ __kernel void assign_particle_to_collision_cell_two_state(
   if (collision_cell_index != 0) {
     uint old_value = atomic_inc(&cell_particle_count[collision_cell_index]);
     uint shift_value = old_value / 2;
-    if (shift_value < cell_duplication[0]) {
+    if (shift_value < cell_duplication[0] && shift_value > 0) {
+      // Multipley by 2 because inside bubble has separate cells
       collision_cell_index += shift_value * 2 * maxCellIndexInAxis[0] *
                               maxCellIndexInAxis[0] * maxCellIndexInAxis[0];
     } else {

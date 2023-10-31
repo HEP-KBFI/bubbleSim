@@ -265,8 +265,9 @@ int main(int argc, char* argv[]) {
   std::cout << "R_cell: " << collision_cell_length << std::endl;
   if (config.SIMULATION_SETTINGS.isFlagSet(COLLISION_ON)) {
     cells = CollisionCellCollection(
-        collision_cell_length, config.collision_cell_count, config.collision_cell_duplication,
+        collision_cell_length, config.collision_cell_count,
         config.SIMULATION_SETTINGS.isFlagSet(COLLISION_MASS_STATE_ON),
+        config.collision_cell_duplication,
         buffer_flags, kernels.getContext());
     cells.generate_collision_seeds(rn_generator_64uint);
   }
