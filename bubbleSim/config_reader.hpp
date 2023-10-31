@@ -30,20 +30,25 @@ class ConfigReader {
   SimulationSettings SIMULATION_SETTINGS = SimulationSettings();
   StreamSettings STREAM_SETTINGS = StreamSettings();
   int m_seed;
-  u_int m_maxSteps;
+  u_int m_max_steps;
   numType dt;
-  numType maxTime;
+  u_int timestep_resolution;
   bool cyclicBoundaryOn;
 
   numType cyclicBoundaryRadius;
   /*
    * Physics parameters
    */
-  numType parameterAlpha;
-  numType parameterEta;
-  numType parameterUpsilon;
-  numType parameterTau;
-  numType parameter_dV;
+  numType alpha;
+  numType eta;
+  numType upsilon;
+  numType sigma;
+  numType tau;
+  numType lambda;
+  numType v;
+  numType y;
+  numType etaV;
+  numType Tn;
   /*
    * Particle parameters
    */
@@ -59,6 +64,7 @@ class ConfigReader {
   bool collision_on;
   bool collision_two_mass_state_on;
   unsigned int collision_cell_count;
+  unsigned int collision_cell_duplication;
 
   /*
    * Bubble parameters
@@ -71,49 +77,41 @@ class ConfigReader {
   /*
    * Streamer parameters
    */
-  bool streamOn;
-  bool streamDataOn;
-  bool streamDensityOn;
-  bool streamEnergyOn;
-  bool streamMomentumInOn;
-  bool streamMomentumOutOn;
-  bool streamRadialVelocityOn;
-  bool streamTangentialVelocityOn;
-
   std::string m_dataSavePath;
-  numType streamTime;  // After what simulation time info is saved
-  int streamStep;
-  int binsCountDensity;
-  int binsCountEnergy;
-  int binsCountRadialVelocity;
-  int binsCountTangentialVelocity;
-  int binsCountMomentumIn;
-  int binsCountMomentumOut;
-  numType minValueMomentumIn;
-  numType minValueMomentumOut;
-  numType maxValueDensity;
-  numType maxValueEnergy;
-  numType maxValueRadialVelocity;
-  numType maxValueTangentialVelocity;
-  numType maxValueMomentumIn;
-  numType maxValueMomentumOut;
+
+  int stream_step;
+
+  bool streaming_on;
+  bool stream_timeseries;
+  bool stream_profile;
+  bool stream_momentum;
+  bool stream_momentum_profile;
+
+  u_int profile_bins_count_in;
+  u_int profile_bins_count_out;
+
+  u_int momentum_bins_count_in;
+  u_int momentum_bins_count_out;
+
+  u_int momentum_profile_momentum_bins_count;
+  u_int momentum_profile_radius_bins_count;
 
   ConfigReader(std::string configPath) {
     std::ifstream configStream(configPath);
     nlohmann::json config = nlohmann::json::parse(configStream);
 
     m_seed = config["simulation"]["seed"];
-    m_maxSteps = config["simulation"]["max_steps"];
-    if (m_maxSteps == 0) {
-      m_maxSteps = std::numeric_limits<int>::max();
-    } else if (m_maxSteps < 0) {
+    m_max_steps = config["simulation"]["max_steps"];
+    if (m_max_steps == 0) {
+      m_max_steps = std::numeric_limits<int>::max();
+    } else if (m_max_steps < 0) {
       std::cerr << "maxSteps is set to negative value. maxSteps >= 0."
                 << std::endl;
       std::terminate();
     }
 
     dt = config["simulation"]["dt"];
-    maxTime = config["simulation"]["max_time"];
+    timestep_resolution = config["simulation"]["timestep_resolution"];
 
     if (config["simulation"]["cyclic_boundary_on"]) {
       SIMULATION_SETTINGS.setFlag(SIMULATION_BOUNDARY_ON);
@@ -123,11 +121,16 @@ class ConfigReader {
     /*
      * Physical parameters
      */
-    parameterAlpha = config["parameters"]["alpha"];
-    parameterEta = config["parameters"]["eta"];
-    parameterUpsilon = config["parameters"]["upsilon"];
-    parameterTau = config["parameters"]["tau"];
-    parameter_dV = config["parameters"]["dV"];
+    alpha = config["parameters"]["alpha"];
+    eta = config["parameters"]["eta"];
+    upsilon = config["parameters"]["upsilon"];
+    tau = config["parameters"]["tau"];
+    lambda = config["parameters"]["lambda"];
+    v = config["parameters"]["v"];
+    y = config["parameters"]["y"];
+    etaV = config["parameters"]["etaV"];
+    sigma = config["parameters"]["sigma"];
+    Tn = config["parameters"]["Tn"];
     /*
      * Particle parameters
      */
@@ -149,6 +152,7 @@ class ConfigReader {
     }
     collision_two_mass_state_on = config["collision"]["two_mass_state_on"];
     collision_cell_count = config["collision"]["N_cells"];
+    collision_cell_duplication = config["collision"]["cell_duplication"];
 
     /*
      * Bubble parameters
@@ -171,67 +175,42 @@ class ConfigReader {
      * Streaming parameters
      */
 
-    if (config["stream"]["stream"]) {
+    streaming_on = config["stream"]["bool_stream"];
+    if (config["stream"]["bool_stream"]) {
       STREAM_SETTINGS.setFlag(STREAM_ON);
     }
-    if (config["stream"]["stream_data"]) {
-      STREAM_SETTINGS.setFlag(STREAM_DATA);
-    }
-    if (config["stream"]["stream_density_profile"]) {
-      STREAM_SETTINGS.setFlag(STREAM_NUMBER_DENSITY);
-    }
-    if (config["stream"]["steam_energy_profile"]) {
-      STREAM_SETTINGS.setFlag(STREAM_ENERGY_DENSITY);
-    }
-    if (config["stream"]["stream_momentum"]) {
-      STREAM_SETTINGS.setFlag(STREAM_MOMENTUM);
-    }
-    if (config["stream"]["stream_momentumIn_profile"]) {
-      STREAM_SETTINGS.setFlag(STREAM_MOMENTUM_IN);
-    }
-    if (config["stream"]["stream_momentumOut_profile"]) {
-      STREAM_SETTINGS.setFlag(STREAM_MOMENTUM_OUT);
-    }
-    if (config["stream"]["stream_radial_velocity"]) {
-      STREAM_SETTINGS.setFlag(STREAM_RADIAL_VELOCITY);
-    }
-    if (config["stream"]["stream_tangential_velocity"]) {
-      STREAM_SETTINGS.setFlag(STREAM_TANGENTIAL_VELOCITY);
+    stream_timeseries = config["stream"]["bool_stream_timeseries"];
+    if (config["stream"]["bool_stream_timeseries"]) {
+      STREAM_SETTINGS.setFlag(STREAM_TIMESERIES);
     }
 
-    streamOn = config["stream"]["stream"];
-    streamDataOn = config["stream"]["stream_data"];
-    streamDensityOn = config["stream"]["stream_density_profile"];
-    streamEnergyOn = config["stream"]["steam_energy_profile"];
-    streamMomentumInOn = config["stream"]["stream_momentumIn_profile"];
-    streamMomentumOutOn = config["stream"]["stream_momentumOut_profile"];
-    streamRadialVelocityOn = config["stream"]["stream_radial_velocity"];
-    streamTangentialVelocityOn = config["stream"]["stream_tangential_velocity"];
+    stream_profile = config["stream"]["bool_stream_profile"];
+    profile_bins_count_in = config["stream"]["profile_bins_count_in"];
+    profile_bins_count_out = config["stream"]["profile_bins_count_out"];
+    if (config["stream"]["bool_stream_profile"]) {
+      STREAM_SETTINGS.setFlag(STREAM_PROFILE);
+    }
+
+    stream_momentum = config["stream"]["bool_stream_momentum"];
+    momentum_bins_count_in = config["stream"]["momentum_bins_count_in"];
+    momentum_bins_count_out = config["stream"]["momentum_bins_count_out"];
+    if (config["stream"]["bool_stream_momentum"]) {
+      STREAM_SETTINGS.setFlag(STREAM_MOMENTUM);
+    }
+
+    stream_momentum_profile = config["stream"]["bool_stream_momentum_profile"];
+    momentum_profile_momentum_bins_count =
+        config["stream"]["momentum_profile_momentum_bins_count"];
+    momentum_profile_radius_bins_count =
+        config["stream"]["momentum_profile_radius_bins_count"];
+    if (config["stream"]["bool_stream_momentum_profile"]) {
+      STREAM_SETTINGS.setFlag(STREAM_MOMENTUM_PROFILE);
+    }
+
     m_dataSavePath = config["stream"]["data_save_path"];
-    streamTime = config["stream"]
-                       ["stream_time"];  // time after which simulation is saved
-    streamStep =
+    stream_step =
         config["stream"]
               ["stream_step"];  // Step after which simulation state is saved
-    // Bins count
-    binsCountDensity = config["stream"]["bins_count_density"];
-    binsCountEnergy = config["stream"]["bins_count_energy"];
-    binsCountRadialVelocity = config["stream"]["bins_count_radial_velocity"];
-    binsCountTangentialVelocity =
-        config["stream"]["bins_count_tangential_velocity"];
-    binsCountMomentumIn = config["stream"]["bins_count_momentumIn"];
-    binsCountMomentumOut = config["stream"]["bins_count_momentumOut"];
-    // Minimum unit value for profile (radius, momentum, etc.)
-    minValueMomentumIn = config["stream"]["min_value_momentumIn"];
-    minValueMomentumOut = config["stream"]["min_value_momentumOut"];
-    // Maximum unit value for profile (radius, momentum, etc.)
-    maxValueDensity = config["stream"]["max_value_density"];
-    maxValueEnergy = config["stream"]["max_value_energy"];
-    maxValueRadialVelocity = config["stream"]["max_value_radial_velocity"];
-    maxValueTangentialVelocity =
-        config["stream"]["max_value_tangential_velocity"];
-    maxValueMomentumIn = config["stream"]["max_value_momentumIn"];
-    maxValueMomentumOut = config["stream"]["max_value_momentumOut"];
   }
   void print_info() {
     std::string sublabel_prefix = "==== ";
@@ -239,15 +218,14 @@ class ConfigReader {
     std::cout << std::setprecision(6);
     std::cout << "=============== Config ===============" << std::endl;
     std::cout << sublabel_prefix + "Simulation" + sublabel_sufix << std::endl;
-    std::cout << "seed: " << m_seed << ", max_steps: " << m_maxSteps
-              << ", dt: " << dt << ", Stream time: " << streamTime
-              << ", Stream step: " << streamStep << std::endl;
+    std::cout << "seed: " << m_seed << ", max_steps: " << m_max_steps
+              << ", dt: " << dt << ", Stream step: " << stream_step << std::endl;
     std::cout << "Cyclic boundary on: " << cyclicBoundaryOn
               << ", Cyclic boundary radius: " << cyclicBoundaryRadius
               << std::endl;
     std::cout << sublabel_prefix + "Parameters" << sublabel_sufix << std::endl;
-    std::cout << "alpha: " << parameterAlpha << ", eta: " << parameterEta
-              << ", upsilon: " << parameterUpsilon << std::endl;
+    std::cout << "alpha: " << alpha << ", eta: " << eta
+              << ", upsilon: " << upsilon << std::endl;
 
     std::cout << sublabel_prefix + "Bubble" << sublabel_sufix << std::endl;
     std::cout << "R_b: " << bubbleInitialRadius

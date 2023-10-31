@@ -83,16 +83,16 @@ class Simulation {
                                   PhaseBubble& bubble, OpenCLLoader& t_kernels);
 
   void collide(ParticleCollection& particles, CollisionCellCollection& cells,
-               numType t_dt, numType t_tau, RandomNumberGeneratorNumType& t_rng,
+               numType t_dt, RandomNumberGeneratorNumType& t_rng,
                OpenCLLoader& t_kernels);
 
-  void collide2(ParticleCollection& particles, CollisionCellCollection& cells,
-                numType t_dt, numType t_tau,
+  void collide_GPU(ParticleCollection& particles, CollisionCellCollection& cells,
+                numType t_dt, 
                 RandomNumberGeneratorNumType& t_rng_numtype,
                 RandomNumberGeneratorULong& t_rng_int, OpenCLLoader& t_kernels);
 
   void collide3(ParticleCollection& particles, CollisionCellCollection& cells,
-                numType t_dt, numType t_tau,
+                numType t_dt, 
                 RandomNumberGeneratorNumType& t_rng_numtype,
                 RandomNumberGeneratorULong& t_rng_int, OpenCLLoader& t_kernels);
 

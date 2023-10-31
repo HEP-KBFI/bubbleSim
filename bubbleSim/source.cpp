@@ -73,22 +73,61 @@ int main(int argc, char* argv[]) {
   std::cout << "Config path: " << s_configPath << std::endl;
   std::cout << "Kernel path: " << s_kernelPath << std::endl;
   ConfigReader config(s_configPath);
-
+  RandomNumberGeneratorNumType rn_generator(config.m_seed);
+  RandomNumberGeneratorULong rn_generator_64uint(config.m_seed);
+  std::cout << "siin" << std::endl;
   /* TODO:
     Tau is defined in config. In current setup dt depends on tau: dt= tau/N.
     Tau should be representing thermalization time in some sence.
     In the future dt and tau are separate but probability to collide still
     depends on exp(-dt/tau).
   */
-  numType tau = config.parameterTau;
-  u_int N_steps_tau = 10;
-  numType dt = tau / N_steps_tau;
-  u_int sim_length_in_tau = config.m_maxSteps;
+  numType dV =
+      config.lambda * std::pow(config.v, 4.0) * (1 - 2 * config.etaV) / 12.;
+
+  // Particles
+  numType particle_mass_in_false_vacuum = config.particleMassFalse;
+  numType particle_mass_in_true_vacuum = config.v * config.y;
+  numType particle_deltaM =
+      std::sqrt(std::pow(particle_mass_in_true_vacuum, 2.) -
+                std::pow(particle_mass_in_false_vacuum, 2.));
+  numType particle_temperature_in_false_vacuum = config.Tn;
+  numType n_false_boltzmann = calculate_boltzmann_number_density(
+      particle_temperature_in_false_vacuum, config.particleMassFalse);
+  numType rho_false_boltzmann = calculate_boltzmann_energy_density(
+      particle_temperature_in_false_vacuum, config.particleMassFalse);
+  numType particle_eta = particle_deltaM / particle_temperature_in_false_vacuum;
+
+  std::cout << "m-: " << particle_mass_in_false_vacuum
+            << ", m+: " << particle_mass_in_true_vacuum << std::endl;
+  std::cout << "T-: " << particle_temperature_in_false_vacuum
+            << ", eta: " << particle_eta << std::endl;
+  std::cout << "n-: " << n_false_boltzmann << ", rho-: " << rho_false_boltzmann
+            << std::endl;
+
+  // Bubble
+  numType bubble_critical_radius = 2 * config.sigma / dV;
+  numType bubble_initial_radius =
+      config.upsilon * bubble_critical_radius *
+      config.SIMULATION_SETTINGS.isFlagSet(BUBBLE_ON);
+  numType simulation_boundary_radius =
+      std::cbrt(config.particleCountFalse / n_false_boltzmann +
+                4. * M_PI * std::pow(bubble_initial_radius, 3.) / 3.) /
+      2.0;
+
+  std::cout << "R_c: " << bubble_critical_radius
+            << ", R_b(0): " << bubble_initial_radius << " ("
+            << bubble_initial_radius / bubble_critical_radius << "R_c)"
+            << ", R_bd: " << simulation_boundary_radius << " ("
+            << simulation_boundary_radius / bubble_critical_radius << "R_c)"
+            << std::endl;
+
+  numType dt = simulation_boundary_radius / config.timestep_resolution;
+  numType tau = 10. * dt;
+
   /*
     =============== Initialization ===============
   */
-  RandomNumberGeneratorNumType rn_generator(config.m_seed);
-  RandomNumberGeneratorULong rn_generator_64uint(config.m_seed);
 
   std::cout << std::endl
             << "=============== OpenCL initialization ==============="
@@ -100,32 +139,10 @@ int main(int argc, char* argv[]) {
             << std::endl;
   std::cout << std::setprecision(6) << std::fixed << std::showpoint;
 
-  numType no_particle_radius = (config.SIMULATION_SETTINGS.isFlagSet(BUBBLE_ON))
-                                   ? config.bubbleInitialRadius
-                                   : 0.;
-  numType deltaM = std::sqrt(std::pow(config.particleMassTrue, 2.) -
-                             std::pow(config.particleMassFalse, 2.));
-  numType particle_temperature_in_false_vacuum =
-      std::sqrt(deltaM) / config.parameterEta;
-
-  numType n_boltzmann = calculate_boltzmann_number_density(
-      particle_temperature_in_false_vacuum, config.particleMassFalse);
-  numType rho_boltzmann = calculate_boltzmann_energy_density(
-      particle_temperature_in_false_vacuum, config.particleMassFalse);
-  numType boundaryRadius =
-      std::cbrt(config.particleCountFalse / n_boltzmann +
-                4. * M_PI * std::pow(no_particle_radius, 3.) / 3.) /
-      2.0;
-
-  std::cout << "T-/ m + : "
-            << particle_temperature_in_false_vacuum / config.particleMassTrue
-            << ", R_b(t=0): " << no_particle_radius
-            << ", R(boundary): " << boundaryRadius << std::endl;
-
   ParticleGenerator particleGenerator1;
   // ParticleGenerator particleGenerator2;
 
-  particleGenerator1 = ParticleGenerator(config.particleMassFalse);
+  particleGenerator1 = ParticleGenerator(particle_mass_in_false_vacuum);
   // particleGenerator2 = ParticleGenerator(config.particleMassFalse);
 
   particleGenerator1.calculateCPDBoltzmann(
@@ -145,7 +162,7 @@ int main(int argc, char* argv[]) {
 
   numType generatedParticleEnergy;
   generatedParticleEnergy = particleGenerator1.generateNParticlesInCube(
-      no_particle_radius, boundaryRadius,
+      bubble_initial_radius, simulation_boundary_radius,
       (u_int)(particles.getParticleCountTotal()), rn_generator, particles);
   /*generatedParticleEnergy += particleGenerator2.generateNParticlesInCube(
       config.bubbleInitialRadius, config.cyclicBoundaryRadius,
@@ -154,12 +171,12 @@ int main(int argc, char* argv[]) {
   particles.add_to_total_initial_energy(generatedParticleEnergy);
 
   numType initial_false_vacuum_volume =
-      8 * std::pow(boundaryRadius, 3.) -
-      4. * M_PI * std::pow(no_particle_radius, 3.) / 3.;
+      8 * std::pow(simulation_boundary_radius, 3.) -
+      4. * M_PI * std::pow(bubble_initial_radius, 3.) / 3.;
 
-  numType plasma_energy_density =
+  numType generated_plasma_rho =
       generatedParticleEnergy / initial_false_vacuum_volume;
-  numType plasma_number_density =
+  numType generated_plasma_n =
       config.particleCountFalse / initial_false_vacuum_volume;
 
   numType dperl = 0.;
@@ -169,17 +186,14 @@ int main(int argc, char* argv[]) {
                (config.particleCountFalse * M_PI * M_PI);
 
   std::cout << "Energy density scale factor (m-=0): " << mu << std::endl;
-  std::cout << "rho- : " << rho_boltzmann
-            << ", rho(false): " << plasma_energy_density
+  std::cout << "rho- : " << rho_false_boltzmann
+            << ", rho(false): " << generated_plasma_rho
             << ", rho(sim)/rho(anal.): "
-            << plasma_energy_density / rho_boltzmann << std::endl;
-  std::cout << "n-: " << n_boltzmann << ", n(false): " << plasma_number_density
-            << ", n(sim)/n(anal.): " << plasma_number_density / n_boltzmann
+            << generated_plasma_rho / rho_false_boltzmann << std::endl;
+  std::cout << "n-: " << n_false_boltzmann
+            << ", n(false): " << generated_plasma_n
+            << ", n(sim)/n(anal.): " << generated_plasma_n / n_false_boltzmann
             << std::endl;
-
-  numType alpha = config.parameterAlpha;
-  numType dV = (alpha * plasma_energy_density +
-                particle_temperature_in_false_vacuum * plasma_number_density);
 
   /* TODO:
   In development: step revert. Add methdos which save state state after each
@@ -188,16 +202,9 @@ int main(int argc, char* argv[]) {
   turn it on/off.
   */
   // particles.makeCopy();
-  numType critical_radius =
-      config.bubbleInitialRadius / config.parameterUpsilon;
 
-  numType sigma =
-      (alpha * plasma_energy_density +
-       plasma_number_density * particle_temperature_in_false_vacuum) *
-      critical_radius / 2.0;
-  std::cout << "dV/rho-: " << dV / plasma_energy_density
-            << ", sigma/(dV*R0): " << sigma / (dV * config.bubbleInitialRadius)
-            << std::endl;
+  std::cout << "dV/rho-: " << dV / generated_plasma_rho << ", sigma/(dV*R0): "
+            << config.sigma / (dV * bubble_initial_radius) << std::endl;
 
   // If bubble is true vacuum then dV is + sign. Otherwise dV sign is -.
   if (!config.SIMULATION_SETTINGS.isFlagSet(TRUE_VACUUM_BUBBLE_ON)) {
@@ -206,9 +213,9 @@ int main(int argc, char* argv[]) {
 
   PhaseBubble bubble;
   if (config.SIMULATION_SETTINGS.isFlagSet(BUBBLE_ON)) {
-    bubble =
-        PhaseBubble(config.bubbleInitialRadius, config.bubbleInitialSpeed, dV,
-                    sigma, critical_radius, buffer_flags, kernels.getContext());
+    bubble = PhaseBubble(bubble_initial_radius, config.bubbleInitialSpeed, dV,
+                         config.sigma, bubble_critical_radius, buffer_flags,
+                         kernels.getContext());
   }
 
   SimulationParameters simulation_parameters;
@@ -216,17 +223,17 @@ int main(int argc, char* argv[]) {
 
   numType particle_mass_in =
       (config.SIMULATION_SETTINGS.isFlagSet(TRUE_VACUUM_BUBBLE_ON))
-          ? config.particleMassTrue
-          : config.particleMassFalse;
+          ? particle_mass_in_true_vacuum
+          : particle_mass_in_false_vacuum;
   numType particle_mass_out =
       (config.SIMULATION_SETTINGS.isFlagSet(TRUE_VACUUM_BUBBLE_ON))
-          ? config.particleMassFalse
-          : config.particleMassTrue;
+          ? particle_mass_in_false_vacuum
+          : particle_mass_in_true_vacuum;
 
   if (config.SIMULATION_SETTINGS.isFlagSet(SIMULATION_BOUNDARY_ON)) {
     simulation_parameters = SimulationParameters(
-        dt, particle_mass_in, particle_mass_out, boundaryRadius, buffer_flags,
-        kernels.getContext());
+        dt, particle_mass_in, particle_mass_out, simulation_boundary_radius,
+        buffer_flags, kernels.getContext());
   } else if (config.SIMULATION_SETTINGS.isFlagSet(BUBBLE_ON)) {
     simulation_parameters =
         SimulationParameters(dt, particle_mass_in, particle_mass_out,
@@ -239,7 +246,7 @@ int main(int argc, char* argv[]) {
   simulation = Simulation(config.m_seed, dt, simulation_parameters,
                           kernels.getContext());
 
-  simulation.setTau(config.parameterTau);
+  simulation.setTau(tau);
 
   // Add all energy together in simulation for later use
   simulation.addInitialTotalEnergy(particles.getInitialTotalEnergy());
@@ -254,8 +261,8 @@ int main(int argc, char* argv[]) {
     N_collision_cell_count
   */
   numType collision_cell_length =
-      boundaryRadius / config.collision_cell_count;
-  std::cout << "Collision cell length: " << collision_cell_length << std::endl;
+      2.0 * simulation_boundary_radius / config.collision_cell_count;
+  std::cout << "R_cell: " << collision_cell_length << std::endl;
   if (config.SIMULATION_SETTINGS.isFlagSet(COLLISION_ON)) {
     cells = CollisionCellCollection(
         collision_cell_length, config.collision_cell_count,
@@ -353,7 +360,7 @@ int main(int argc, char* argv[]) {
   // Create simulation info file which includes description of the simulation
   std::ofstream infoStream(filePath / "info.txt",
                            std::ios::out | std::ios::trunc);
-  createSimulationInfoFile(infoStream, filePath, config, dV, boundaryRadius);
+  createSimulationInfoFile(infoStream, filePath, config, bubble_critical_radius,bubble_initial_radius,simulation_boundary_radius);
 
   /*
     =============== Run simulation ===============
@@ -371,7 +378,7 @@ int main(int argc, char* argv[]) {
   auto start_time = my_clock::now();
   auto end_time = my_clock::now();
 
-  for (u_int i = 1; i <= N_steps_tau * sim_length_in_tau; i++) {
+  for (u_int i = 1; i <= config.m_max_steps; i++) {
     if (config.SIMULATION_SETTINGS.isFlagSet(BUBBLE_ON | BUBBLE_INTERACTION_ON |
                                              COLLISION_ON |
                                              SIMULATION_BOUNDARY_ON)) {
@@ -391,7 +398,7 @@ int main(int argc, char* argv[]) {
     } else {
       simulation.step(bubble, 0);
     }
-    if (i % config.streamStep == 0) {
+    if (i % config.stream_step == 0) {
       simulation.count_collision_cells(cells, kernels);
       streamer2.stream(simulation, particles, bubble,
                        config.SIMULATION_SETTINGS, kernels.getCommandQueue());
@@ -399,7 +406,7 @@ int main(int argc, char* argv[]) {
 
       print_simulation_state(particles, bubble, cells, simulation, config);
       dperl =
-          std::pow(plasma_number_density, -1.0 / 3.0) *
+          std::pow(generated_plasma_n, -1.0 / 3.0) *
           simulation.getActiveCollidingParticleCount() /
           (simulation.get_dt_currentStep() * particles.getParticleCountTotal());
       std::cout << ", d/l: " << dperl;
@@ -419,7 +426,7 @@ int main(int argc, char* argv[]) {
                   << bubble.getSpeed() << ")" << std::endl;
         break;
       }
-      if ((bubble.getRadius() >= boundaryRadius) && (config.cyclicBoundaryOn)) {
+      if ((bubble.getRadius() >= simulation_boundary_radius) && (config.cyclicBoundaryOn)) {
         std::cerr
             << "Ending simulation. Bubble radius >= simulation boundary radius."
             << std::endl;

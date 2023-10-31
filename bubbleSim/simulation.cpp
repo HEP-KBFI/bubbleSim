@@ -210,7 +210,7 @@ void Simulation::step(PhaseBubble& bubble, numType t_dP) {
 
 void Simulation::collide(ParticleCollection& particles,
                          CollisionCellCollection& cells, numType t_dt,
-                         numType t_tau, RandomNumberGeneratorNumType& t_rng,
+                         RandomNumberGeneratorNumType& t_rng,
                          OpenCLLoader& t_kernels) {
 #ifdef TIME_COLLIDE_DEBUG
   auto start = my_clock::now();
@@ -257,7 +257,7 @@ void Simulation::collide(ParticleCollection& particles,
             << clock_micros(stop - start).count() << std::endl;
   start = my_clock::now();
 #endif
-  cells.recalculate_cells(particles, t_dt, t_tau, t_rng);
+  cells.recalculate_cells(particles, t_dt, m_tau, t_rng);
 
 #ifdef TIME_COLLIDE_DEBUG
   stop = my_clock::now();
@@ -288,12 +288,12 @@ void Simulation::collide(ParticleCollection& particles,
 #endif
 }
 
-void Simulation::collide2(ParticleCollection& particles,
-                          CollisionCellCollection& cells, numType t_dt,
-                          numType t_tau,
-                          RandomNumberGeneratorNumType& t_rng_numtype,
-                          RandomNumberGeneratorULong& t_rng_int,
-                          OpenCLLoader& t_kernels) {
+void Simulation::collide_GPU(ParticleCollection& particles,
+                             CollisionCellCollection& cells, numType t_dt,
+
+                             RandomNumberGeneratorNumType& t_rng_numtype,
+                             RandomNumberGeneratorULong& t_rng_int,
+                             OpenCLLoader& t_kernels) {
 #ifdef DEBUG_OPENCL_KERNEL_RUNTIME_PROFILE
   cl::Event event;
 
@@ -303,13 +303,13 @@ void Simulation::collide2(ParticleCollection& particles,
   cells.generateShiftVector(t_rng_numtype);
   cells.writeShiftVectorBuffer(t_kernels.getCommandQueue());
 
-  // CollisionHack
 #ifdef DEBUG_OPENCL_KERNEL_RUNTIME_PROFILE
   t_kernels.getCommandQueue().enqueueNDRangeKernel(
       t_kernels.m_collisionCellResetKernel.getKernel(), cl::NullRange,
       cl::NDRange(cells.getCellCount()), cl::NullRange, NULL, &event);
 #endif
 #ifndef DEBUG_OPENCL_KERNEL_RUNTIME_PROFILE
+  // Only required if multiplying the collision cell count
   t_kernels.getCommandQueue().enqueueNDRangeKernel(
       t_kernels.m_collisionCellResetKernel.getKernel(), cl::NullRange,
       cl::NDRange(cells.getCellCount()));
@@ -360,10 +360,10 @@ void Simulation::collide2(ParticleCollection& particles,
   std::cout << "= Cell assignment kernel (us.): " << time_total << std::endl;
 #endif
 
-  cells.calculate_new_no_collision_probability(t_dt, t_tau);
+  cells.calculate_new_no_collision_probability(t_dt, m_tau);
   cells.writeNoCollisionProbabilityBuffer(t_kernels.getCommandQueue());
 
- #ifdef DEBUG_OPENCL_KERNEL_RUNTIME_PROFILE
+#ifdef DEBUG_OPENCL_KERNEL_RUNTIME_PROFILE
   t_kernels.getCommandQueue().enqueueNDRangeKernel(
       t_kernels.m_collisionCellResetKernel.getKernel(), cl::NullRange,
       cl::NDRange(cells.getCellCount()), cl::NullRange, NULL, &event);
@@ -397,7 +397,8 @@ void Simulation::collide2(ParticleCollection& particles,
   std::cout << "= Cell summation kernel (us.): " << time_total << std::endl;
   t_kernels.getCommandQueue().enqueueNDRangeKernel(
       t_kernels.m_collisionCellCalculateGenerationKernel.getKernel(),
-      cl::NullRange, cl::NDRange(cells.getCellCount()), cl::NullRange, NULL, &event);
+      cl::NullRange, cl::NDRange(cells.getCellCount()), cl::NullRange, NULL,
+      &event);
 #endif
 #ifndef DEBUG_OPENCL_KERNEL_RUNTIME_PROFILE
   t_kernels.getCommandQueue().enqueueNDRangeKernel(
@@ -406,14 +407,14 @@ void Simulation::collide2(ParticleCollection& particles,
 #endif
 #ifdef DEBUG_OPENCL_KERNEL_RUNTIME_PROFILE
   t_kernels.getCommandQueue().finish();
-  time_start =
-      event.getProfilingInfo<CL_PROFILING_COMMAND_START>();
+  time_start = event.getProfilingInfo<CL_PROFILING_COMMAND_START>();
   time_end = event.getProfilingInfo<CL_PROFILING_COMMAND_END>();
   time_total = (time_end - time_start) / 1000;
   std::cout << "= Cell generation kernel (us.): " << time_total << std::endl;
   t_kernels.getCommandQueue().enqueueNDRangeKernel(
       t_kernels.m_rotationKernel.getKernel(), cl::NullRange,
-      cl::NDRange(particles.getParticleCountTotal()), cl::NullRange, NULL, &event);
+      cl::NDRange(particles.getParticleCountTotal()), cl::NullRange, NULL,
+      &event);
 #endif
 #ifndef DEBUG_OPENCL_KERNEL_RUNTIME_PROFILE
   t_kernels.getCommandQueue().enqueueNDRangeKernel(
@@ -422,17 +423,16 @@ void Simulation::collide2(ParticleCollection& particles,
 #endif
 #ifdef DEBUG_OPENCL_KERNEL_RUNTIME_PROFILE
   t_kernels.getCommandQueue().finish();
-  time_start =
-      event.getProfilingInfo<CL_PROFILING_COMMAND_START>();
+  time_start = event.getProfilingInfo<CL_PROFILING_COMMAND_START>();
   time_end = event.getProfilingInfo<CL_PROFILING_COMMAND_END>();
-  time_total = (time_end - time_start)/1000;
+  time_total = (time_end - time_start) / 1000;
   std::cout << "= Cell rotation kernel (us.): " << time_total << std::endl;
 #endif
 }
 
 void Simulation::collide3(ParticleCollection& particles,
                           CollisionCellCollection& cells, numType t_dt,
-                          numType t_tau,
+
                           RandomNumberGeneratorNumType& t_rng_numtype,
                           RandomNumberGeneratorULong& t_rng_int,
                           OpenCLLoader& t_kernels) {
@@ -458,7 +458,7 @@ void Simulation::collide3(ParticleCollection& particles,
   // Generate probabilty that collision does not happen
   start = my_clock::now();
 #endif
-  cells.calculate_new_no_collision_probability(t_dt, t_tau);
+  cells.calculate_new_no_collision_probability(t_dt, m_tau);
   cells.writeNoCollisionProbabilityBuffer(t_kernels.getCommandQueue());
 #ifdef TIME_COLLIDE_DEBUG
   stop = my_clock::now();
@@ -552,35 +552,13 @@ void Simulation::stepParticleCollisionBoundary(
 #endif
 
   // Full CPU algorithm
-  /* collide(particles, cells, m_dt_current, getTau(), t_rng_numtype,
-    t_kernels);*/
+  // collide(particles, cells, m_dt_current, t_rng_numtype, t_kernels);
+  collide_GPU(particles, cells, m_dt_current, t_rng_numtype, t_rng_int,
+              t_kernels);
 
-  // Full GPU algorithm
-  collide2(particles, cells, m_dt_current, getTau(), t_rng_numtype, t_rng_int,
-           t_kernels);
-
-  // CollisionHack
-  /*cells.readCellParticleCountBuffer(t_kernels.getCommandQueue());
-  u_int max_count = 0;
-  for (u_int i = 1; i < cells.getCellCount(); i++) {
-    if (cells.returnParticleCountInCell(i) > max_count) {
-      max_count = cells.returnParticleCountInCell(i);
-    }
-  }
-  std::cout << "Max count: " << max_count << std::endl;
-  std::cout << "Index 0: " << cells.returnParticleCountInCell(0) << std::endl;
-  exit(0);*/
-
-  /* Not optimized and not working.
-  collide3(particles, cells, m_dt_current, getTau(), t_rng_numtype, t_rng_int,
-           t_kernels);
-  */
-  /*u_int collision_cell_count = 0;
-  cells.readCellCollideBooleanBuffer(t_kernels.getCommandQueue());
-  for (int i = 0; i < cells.getCellCount(); i++) {
-    collision_cell_count += cells.returnCellCollideBoolean(i);
-  }
-  std::cout << "Collision cell count: " << collision_cell_count << std::endl;*/
+  // Not optimized and not working.
+  // collide3(particles, cells, m_dt_current, t_rng_numtype, t_rng_int,
+  // t_kernels);
 
 #ifdef TIME_COLLIDE_DEBUG
   stop = my_clock::now();
@@ -632,10 +610,9 @@ void Simulation::stepParticleBubbleCollisionBoundary(
 #ifdef TIME_COLLIDE_DEBUG
   auto start = my_clock::now();
 #endif
-  // collide(particles, cells, m_dt_current, getTau(), t_rng_numtype,
-  // t_kernels);
-  collide2(particles, cells, m_dt_current, getTau(), t_rng_numtype, t_rng_int,
-           t_kernels);
+  // collide(particles, cells, m_dt_current, t_rng_numtype, t_kernels);
+  collide_GPU(particles, cells, m_dt_current, t_rng_numtype, t_rng_int,
+              t_kernels);
 #ifdef TIME_COLLIDE_DEBUG
   auto stop = my_clock::now();
   auto duration =

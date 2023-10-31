@@ -28,9 +28,9 @@ std::string convertTimeToHMS(
   auto s = std::chrono::duration_cast<std::chrono::seconds>(d);
   // std::string result = std::to_string(h.count()) + ":" +
   // std::to_string(m.count()) + ":" + std::to_string(s.count()) + "s";
-  
-  std::string hh =
-      (h.count() < 10) ? "0" + std::to_string(int(h.count())) : std::to_string(int(h.count()));
+
+  std::string hh = (h.count() < 10) ? "0" + std::to_string(int(h.count()))
+                                    : std::to_string(int(h.count()));
   std::string mm = (m.count() < 10) ? "0" + std::to_string(int(m.count()))
                                     : std::to_string(int(m.count()));
   std::string ss = (s.count() < 10) ? "0" + std::to_string(int(s.count()))
@@ -81,29 +81,27 @@ std::filesystem::path createSimulationFilePath(std::string& t_dataPath,
 
 void createSimulationInfoFile(std::ofstream& infoStream,
                               std::filesystem::path& filePath,
-                              ConfigReader& t_config, numType t_dV, numType boundary) {
-  infoStream << "file_name,seed,alpha,eta,upsilon,tau,m-,T-,N-,m+,T+,N+,"
-                "bubbleInteraction,selfInteraction,collisionSeparateBubble,NcellsAxis,"
-                "initial_radius,initial_speed,boundary_radius,dV,runtime"
-             << std::endl;
-  numType critical_radius =
-      2 * t_config.parameterUpsilon * t_config.bubbleInitialRadius;
+                              ConfigReader& t_config, numType critical_radius,
+                              numType initial_radius, numType boundary_radius) {
+  infoStream
+      << "file_name,seed,upsilon,lambda,v,y,etaV,sigma,Tn,m-,N-,N+,"
+         "bubble_on,bubble_interaction_on,collision_on,collision_two_mass_"
+         "cells_on,cell_count_in_one_axis,"
+         "initial_speed,critical_radius,initial_radius,boundary_radius,runtime"
+      << std::endl;
 
   infoStream << filePath.filename() << "," << t_config.m_seed << ","
-             << t_config.parameterAlpha << "," << t_config.parameterEta << ",";
-  infoStream << t_config.parameterUpsilon << "," << t_config.parameterTau << ",";
-  infoStream << t_config.particleMassFalse << ","
-             << t_config.particleTemperatureFalse << ","
-             << t_config.particleCountFalse << ",";
-  infoStream << t_config.particleMassTrue << ","
-             << t_config.particleTemperatureTrue << ","
-             << t_config.particleCountTrue << ",";
-  infoStream << t_config.bubbleInteractionsOn << "," << t_config.collision_on
-             << "," << t_config.collision_two_mass_state_on
-             << "," << t_config.collision_cell_count << ",";
-  infoStream << t_config.bubbleInitialRadius << ","
-             << t_config.bubbleInitialSpeed << "," << boundary << ",";
-  infoStream << t_dV << ",";
+             << t_config.upsilon << "," << t_config.lambda << "," << t_config.v
+             << "," << t_config.y << "," << t_config.etaV << ","
+             << t_config.sigma << "," << t_config.Tn << ","
+             << t_config.particleMassFalse << "," << t_config.particleCountFalse
+             << "," << t_config.particleCountTrue << "," << t_config.bubbleOn
+             << "," << t_config.bubbleInteractionsOn << "," << t_config.collision_on
+             << ","
+             << t_config.collision_two_mass_state_on << ","
+             << t_config.collision_cell_count << ","
+             << t_config.bubbleInitialSpeed << "," << critical_radius << ","
+             << initial_radius << "," << boundary_radius << ",";
 }
 
 void appendSimulationInfoFile(std::ofstream& infoStream, int t_programRuntime) {

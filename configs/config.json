@@ -2,8 +2,8 @@
     "simulation": {
         "seed": 1,
         "dt": 0.01,
-        "max_steps": 100000,
-        "max_time": 50,
+        "timestep_resolution": 100000,
+        "max_steps": 1000000,
         "cyclic_boundary_on": true,
         "cyclic_boundary_radius": 324.81475913099746
     },
@@ -12,7 +12,12 @@
         "eta": 3.3333333333333333,
         "upsilon": 2,
         "tau": 0.01,
-        "dV": 0.16
+        "lambda":0.1,
+        "v": 100,
+        "y": 1.5,
+        "etaV": 0.2,
+        "sigma": 1000,
+        "Tn" : 43
     },
     "bubble": {
         "bubble_on": true,
@@ -32,34 +37,22 @@
     "collision": {
         "collision_on": true,
         "two_mass_state_on" : true,
-        "N_cells": 71
+        "N_cells": 71,
+        "cell_duplication": 50
     },
     "stream": {
-        "stream": true,
-        "stream_time": 0.01,
+        "bool_stream": true,
         "stream_step": 100,
         "data_save_path": "data",
-        "stream_data": true,
-        "stream_density_profile": true,
-        "steam_energy_profile": true,
-        "stream_momentum": true,
-        "stream_momentumIn_profile": true,
-        "stream_momentumOut_profile": true,
-        "stream_radial_velocity": true,
-        "stream_tangential_velocity": true,
-        "bins_count_density": 1000,
-        "bins_count_energy": 1000,
-        "bins_count_radial_velocity": 1000,
-        "bins_count_tangential_velocity": 1000,
-        "bins_count_momentumIn": 200,
-        "bins_count_momentumOut": 200,
-        "min_value_momentumIn": 0.0001,
-        "min_value_momentumOut": 0.0001,
-        "max_value_density": 69,
-        "max_value_energy": 69,
-        "max_value_radial_velocity": 69,
-        "max_value_tangential_velocity": 69,
-        "max_value_momentumIn": 100,
-        "max_value_momentumOut": 100
+        "bool_stream_timeseries": true,
+        "bool_stream_profile": true,
+        "bool_stream_momentum": true,
+        "bool_stream_momentum_profile": true,
+        "profile_bins_count_in": 200,
+        "profile_bins_count_out": 200,
+        "momentum_bins_count_in": 200,
+        "momentum_bins_count_out": 200,
+        "momentum_profile_momentum_bins_count": 200,
+        "momentum_profile_radius_bins_count": 20
     }
 }
