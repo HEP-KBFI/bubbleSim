@@ -12,7 +12,7 @@ ifndef OPTFLAGS
 endif
 
 #link against common OCL headers
-CXXFLAGS=-std=c++2a -I./dependencies/json/ $(OPTFLAGS)
+CXXFLAGS=-std=c++2a -I./dependencies/json/ -I./dependencies/ankerl/ $(OPTFLAGS)
 LDFLAGS=-lOpenCL -lm -lstdc++ $(OPTFLAGS)
 
 # The final build step of the executable

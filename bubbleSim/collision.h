@@ -7,6 +7,7 @@ class CollisionCellCollection {
   CollisionCellCollection(){};
   CollisionCellCollection(numType t_meanFreePath, unsigned int t_cellCount,
                           bool t_two_mass_state_on,
+                          u_int collision_cell_duplication,
                           std::uint64_t& t_buffer_flags,
                           cl::Context& cl_context);
 
@@ -98,6 +99,9 @@ class CollisionCellCollection {
 
   cl::Buffer& getCellCollideBooleanBuffer() {
     return m_cell_collide_boolean_buffer;
+  }
+
+  cl::Buffer& getCellDuplicationBuffer() { return m_cell_duplication_buffer;
   }
 
   cl::Buffer& getCellParticleCountBuffer() {
@@ -195,6 +199,11 @@ class CollisionCellCollection {
     cl_queue.enqueueWriteBuffer(m_cell_collide_boolean_buffer, CL_TRUE, 0,
                                 m_cell_count * sizeof(cl_char),
                                 m_cell_collide_boolean.data());
+  }
+
+  void writeCellDuplicationBuffer(cl::CommandQueue& cl_queue) {
+    cl_queue.enqueueWriteBuffer(m_cell_duplication_buffer, CL_TRUE, 0,
+                                sizeof(uint32_t), &m_cell_duplication);
   }
 
   void writeCellParticleCountBuffer(cl::CommandQueue& cl_queue) {
@@ -383,6 +392,9 @@ class CollisionCellCollection {
 
   std::vector<uint64_t> m_seeds_uint64;
   cl::Buffer m_seeds_uint64_buffer;
+
+  uint32_t m_cell_duplication;
+  cl::Buffer m_cell_duplication_buffer;
 
   double m_no_collision_probability;
   cl::Buffer m_no_collision_probability_buffer;

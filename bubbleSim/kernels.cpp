@@ -39,6 +39,7 @@ void AssignParticleToCollisionCellKernel::setBuffers(
   m_kernel.setArg(5, t_cells.getCellLengthBuffer());
   m_kernel.setArg(6, t_cells.getShiftVectorBuffer());
   m_kernel.setArg(7, t_cells.getCellParticleCountBuffer());
+  m_kernel.setArg(8, t_cells.getCellDuplicationBuffer());
 }
 
 void AssignParticleToCollisionCellKernel::setBuffers(
@@ -65,6 +66,7 @@ void AssignParticleToCollisionCellTwoMassStateKernel::setBuffers(
   m_kernel.setArg(6, t_cells.getCellLengthBuffer());
   m_kernel.setArg(7, t_cells.getShiftVectorBuffer());
   m_kernel.setArg(8, t_cells.getCellParticleCountBuffer());
+  m_kernel.setArg(9, t_cells.getCellDuplicationBuffer());
 }
 
 void AssignParticleToCollisionCellTwoMassStateKernel::setBuffers(

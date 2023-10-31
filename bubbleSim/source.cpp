@@ -75,7 +75,6 @@ int main(int argc, char* argv[]) {
   ConfigReader config(s_configPath);
   RandomNumberGeneratorNumType rn_generator(config.m_seed);
   RandomNumberGeneratorULong rn_generator_64uint(config.m_seed);
-  std::cout << "siin" << std::endl;
   /* TODO:
     Tau is defined in config. In current setup dt depends on tau: dt= tau/N.
     Tau should be representing thermalization time in some sence.
@@ -98,12 +97,7 @@ int main(int argc, char* argv[]) {
       particle_temperature_in_false_vacuum, config.particleMassFalse);
   numType particle_eta = particle_deltaM / particle_temperature_in_false_vacuum;
 
-  std::cout << "m-: " << particle_mass_in_false_vacuum
-            << ", m+: " << particle_mass_in_true_vacuum << std::endl;
-  std::cout << "T-: " << particle_temperature_in_false_vacuum
-            << ", eta: " << particle_eta << std::endl;
-  std::cout << "n-: " << n_false_boltzmann << ", rho-: " << rho_false_boltzmann
-            << std::endl;
+  
 
   // Bubble
   numType bubble_critical_radius = 2 * config.sigma / dV;
@@ -114,13 +108,6 @@ int main(int argc, char* argv[]) {
       std::cbrt(config.particleCountFalse / n_false_boltzmann +
                 4. * M_PI * std::pow(bubble_initial_radius, 3.) / 3.) /
       2.0;
-
-  std::cout << "R_c: " << bubble_critical_radius
-            << ", R_b(0): " << bubble_initial_radius << " ("
-            << bubble_initial_radius / bubble_critical_radius << "R_c)"
-            << ", R_bd: " << simulation_boundary_radius << " ("
-            << simulation_boundary_radius / bubble_critical_radius << "R_c)"
-            << std::endl;
 
   numType dt = simulation_boundary_radius / config.timestep_resolution;
   numType tau = 10. * dt;
@@ -184,6 +171,19 @@ int main(int argc, char* argv[]) {
   numType mu = initial_false_vacuum_volume *
                std::pow(particle_temperature_in_false_vacuum, 3.) /
                (config.particleCountFalse * M_PI * M_PI);
+
+  std::cout << "m-: " << particle_mass_in_false_vacuum
+            << ", m+: " << particle_mass_in_true_vacuum << std::endl;
+  std::cout << "T-: " << particle_temperature_in_false_vacuum
+            << ", eta: " << particle_eta << std::endl;
+  std::cout << "n-: " << n_false_boltzmann << ", rho-: " << rho_false_boltzmann
+            << std::endl;
+  std::cout << "R_c: " << bubble_critical_radius
+            << ", R_b(0): " << bubble_initial_radius << " ("
+            << bubble_initial_radius / bubble_critical_radius << "R_c)"
+            << ", R_bd: " << simulation_boundary_radius << " ("
+            << simulation_boundary_radius / bubble_critical_radius << "R_c)"
+            << std::endl;
 
   std::cout << "Energy density scale factor (m-=0): " << mu << std::endl;
   std::cout << "rho- : " << rho_false_boltzmann
@@ -265,7 +265,7 @@ int main(int argc, char* argv[]) {
   std::cout << "R_cell: " << collision_cell_length << std::endl;
   if (config.SIMULATION_SETTINGS.isFlagSet(COLLISION_ON)) {
     cells = CollisionCellCollection(
-        collision_cell_length, config.collision_cell_count,
+        collision_cell_length, config.collision_cell_count, config.collision_cell_duplication,
         config.SIMULATION_SETTINGS.isFlagSet(COLLISION_MASS_STATE_ON),
         buffer_flags, kernels.getContext());
     cells.generate_collision_seeds(rn_generator_64uint);
@@ -305,6 +305,7 @@ int main(int argc, char* argv[]) {
     cells.writeAllBuffersToKernel(kernels.getCommandQueue());
     cells.writeNoCollisionProbabilityBuffer(kernels.getCommandQueue());
     cells.writeCollisionSeedsBuffer(kernels.getCommandQueue());
+    cells.writeCellDuplicationBuffer(kernels.getCommandQueue());
   }
 
   // Move data to the GPU
@@ -346,8 +347,8 @@ int main(int argc, char* argv[]) {
   streamer2.stream(simulation, particles, bubble, config.SIMULATION_SETTINGS,
                    kernels.getCommandQueue());
 
-  std::cout << std::endl;
-  config.print_info();
+  //std::cout << std::endl;
+  //config.print_info();
   std::cout << std::endl;
   bubble.print_info(config);
   std::cout << std::endl;

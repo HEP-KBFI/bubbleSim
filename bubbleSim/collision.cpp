@@ -4,8 +4,8 @@
 
 CollisionCellCollection::CollisionCellCollection(
     numType t_cellLength, unsigned int t_cellCountInOneAxis,
-    bool t_two_mass_state_on, std::uint64_t& t_buffer_flags,
-    cl::Context& cl_context) {
+    bool t_two_mass_state_on, u_int t_collision_cell_duplication,
+    std::uint64_t& t_buffer_flags, cl::Context& cl_context) {
   /*
   TODO:
     Differentiate if particle is inside or outside the bubble. (Different
@@ -20,15 +20,23 @@ CollisionCellCollection::CollisionCellCollection(
     std::terminate();
   }
   m_collision_count = 0;
+  m_cell_duplication = (uint32_t)t_collision_cell_duplication;
+  m_cell_duplication_buffer =
+      cl::Buffer(cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                 sizeof(uint32_t), &m_cell_duplication, &openCLerrNum);
 
   m_two_mass_state_on = t_two_mass_state_on;
   if (t_two_mass_state_on) {
     // CollisionHack
-    m_cell_count = 50 * 2 * (unsigned int)std::pow(t_cellCountInOneAxis, 3) + 1;
+    m_cell_count = m_cell_duplication * 2 *
+                       (unsigned int)std::pow(t_cellCountInOneAxis, 3) +
+                   1;
     // m_cell_count = 2 * (unsigned int)std::pow(t_cellCountInOneAxis, 3) + 1;
   } else {
     // CollisionHack
-    m_cell_count = 50 * (unsigned int)std::pow(t_cellCountInOneAxis, 3) + 1;
+    m_cell_count =
+        m_cell_duplication * (unsigned int)std::pow(t_cellCountInOneAxis, 3) +
+        1;
     // m_cell_count = (unsigned int)std::pow(t_cellCountInOneAxis, 3) + 1;
   }
 

@@ -901,7 +901,7 @@ __kernel void collision_cell_generate_collisions(
           cell_collide_boolean[gid] = (char)0;
         } else {
           cell_collide_boolean[gid] = (char)1;
-          if (cell_particle_count[gid] > 2){
+          if (cell_particle_count[gid] > 2) {
             printf("Miks oled suurem kui 2? %i\n", gid);
           }
 
@@ -935,7 +935,7 @@ __kernel void rotate_momentum(
   // if (!cell_collide_boolean[cell_idx]) {
   //   particle_collision_cell_index[gid] = 0;
   // } else
-  if (cell_collide_boolean[cell_idx] && cell_idx!=0) {
+  if (cell_collide_boolean[cell_idx] && cell_idx != 0) {
     // === Collision cell variables
     double x = sin(cell_phi_axis[cell_idx]) * cos(cell_theta_axis[cell_idx]);
     double y = sin(cell_phi_axis[cell_idx]) * sin(cell_theta_axis[cell_idx]);
@@ -1050,7 +1050,7 @@ __kernel void assign_particle_to_collision_cell(
     __global unsigned int *m_particle_collision_cell_index,
     __global const unsigned int *maxCellIndexInAxis,
     __global const double *cellLength, __global const double *cuboidShift,
-    __global uint *cell_particle_count) {
+    __global uint *cell_particle_count, __global uint *cell_duplication) {
   size_t gid = get_global_id(0);
   unsigned int collision_cell_index;
   // Find cell numbers
@@ -1084,8 +1084,8 @@ __kernel void assign_particle_to_collision_cell(
   if (collision_cell_index != 0) {
     uint old_value = atomic_inc(&cell_particle_count[collision_cell_index]);
     uint shift_value = old_value / 2;
-    if (shift_value < 50) {
-      collision_cell_index += shift_value * 2 * maxCellIndexInAxis[0] *
+    if (shift_value < cell_duplication[0]) {
+      collision_cell_index += shift_value * maxCellIndexInAxis[0] *
                               maxCellIndexInAxis[0] * maxCellIndexInAxis[0];
     } else {
       collision_cell_index = 0;
@@ -1137,7 +1137,8 @@ __kernel void assign_particle_to_collision_cell_two_state(
     __global unsigned int *m_particle_collision_cell_index,
     __global char *particles_bool_in_bubble,
     __global const int *maxCellIndexInAxis, __global const double *cellLength,
-    __global const double *cuboidShift, __global uint *cell_particle_count) {
+    __global const double *cuboidShift, __global uint *cell_particle_count,
+    __global uint *cell_duplication) {
   size_t gid = get_global_id(0);
   unsigned int collision_cell_index;
   // Find cell numbers
@@ -1175,7 +1176,7 @@ __kernel void assign_particle_to_collision_cell_two_state(
   if (collision_cell_index != 0) {
     uint old_value = atomic_inc(&cell_particle_count[collision_cell_index]);
     uint shift_value = old_value / 2;
-    if (shift_value < 50) {
+    if (shift_value < cell_duplication[0]) {
       collision_cell_index += shift_value * 2 * maxCellIndexInAxis[0] *
                               maxCellIndexInAxis[0] * maxCellIndexInAxis[0];
     } else {
