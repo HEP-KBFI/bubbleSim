@@ -35,7 +35,6 @@ class ConfigReader {
   u_int timestep_resolution;
   bool cyclicBoundaryOn;
 
-  numType cyclicBoundaryRadius;
   /*
    * Physics parameters
    */
@@ -117,7 +116,6 @@ class ConfigReader {
       SIMULATION_SETTINGS.setFlag(SIMULATION_BOUNDARY_ON);
     }
     cyclicBoundaryOn = config["simulation"]["cyclic_boundary_on"];
-    cyclicBoundaryRadius = config["simulation"]["cyclic_boundary_radius"];
     /*
      * Physical parameters
      */
@@ -221,7 +219,6 @@ class ConfigReader {
     std::cout << "seed: " << m_seed << ", max_steps: " << m_max_steps
               << ", dt: " << dt << ", Stream step: " << stream_step << std::endl;
     std::cout << "Cyclic boundary on: " << cyclicBoundaryOn
-              << ", Cyclic boundary radius: " << cyclicBoundaryRadius
               << std::endl;
     std::cout << sublabel_prefix + "Parameters" << sublabel_sufix << std::endl;
     std::cout << "alpha: " << alpha << ", eta: " << eta

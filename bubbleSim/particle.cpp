@@ -518,7 +518,7 @@ ParticleCollection::ParticleCollection(unsigned int t_particleCountTrue,
                  m_particleCountTotal * sizeof(cl_uint),
                  m_particle_collision_cell_index.data(), &openCLerrNum);
   t_buffer_flags |= PARTICLE_COLLISION_CELL_IDX_BUFFER;
-  
+
   // Data reserve
   m_interacted_bubble_false_state =
       std::vector<int8_t>(m_particleCountTotal, 0);

@@ -5,9 +5,11 @@ using std::chrono::duration;
 using std::chrono::duration_cast;
 using std::chrono::seconds;
 
-int DEFAULT_COUT_PRECISION = std::cout.precision();
+u_int DEFAULT_COUT_PRECISION = (u_int)std::cout.precision();
 
 // Collision is in development
+
+//numType scale_dV(numType)
 
 numType calculate_boltzmann_number_density(numType T, numType mass) {
   numType n = 0.0;
@@ -59,11 +61,25 @@ void print_simulation_state(ParticleCollection& particles, PhaseBubble& bubble,
   std::cout.precision(DEFAULT_COUT_PRECISION);
 }
 
+void scale_R_and_dV(numType& bubble_radius, numType& boundary_radius, numType& dV,
+    numType scale) {
+  numType V0 = 8. * std::pow(boundary_radius, 3.) -
+               4. * M_PI * std::pow(bubble_radius, 3.) / 3.;
+  boundary_radius *= scale;
+  numType V1 = 8. * std::pow(boundary_radius, 3.) -
+               4. * M_PI * std::pow(bubble_radius, 3.) / 3.;
+  dV = V0 / V1 * dV;
+}
+
+
 int main(int argc, char* argv[]) {
   if (argc != 3) {
     std::cerr << "Usage: bubbleSim.exe config.json kernel.cl" << std::endl;
     exit(0);
   }
+
+
+
   auto program_start_time = my_clock::now();
   auto program_end_time = my_clock::now();
 
@@ -73,8 +89,10 @@ int main(int argc, char* argv[]) {
   std::cout << "Config path: " << s_configPath << std::endl;
   std::cout << "Kernel path: " << s_kernelPath << std::endl;
   ConfigReader config(s_configPath);
+
   RandomNumberGeneratorNumType rn_generator(config.m_seed);
   RandomNumberGeneratorULong rn_generator_64uint(config.m_seed);
+
   /* TODO:
     Tau is defined in config. In current setup dt depends on tau: dt= tau/N.
     Tau should be representing thermalization time in some sence.
@@ -108,6 +126,9 @@ int main(int argc, char* argv[]) {
       std::cbrt(config.particleCountFalse / n_false_boltzmann +
                 4. * M_PI * std::pow(bubble_initial_radius, 3.) / 3.) /
       2.0;
+  std::cout << dV << std::endl;
+  scale_R_and_dV(bubble_initial_radius, simulation_boundary_radius, dV, 2.);
+  std::cout << dV << std::endl;
 
   numType dt = simulation_boundary_radius / config.timestep_resolution;
   numType tau = 10. * dt;
@@ -120,7 +141,6 @@ int main(int argc, char* argv[]) {
             << "=============== OpenCL initialization ==============="
             << std::endl;
   OpenCLLoader kernels(s_kernelPath);
-
   std::cout << std::endl
             << "=============== Simulation initialization ==============="
             << std::endl;
@@ -202,6 +222,10 @@ int main(int argc, char* argv[]) {
   turn it on/off.
   */
   // particles.makeCopy();
+
+  std::cout << std::endl
+            << "=============== Dimensionless parameters ==============="
+            << std::endl;
 
   std::cout << "dV/rho-: " << dV / generated_plasma_rho << ", sigma/(dV*R0): "
             << config.sigma / (dV * bubble_initial_radius) << std::endl;
@@ -362,7 +386,7 @@ int main(int argc, char* argv[]) {
   // Create simulation info file which includes description of the simulation
   std::ofstream infoStream(filePath / "info.txt",
                            std::ios::out | std::ios::trunc);
-  createSimulationInfoFile(infoStream, filePath, config, bubble_critical_radius,bubble_initial_radius,simulation_boundary_radius);
+  createSimulationInfoFile(infoStream, filePath, config, dV, bubble_critical_radius,bubble_initial_radius,simulation_boundary_radius);
 
   /*
     =============== Run simulation ===============
