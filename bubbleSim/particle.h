@@ -130,6 +130,27 @@ class ParticleCollection {
 
   numType returnParticledP(size_t particle_i) { return m_dP[particle_i]; }
 
+  void createMomentumCopy() {
+    if (m_particle_pX.size() != m_particle_pX_copy.size() ||
+        m_particle_pY.size() != m_particle_pY_copy.size() ||
+        m_particle_pZ.size() != m_particle_pZ_copy.size()) {
+      std::cout << m_particle_pX.size() << ", " << m_particle_pY.size() << ", "
+                << m_particle_pZ.size() << std::endl;
+      std::cout << m_particle_pX_copy.size() << ", "
+                << m_particle_pY_copy.size() << ", "
+                << m_particle_pZ_copy.size() << std::endl;
+      std::cout << "Momentum vector and it's copy length(s) are not same."
+                << std::endl;
+      std::exit(0);
+    }
+    std::copy(m_particle_pX.cbegin(), m_particle_pX.cend(),
+              m_particle_pX_copy.begin());
+    std::copy(m_particle_pY.cbegin(), m_particle_pY.cend(),
+              m_particle_pY_copy.begin());
+    std::copy(m_particle_pZ.cbegin(), m_particle_pZ.cend(),
+              m_particle_pZ_copy.begin());
+  }
+
   // TODO: Particle data buffer writing, reading
   // TODO - boolean buffers
 
@@ -172,6 +193,10 @@ class ParticleCollection {
   std::vector<int8_t>& getInteractedTrue() {
     return m_interacted_bubble_true_state;
   }
+
+  std::vector<numType>& getParticlepXCopy() { return m_particle_pX_copy; }
+  std::vector<numType>& getParticlepYCopy() { return m_particle_pY_copy; }
+  std::vector<numType>& getParticlepZCopy() { return m_particle_pZ_copy; }
 
   cl::Buffer& getParticleXBuffer() { return m_particle_X_buffer; }
   cl::Buffer& getParticleYBuffer() { return m_particle_Y_buffer; }
@@ -481,13 +506,13 @@ class ParticleCollection {
   numType calculateParticleRadius(size_t i);
 
   numType calculateParticleMomentum(size_t i);
+  numType calculateParticleMomentumCopy(size_t i);
 
   numType calculateParticleEnergy(size_t i);
 
   numType calculateParticleRadialVelocity(size_t i);
 
   numType calculateParticleTangentialVelocity(size_t i);
-
 
   // Calculate distributions
   numType calculateNumberDensity(numType t_mass, numType t_temperature,

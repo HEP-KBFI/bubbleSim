@@ -29,6 +29,7 @@ void DataStreamerBinary::initStream_Data() {
   m_stream_data.open(m_file_path / "data.bin",
                      std::ios::out | std::ios::binary);
   m_stream_data_time = 0.;
+  m_stream_dt = 0.;
   m_stream_data_dP = 0.;
   m_stream_data_radius = 0.;
   m_stream_data_velocity = 0.;
@@ -54,7 +55,8 @@ void DataStreamerBinary::initialize_profile_streaming(uint32_t t_N_bins_in,
                 << "; N_profile_bins_out=" << m_N_bins_out_profile
                 << "; dtypes=[uint32, float64, float64, float64, "
                    "float64, float64, float64, "
-                   "float64, float64, float64, float64, float64]"
+                   "float64, float64, float64, float64, float64, float64, "
+                   "float64, float64, float64]"
                 << std::endl;
   profile_guide.close();
 
@@ -72,6 +74,15 @@ void DataStreamerBinary::initialize_profile_streaming(uint32_t t_N_bins_in,
   m_T23.resize(m_N_bins_in_profile + m_N_bins_out_profile, (numType)0.);
   m_radial_velocity.resize(m_N_bins_in_profile + m_N_bins_out_profile,
                            (numType)0.);
+  m_momentum_value.resize(m_N_bins_in_profile + m_N_bins_out_profile,
+                          (numType)0.);
+  m_momentum_change.resize(m_N_bins_in_profile + m_N_bins_out_profile,
+                           (numType)0.);
+  m_square_mean_velocity.resize(m_N_bins_in_profile + m_N_bins_out_profile,
+                                (numType)0.);
+
+  m_mean_velocity.resize(m_N_bins_in_profile + m_N_bins_out_profile,
+                         (numType)0.);
 }
 
 void DataStreamerBinary::initialize_momentum_streaming(uint32_t t_N_bins_in,
@@ -197,6 +208,14 @@ void DataStreamerBinary::stream(Simulation& simulation,
   memset(&m_T23[0], 0, sizeof(m_T23[0]) * m_T23.size());
   memset(&m_radial_velocity[0], 0,
          sizeof(m_radial_velocity[0]) * m_radial_velocity.size());
+  memset(&m_momentum_value[0], 0,
+         sizeof(m_momentum_value[0]) * m_momentum_value.size());
+  memset(&m_momentum_change[0], 0,
+         sizeof(m_momentum_change[0]) * m_momentum_change.size());
+  memset(&m_mean_velocity[0], 0,
+         sizeof(m_mean_velocity) * m_mean_velocity.size());
+  memset(&m_square_mean_velocity[0], 0,
+         sizeof(m_square_mean_velocity) * m_square_mean_velocity.size());
 
   if (b_stream_momentum_in || b_stream_momentum_out) {
     memset(&m_momentum[0], 0, sizeof(m_momentum[0]) * m_momentum.size());
@@ -213,6 +232,7 @@ void DataStreamerBinary::stream(Simulation& simulation,
   numType energy = 0.;
   numType radius = 0.;
   numType momentum = 0.;
+  numType momentum_copy = 0.;
   numType theta = 0.;
   numType phi = 0;
   uint64_t index = 0;
@@ -225,14 +245,17 @@ void DataStreamerBinary::stream(Simulation& simulation,
   numType p_phi = 0.;
   numType p_theta = 0.;
 
+  numType deltaPx;
+  numType deltaPy;
+  numType deltaPz;
   // Collect data
 
   for (size_t i = 0; i < particleCollection.getParticleCountTotal(); i++) {
     radius = particleCollection.calculateParticleRadius(i);
-    if (b_stream_momentum_in || b_stream_momentum_out ||
-        b_stream_momentum_radial_profile) {
-      momentum = particleCollection.calculateParticleMomentum(i);
-    }
+    // if (b_stream_momentum_in || b_stream_momentum_out ||
+    //     b_stream_momentum_radial_profile) {
+    momentum = particleCollection.calculateParticleMomentum(i);
+    //}
 
     if (settings.isFlagSet(BUBBLE_INTERACTION_ON)) {
       if (radius <= bubble.getRadius()) {
@@ -289,6 +312,16 @@ void DataStreamerBinary::stream(Simulation& simulation,
                                   index_momentum] += (uint32_t)1;
       }
     }
+    // px value t - dt (last step)
+    momentum_copy = particleCollection.calculateParticleMomentumCopy(i);
+
+    deltaPx = particleCollection.getParticlepX()[i] -
+              particleCollection.getParticlepXCopy()[i];
+    deltaPy = particleCollection.getParticlepY()[i] -
+              particleCollection.getParticlepYCopy()[i];
+    deltaPz = particleCollection.getParticlepZ()[i] -
+              particleCollection.getParticlepZCopy()[i];
+
     energy = particleCollection.returnParticleE(i);
     phi = atan2(particleCollection.returnParticleY(i),
                 particleCollection.returnParticleX(i));
@@ -311,9 +344,16 @@ void DataStreamerBinary::stream(Simulation& simulation,
     m_T13[index] += p_R * p_phi / energy;
     m_T23[index] += p_phi * p_theta / energy;
     m_radial_velocity[index] += p_R / energy;
+    m_momentum_value[index] += momentum_copy;
+    m_momentum_change[index] += std::sqrt(
+        std::pow(deltaPx, 2.) + std::pow(deltaPy, 2.) + std::pow(deltaPz, 2.));
+
+    m_mean_velocity[index] += momentum / energy;
+    m_square_mean_velocity[index] += std::pow(momentum / energy, 2.);
   }
 
   m_stream_data_time = simulation.getTime();
+  m_stream_dt = simulation.get_dt_currentStep();
   if (settings.isFlagSet(BUBBLE_INTERACTION_ON)) {
     m_stream_data_dP = simulation.get_dP();
     m_stream_data_radius = bubble.getRadius();
@@ -340,6 +380,7 @@ void DataStreamerBinary::stream(Simulation& simulation,
 void DataStreamerBinary::write_data() {
   m_stream_data.write(reinterpret_cast<char*>(&m_stream_data_time),
                       sizeof(numType));
+  m_stream_data.write(reinterpret_cast<char*>(&m_stream_dt), sizeof(numType));
   m_stream_data.write(reinterpret_cast<char*>(&m_stream_data_dP),
                       sizeof(numType));
   m_stream_data.write(reinterpret_cast<char*>(&m_stream_data_radius),
@@ -373,6 +414,7 @@ void DataStreamerBinary::write_data() {
   m_stream_data.write(
       reinterpret_cast<char*>(&m_stream_data_active_particles_in_collision),
       sizeof(uint32_t));
+  m_stream_data.flush();
 }
 
 void DataStreamerBinary::write_profile() {
@@ -401,6 +443,16 @@ void DataStreamerBinary::write_profile() {
   m_stream_profile.write(
       reinterpret_cast<const char*>(m_radial_velocity.data()),
       m_radial_velocity.size() * sizeof(numType));
+  m_stream_profile.write(reinterpret_cast<const char*>(m_momentum_value.data()),
+                         m_momentum_value.size() * sizeof(numType));
+  m_stream_profile.write(
+      reinterpret_cast<const char*>(m_momentum_change.data()),
+      m_momentum_change.size() * sizeof(numType));
+  m_stream_profile.write(reinterpret_cast<const char*>(m_mean_velocity.data()),
+                         m_mean_velocity.size() * sizeof(numType));
+  m_stream_profile.write(
+      reinterpret_cast<const char*>(m_square_mean_velocity.data()),
+      m_square_mean_velocity.size() * sizeof(numType));
 }
 
 void DataStreamerBinary::write_momentum() {

@@ -9,7 +9,7 @@ u_int DEFAULT_COUT_PRECISION = (u_int)std::cout.precision();
 
 // Collision is in development
 
-//numType scale_dV(numType)
+// numType scale_dV(numType)
 
 numType calculate_boltzmann_number_density(numType T, numType mass) {
   numType n = 0.0;
@@ -61,8 +61,8 @@ void print_simulation_state(ParticleCollection& particles, PhaseBubble& bubble,
   std::cout.precision(DEFAULT_COUT_PRECISION);
 }
 
-void scale_R_and_dV(numType& bubble_radius, numType& boundary_radius, numType& dV,
-    numType scale) {
+void scale_R_and_dV(numType& bubble_radius, numType& boundary_radius,
+                    numType& dV, numType scale) {
   numType V0 = 8. * std::pow(boundary_radius, 3.) -
                4. * M_PI * std::pow(bubble_radius, 3.) / 3.;
   boundary_radius *= scale;
@@ -71,14 +71,11 @@ void scale_R_and_dV(numType& bubble_radius, numType& boundary_radius, numType& d
   dV = V0 / V1 * dV;
 }
 
-
 int main(int argc, char* argv[]) {
   if (argc != 3) {
     std::cerr << "Usage: bubbleSim.exe config.json kernel.cl" << std::endl;
     exit(0);
   }
-
-
 
   auto program_start_time = my_clock::now();
   auto program_end_time = my_clock::now();
@@ -115,8 +112,6 @@ int main(int argc, char* argv[]) {
       particle_temperature_in_false_vacuum, config.particleMassFalse);
   numType particle_eta = particle_deltaM / particle_temperature_in_false_vacuum;
 
-  
-
   // Bubble
   numType bubble_critical_radius = 2 * config.sigma / dV;
   numType bubble_initial_radius =
@@ -126,9 +121,9 @@ int main(int argc, char* argv[]) {
       std::cbrt(config.particleCountFalse / n_false_boltzmann +
                 4. * M_PI * std::pow(bubble_initial_radius, 3.) / 3.) /
       2.0;
-  std::cout << dV << std::endl;
-  scale_R_and_dV(bubble_initial_radius, simulation_boundary_radius, dV, 2.);
-  std::cout << dV << std::endl;
+  //std::cout << dV << std::endl;
+  //scale_R_and_dV(bubble_initial_radius, simulation_boundary_radius, dV, 2.);
+  //std::cout << dV << std::endl;
 
   numType dt = simulation_boundary_radius / config.timestep_resolution;
   numType tau = 10. * dt;
@@ -291,8 +286,7 @@ int main(int argc, char* argv[]) {
     cells = CollisionCellCollection(
         collision_cell_length, config.collision_cell_count,
         config.SIMULATION_SETTINGS.isFlagSet(COLLISION_MASS_STATE_ON),
-        config.collision_cell_duplication,
-        buffer_flags, kernels.getContext());
+        config.collision_cell_duplication, buffer_flags, kernels.getContext());
     cells.generate_collision_seeds(rn_generator_64uint);
   }
 
@@ -372,8 +366,8 @@ int main(int argc, char* argv[]) {
   streamer2.stream(simulation, particles, bubble, config.SIMULATION_SETTINGS,
                    kernels.getCommandQueue());
 
-  //std::cout << std::endl;
-  //config.print_info();
+  // std::cout << std::endl;
+  // config.print_info();
   std::cout << std::endl;
   bubble.print_info(config);
   std::cout << std::endl;
@@ -386,7 +380,9 @@ int main(int argc, char* argv[]) {
   // Create simulation info file which includes description of the simulation
   std::ofstream infoStream(filePath / "info.txt",
                            std::ios::out | std::ios::trunc);
-  createSimulationInfoFile(infoStream, filePath, config, dV, bubble_critical_radius,bubble_initial_radius,simulation_boundary_radius);
+  createSimulationInfoFile(infoStream, filePath, config, dV,
+                           bubble_critical_radius, bubble_initial_radius,
+                           simulation_boundary_radius);
 
   /*
     =============== Run simulation ===============
@@ -405,6 +401,10 @@ int main(int argc, char* argv[]) {
   auto end_time = my_clock::now();
 
   for (u_int i = 1; i <= config.m_max_steps; i++) {
+    if ((i + 1) % config.stream_step == 0) {
+      particles.createMomentumCopy();
+    }
+
     if (config.SIMULATION_SETTINGS.isFlagSet(BUBBLE_ON | BUBBLE_INTERACTION_ON |
                                              COLLISION_ON |
                                              SIMULATION_BOUNDARY_ON)) {
@@ -452,12 +452,20 @@ int main(int argc, char* argv[]) {
                   << bubble.getSpeed() << ")" << std::endl;
         break;
       }
-      if ((bubble.getRadius() >= simulation_boundary_radius) && (config.cyclicBoundaryOn)) {
+      if ((bubble.getRadius() >= simulation_boundary_radius) &&
+          (config.cyclicBoundaryOn)) {
         std::cerr
             << "Ending simulation. Bubble radius >= simulation boundary radius."
             << std::endl;
         break;
       }
+      if (simulation_parameters.getBoundaryRadius() <= simulation.getTime()) {
+        std::cerr
+            << "Ending simulation. Simulation boundary <= simulation time."
+            << std::endl;
+        break;
+      }
+
     }
   }
 

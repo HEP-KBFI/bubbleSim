@@ -9,7 +9,7 @@
     "parameters": {
         "alpha": 0.6,
         "eta": 3.3333333333333333,
-        "upsilon": 80,
+        "upsilon": 10,
         "tau": 0.01,
         "lambda":0.1,
         "v": 100,
@@ -28,7 +28,7 @@
     "particles": {
         "mass_false": 0.0,
         "T_false": 0.3,
-        "N_false": 1500000,
+        "N_false": 750000,
         "mass_true": 1,
         "T_true": 0.0,
         "N_true": 0

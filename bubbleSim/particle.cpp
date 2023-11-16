@@ -447,6 +447,10 @@ ParticleCollection::ParticleCollection(unsigned int t_particleCountTrue,
   m_particle_E.reserve(m_particleCountTotal);
   m_particle_M.reserve(m_particleCountTotal);
 
+  m_particle_pX_copy.resize(m_particleCountTotal);
+  m_particle_pY_copy.resize(m_particleCountTotal);
+  m_particle_pZ_copy.resize(m_particleCountTotal);
+
   m_mean_free_path.resize(m_particleCountTotal);
 
   m_particle_X_buffer =
@@ -558,6 +562,14 @@ numType ParticleCollection::calculateParticleMomentum(size_t i) {
   return std::sqrt(std::fma(m_particle_pX[i], m_particle_pX[i],
                             std::fma(m_particle_pY[i], m_particle_pY[i],
                                      m_particle_pZ[i] * m_particle_pZ[i])));
+}
+
+numType ParticleCollection::calculateParticleMomentumCopy(size_t i) {
+  // p_i * p^i
+  return std::sqrt(
+      std::fma(m_particle_pX_copy[i], m_particle_pX_copy[i],
+               std::fma(m_particle_pY_copy[i], m_particle_pY_copy[i],
+                        m_particle_pZ_copy[i] * m_particle_pZ_copy[i])));
 }
 
 numType ParticleCollection::calculateParticleEnergy(size_t i) {

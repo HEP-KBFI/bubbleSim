@@ -22,6 +22,7 @@ class DataStreamerBinary {
   bool b_stream_momentum_radial_profile = false;
 
   numType m_stream_data_time;
+  numType m_stream_dt;
   numType m_stream_data_dP;
   numType m_stream_data_radius;
   numType m_stream_data_velocity;
@@ -52,6 +53,10 @@ class DataStreamerBinary {
   std::vector<numType> m_T13;
   std::vector<numType> m_T23;
   std::vector<numType> m_radial_velocity;
+  std::vector<numType> m_momentum_value;
+  std::vector<numType> m_momentum_change;
+  std::vector<numType> m_mean_velocity;
+  std::vector<numType> m_square_mean_velocity;
 
   numType m_dp_in;
   numType m_dp_out;
