@@ -121,9 +121,9 @@ int main(int argc, char* argv[]) {
       std::cbrt(config.particleCountFalse / n_false_boltzmann +
                 4. * M_PI * std::pow(bubble_initial_radius, 3.) / 3.) /
       2.0;
-  //std::cout << dV << std::endl;
-  //scale_R_and_dV(bubble_initial_radius, simulation_boundary_radius, dV, 2.);
-  //std::cout << dV << std::endl;
+  // std::cout << dV << std::endl;
+  // scale_R_and_dV(bubble_initial_radius, simulation_boundary_radius, dV, 2.);
+  // std::cout << dV << std::endl;
 
   numType dt = simulation_boundary_radius / config.timestep_resolution;
   numType tau = 10. * dt;
@@ -281,15 +281,17 @@ int main(int argc, char* argv[]) {
   */
   numType collision_cell_length =
       2.0 * simulation_boundary_radius / config.collision_cell_count;
-  std::cout << "R_cell: " << collision_cell_length << std::endl;
+
   if (config.SIMULATION_SETTINGS.isFlagSet(COLLISION_ON)) {
     cells = CollisionCellCollection(
         collision_cell_length, config.collision_cell_count,
         config.SIMULATION_SETTINGS.isFlagSet(COLLISION_MASS_STATE_ON),
-        config.collision_cell_duplication, buffer_flags, kernels.getContext());
+        config.collision_cell_duplication, generated_plasma_n, buffer_flags,
+        kernels.getContext());
     cells.generate_collision_seeds(rn_generator_64uint);
   }
-
+  std::cout << "R_cell: " << collision_cell_length << std::endl;
+  std::cout << "Cell count: " << cells.getCellCount() << std::endl;
   // Setup buffers for OpenCL
   if (config.SIMULATION_SETTINGS.isFlagSet(BUBBLE_INTERACTION_ON | BUBBLE_ON)) {
     kernels.m_particleStepWithBubbleKernel.setBuffers(
@@ -324,7 +326,9 @@ int main(int argc, char* argv[]) {
     cells.writeAllBuffersToKernel(kernels.getCommandQueue());
     cells.writeNoCollisionProbabilityBuffer(kernels.getCommandQueue());
     cells.writeCollisionSeedsBuffer(kernels.getCommandQueue());
-    cells.writeCellDuplicationBuffer(kernels.getCommandQueue());
+    // cells.writeCellDuplicationBuffer(kernels.getCommandQueue());
+    cells.writeTwoMassStateOnBuffer(kernels.getCommandQueue());
+    cells.writeNEquilibriumBuffer(kernels.getCommandQueue());
   }
 
   // Move data to the GPU
@@ -347,7 +351,6 @@ int main(int argc, char* argv[]) {
   std::string dataFolderName = createFileNameFromCurrentDate();
   std::filesystem::path filePath =
       createSimulationFilePath(config.m_dataSavePath, dataFolderName);
-  // DataStreamer streamer(filePath.string());
 
   DataStreamerBinary streamer2(filePath.string());
   streamer2.initStream_Data();
@@ -360,9 +363,6 @@ int main(int argc, char* argv[]) {
   streamer2.initialize_momentum_radial_profile_streaming(
       200, 20 * config.SIMULATION_SETTINGS.isFlagSet(BUBBLE_ON), 20,
       particle_temperature_in_false_vacuum);
-  /*streamer.stream(simulation, particles, bubble, momentum_log_scale_on,
-                  kernels.getCommandQueue());
-  */
   streamer2.stream(simulation, particles, bubble, config.SIMULATION_SETTINGS,
                    kernels.getCommandQueue());
 
@@ -375,8 +375,9 @@ int main(int argc, char* argv[]) {
 
   std::cout.precision(8);
 
-  simulation.calculate_average_particle_count_in_filled_cells(particles, cells,
-                                                              kernels);
+  simulation.calculate_average_particle_count_in_filled_cells(
+      particles, cells, bubble_initial_radius, simulation_boundary_radius,
+      collision_cell_length, kernels);
   // Create simulation info file which includes description of the simulation
   std::ofstream infoStream(filePath / "info.txt",
                            std::ios::out | std::ios::trunc);
@@ -400,6 +401,7 @@ int main(int argc, char* argv[]) {
   auto start_time = my_clock::now();
   auto end_time = my_clock::now();
 
+  std::cout << "Max steps: " << config.m_max_steps << std::endl;
   for (u_int i = 1; i <= config.m_max_steps; i++) {
     if ((i + 1) % config.stream_step == 0) {
       particles.createMomentumCopy();
@@ -465,7 +467,6 @@ int main(int argc, char* argv[]) {
             << std::endl;
         break;
       }
-
     }
   }
 

@@ -25,11 +25,39 @@ Simulation::Simulation(int t_seed, numType t_max_dt,
 
 // Utils
 
+void Simulation::print_max_filled_cell(CollisionCellCollection& t_cells,
+                                       OpenCLLoader& t_kernels) {
+  u_int axis_count = t_cells.getCellCountInOneAxis();
+  u_int total_count = 2 * axis_count * axis_count * axis_count + 1;
+  std::vector<uint32_t> cell_particle_count_vector(total_count, 0);
+  t_kernels.getCommandQueue().enqueueReadBuffer(
+      t_cells.getCellParticleCountBuffer(), CL_TRUE, 0,
+      total_count * sizeof(uint32_t), cell_particle_count_vector.data());
+
+  uint32_t max_count = 0;
+  for (uint32_t value : cell_particle_count_vector) {
+    if (value > max_count) {
+      max_count = value;
+    }
+  }
+  if (max_count > 90) {
+    std::cout << "Max count: " << max_count << std::endl;
+  }
+}
+
 void Simulation::calculate_average_particle_count_in_filled_cells(
     ParticleCollection& t_particles, CollisionCellCollection t_cells,
-    OpenCLLoader& t_kernels) {
+    numType R0, numType Rb, numType Rc, OpenCLLoader& t_kernels) {
   t_cells.resetShiftVector();
   t_cells.writeShiftVectorBuffer(t_kernels.getCommandQueue());
+
+  // NB!
+  uint32_t duplication_temp = 1;
+
+  t_kernels.getCommandQueue().enqueueWriteBuffer(
+      t_cells.getCellDuplicationBuffer(), CL_TRUE, 0, sizeof(uint32_t),
+      &duplication_temp);
+
   if (t_cells.getTwoMassStateOn()) {
     t_kernels.getCommandQueue().enqueueNDRangeKernel(
         t_kernels.m_particleInBubbleKernel.getKernel(), cl::NullRange,
@@ -43,35 +71,40 @@ void Simulation::calculate_average_particle_count_in_filled_cells(
         cl::NDRange(t_particles.getParticleCountTotal()));
   }
   t_particles.readParticleCollisionCellIndexBuffer(t_kernels.getCommandQueue());
-  std::vector<cl_uint> vect2(t_particles.getParticleCollisionCellIndex());
+
+  // NB!
+  t_cells.writeCellDuplicationBuffer(t_kernels.getCommandQueue());
+
+  std::vector<uint32_t> vect2(t_particles.getParticleCollisionCellIndex());
 
   std::sort(vect2.begin(), vect2.end());
   u_int particle_count = 0;
   int res = 0;
-  u_int test_count = 0;
-  for (int i = 0; i < vect2.size(); i++) {
-    if (vect2[i] != 0) {
-      test_count += 1;
-    }
-  }
 
-  for (int i = 0; i < vect2.size(); i++) {
-    while (i < vect2.size() - 1 && vect2[i] == vect2[i + 1]) {
-      i++;
+  size_t n = vect2.size();
+
+  for (int i = 0; i < n; i++) {
+    while (i < n - 2 && vect2[i] == vect2[i + 1]) {
       if (vect2[i] != 0) {
         particle_count += 1;
       }
+      i++;
     }
     if (vect2[i] != 0) {
       particle_count += 1;
     }
-    if (vect2[i] == 0) {
-      continue;
-    }
     res++;
   }
-  std::cout << "Unique cell count: " << res << std::endl;
-  std::cout << "Particle count: " << particle_count << std::endl;
+
+  numType V = 8 * std::pow(Rb, 3.) - 4. * M_PI / 3. * std::pow(R0, 3.);
+  numType Vc = std::pow(Rc, 3.);
+  std::cout << "Particle count in cell (without forcing 2-2 collisions): "
+            << std::endl;
+  std::cout << "Filled cell count: " << res
+            << ", Filled Cell count by volume: " << V / Vc
+            << ", Ratio(N_sim/N_V): " << (double)res * Vc / V << std::endl;
+  std::cout << "Particle count in grid cells (Cell index > 0): "
+            << particle_count << std::endl;
   std::cout << "Average particle count in filled cells: "
             << (double)particle_count / res << std::endl;
 }
@@ -290,7 +323,6 @@ void Simulation::collide(ParticleCollection& particles,
 
 void Simulation::collide_GPU(ParticleCollection& particles,
                              CollisionCellCollection& cells, numType t_dt,
-
                              RandomNumberGeneratorNumType& t_rng_numtype,
                              RandomNumberGeneratorULong& t_rng_int,
                              OpenCLLoader& t_kernels) {
@@ -369,9 +401,9 @@ void Simulation::collide_GPU(ParticleCollection& particles,
       cl::NDRange(cells.getCellCount()), cl::NullRange, NULL, &event);
 #endif
 #ifndef DEBUG_OPENCL_KERNEL_RUNTIME_PROFILE
-  t_kernels.getCommandQueue().enqueueNDRangeKernel(
+  /*t_kernels.getCommandQueue().enqueueNDRangeKernel(
       t_kernels.m_collisionCellResetKernel.getKernel(), cl::NullRange,
-      cl::NDRange(cells.getCellCount()));
+      cl::NDRange(cells.getCellCount()));*/
 #endif
 #ifdef DEBUG_OPENCL_KERNEL_RUNTIME_PROFILE
   t_kernels.getCommandQueue().finish();
@@ -388,6 +420,7 @@ void Simulation::collide_GPU(ParticleCollection& particles,
   t_kernels.getCommandQueue().enqueueNDRangeKernel(
       t_kernels.m_collisionCellSumParticlesKernel.getKernel(), cl::NullRange,
       cl::NDRange(particles.getParticleCountTotal()));
+
 #endif
 #ifdef DEBUG_OPENCL_KERNEL_RUNTIME_PROFILE
   t_kernels.getCommandQueue().finish();

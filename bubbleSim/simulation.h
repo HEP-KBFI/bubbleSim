@@ -61,7 +61,11 @@ class Simulation {
 
   void calculate_average_particle_count_in_filled_cells(
       ParticleCollection& t_particles, CollisionCellCollection t_cells,
+      numType R0, numType Rb, numType Rc,
       OpenCLLoader& t_kernels);
+
+  void print_max_filled_cell(CollisionCellCollection& t_cells,
+                             OpenCLLoader& t_kernels);
 
   /*
    * ================================================================

@@ -5,18 +5,18 @@
 class CollisionCellCollection {
  public:
   CollisionCellCollection(){};
-  CollisionCellCollection(numType t_meanFreePath, unsigned int t_cellCount,
+  CollisionCellCollection(numType t_meanFreePath,
+                          unsigned int t_cellCountInOneAxis,
                           bool t_two_mass_state_on,
                           u_int collision_cell_duplication,
+                          double number_density_equilibrium,
                           std::uint64_t& t_buffer_flags,
                           cl::Context& cl_context);
 
   void recalculate_cells(ParticleCollection& t_particles, numType t_dt,
                          numType t_tau, RandomNumberGeneratorNumType& t_rng);
 
-
   u_int recalculate_cells3(ParticleCollection& t_particles);
-
 
   void resetShiftVector();
 
@@ -57,11 +57,15 @@ class CollisionCellCollection {
 
   u_int getCellCount() { return m_cell_count; }
 
+  u_int getCellCountInOneAxis() { return m_cellCountInOneAxis; }
+
   double getNoCollisionProbability() { return m_no_collision_probability; }
 
   bool getTwoMassStateOn() { return m_two_mass_state_on; }
 
   uint32_t getCollisionCount() { return m_collision_count; }
+
+  uint32_t getCellDuplication() { return m_cell_duplication; }
 
   cl::Buffer& getCellLengthBuffer() { return m_cellLengthBuffer; }
 
@@ -101,12 +105,15 @@ class CollisionCellCollection {
     return m_cell_collide_boolean_buffer;
   }
 
-  cl::Buffer& getCellDuplicationBuffer() { return m_cell_duplication_buffer;
-  }
+  cl::Buffer& getCellDuplicationBuffer() { return m_cell_duplication_buffer; }
 
   cl::Buffer& getCellParticleCountBuffer() {
     return m_cell_particle_count_buffer;
   }
+
+  cl::Buffer& getTwoMassStateOnBuffer() { return m_two_mass_state_on_buffer; }
+
+  cl::Buffer& getNequilibriumBuffer() { return m_N_equilibrium_buffer; }
 
   /*
    * ================================================================
@@ -123,7 +130,7 @@ class CollisionCellCollection {
 
   void writeCellCountInOneAxisBuffer(cl::CommandQueue& cl_queue) {
     cl_queue.enqueueWriteBuffer(m_cellCountInOneAxisBuffer, CL_TRUE, 0,
-                                sizeof(u_int), &m_cellCountInOneAxis);
+                                sizeof(uint32_t), &m_cellCountInOneAxis);
   };
 
   void writeCellLengthBuffer(cl::CommandQueue& cl_queue) {
@@ -211,6 +218,17 @@ class CollisionCellCollection {
                                 m_cell_count * sizeof(uint32_t),
                                 m_cell_particle_count.data());
   }
+
+  void writeTwoMassStateOnBuffer(cl::CommandQueue& cl_queue) {
+    cl_queue.enqueueWriteBuffer(m_two_mass_state_on_buffer, CL_TRUE, 0,
+                                sizeof(cl_char), &m_two_mass_state_on);
+  }
+
+  void writeNEquilibriumBuffer(cl::CommandQueue& cl_queue) {
+    cl_queue.enqueueWriteBuffer(m_N_equilibrium_buffer, CL_TRUE, 0,
+                                sizeof(numType), &m_N_equilibrium);
+  }
+
   /////////////////////////////
 
   void writeCollisionCellRotationBuffers(cl::CommandQueue& cl_queue) {
@@ -258,7 +276,7 @@ class CollisionCellCollection {
 
   void readCellCountInOneAxisBuffer(cl::CommandQueue& cl_queue) {
     cl_queue.enqueueReadBuffer(m_cellCountInOneAxisBuffer, CL_TRUE, 0,
-                               sizeof(u_int), &m_cellCountInOneAxis);
+                               sizeof(uint32_t), &m_cellCountInOneAxis);
   };
 
   void readShiftVectorBuffer(cl::CommandQueue& cl_queue) {
@@ -381,7 +399,7 @@ class CollisionCellCollection {
   numType m_cellLength;
   cl::Buffer m_cellLengthBuffer;
 
-  u_int m_cellCountInOneAxis;
+  uint32_t m_cellCountInOneAxis;
   cl::Buffer m_cellCountInOneAxisBuffer;
 
   u_int m_cell_count;
@@ -405,5 +423,9 @@ class CollisionCellCollection {
    * such that coordinate (0,0,0) is in the center of that cell
    */
 
-  bool m_two_mass_state_on;
+  cl_char m_two_mass_state_on;
+  cl::Buffer m_two_mass_state_on_buffer;
+
+  numType m_N_equilibrium;
+  cl::Buffer m_N_equilibrium_buffer;
 };

@@ -4,7 +4,7 @@
 
 CollisionCellCollection::CollisionCellCollection(
     numType t_cellLength, unsigned int t_cellCountInOneAxis,
-    bool t_two_mass_state_on, u_int t_collision_cell_duplication,
+    bool t_two_mass_state_on, u_int t_collision_cell_duplication, double number_density_equilibrium,
     std::uint64_t& t_buffer_flags, cl::Context& cl_context) {
   /*
   TODO:
@@ -25,7 +25,11 @@ CollisionCellCollection::CollisionCellCollection(
       cl::Buffer(cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
                  sizeof(uint32_t), &m_cell_duplication, &openCLerrNum);
 
-  m_two_mass_state_on = t_two_mass_state_on;
+  m_two_mass_state_on = (cl_char)t_two_mass_state_on;
+  m_two_mass_state_on_buffer =
+      cl::Buffer(cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                 sizeof(cl_char), &m_two_mass_state_on, &openCLerrNum);
+
   if (t_two_mass_state_on) {
     // CollisionHack
     m_cell_count = m_cell_duplication * 2 *
@@ -43,54 +47,54 @@ CollisionCellCollection::CollisionCellCollection(
   // Collision cell buffers
   m_cell_theta_axis.resize(m_cell_count, 0.);
   m_cell_theta_axis_buffer = cl::Buffer(
-      cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+      cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
       m_cell_count * sizeof(numType), m_cell_theta_axis.data(), &openCLerrNum);
   t_buffer_flags |= CELL_THETA_AXIS_BUFFER;
   m_cell_phi_axis.resize(m_cell_count, 0.);
   m_cell_phi_axis_buffer = cl::Buffer(
-      cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+      cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
       m_cell_count * sizeof(numType), m_cell_phi_axis.data(), &openCLerrNum);
   t_buffer_flags |= CELL_PHI_AXIS_BUFFER;
   m_cell_theta_rotation.resize(m_cell_count, 0.);
   m_cell_theta_rotation_buffer =
-      cl::Buffer(cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+      cl::Buffer(cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
                  m_cell_count * sizeof(numType), m_cell_theta_rotation.data(),
                  &openCLerrNum);
   t_buffer_flags |= CELL_THETA_ROTATION_BUFFER;
   m_cell_E.resize(m_cell_count, 0.);
   m_cell_E_buffer = cl::Buffer(
-      cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+      cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
       m_cell_count * sizeof(numType), m_cell_E.data(), &openCLerrNum);
   t_buffer_flags |= CELL_E_BUFFER;
   m_cell_logE.resize(m_cell_count, 0.);
   m_cell_logE_buffer = cl::Buffer(
-      cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+      cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
       m_cell_count * sizeof(numType), m_cell_logE.data(), &openCLerrNum);
   t_buffer_flags |= CELL_LOGE_BUFFER;
   m_cell_pX.resize(m_cell_count, 0.);
   m_cell_pX_buffer = cl::Buffer(
-      cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+      cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
       m_cell_count * sizeof(numType), m_cell_pX.data(), &openCLerrNum);
   t_buffer_flags |= CELL_PX_BUFFER;
   m_cell_pY.resize(m_cell_count, 0.);
   m_cell_pY_buffer = cl::Buffer(
-      cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+      cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
       m_cell_count * sizeof(numType), m_cell_pY.data(), &openCLerrNum);
   t_buffer_flags |= CELL_PY_BUFFER;
   m_cell_pZ.resize(m_cell_count, 0.);
   m_cell_pZ_buffer = cl::Buffer(
-      cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+      cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
       m_cell_count * sizeof(numType), m_cell_pZ.data(), &openCLerrNum);
   t_buffer_flags |= CELL_PZ_BUFFER;
   m_cell_collide_boolean.resize(m_cell_count, (cl_char)0);
   m_cell_collide_boolean_buffer =
-      cl::Buffer(cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+      cl::Buffer(cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
                  m_cell_count * sizeof(cl_char), m_cell_collide_boolean.data(),
                  &openCLerrNum);
   t_buffer_flags |= CELL_COLLIDE_BUFFER;
   m_cell_particle_count.resize(m_cell_count, (uint32_t)0);
   m_cell_particle_count_buffer =
-      cl::Buffer(cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+      cl::Buffer(cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
                  m_cell_count * sizeof(uint32_t), m_cell_particle_count.data(),
                  &openCLerrNum);
   t_buffer_flags |= CELL_PARTICLE_COUNT_BUFFER;
@@ -98,7 +102,7 @@ CollisionCellCollection::CollisionCellCollection(
   m_cellCountInOneAxis = t_cellCountInOneAxis;
   m_cellCountInOneAxisBuffer =
       cl::Buffer(cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                 sizeof(u_int), &m_cellCountInOneAxis, &openCLerrNum);
+                 sizeof(uint32_t), &m_cellCountInOneAxis, &openCLerrNum);
   t_buffer_flags |= CELL_COUNT_IN_ONE_AXIS_BUFFER;
 
   m_cellLength = t_cellLength;
@@ -108,7 +112,7 @@ CollisionCellCollection::CollisionCellCollection(
   t_buffer_flags |= CELL_LENGTH_BUFFER;
   m_shiftVector = {0., 0., 0.};
   m_shiftVectorBuffer =
-      cl::Buffer(cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
+      cl::Buffer(cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
                  3 * sizeof(numType), m_shiftVector.data(), &openCLerrNum);
   t_buffer_flags |= CELL_SHIFT_VECTOR_BUFFER;
 
@@ -120,9 +124,17 @@ CollisionCellCollection::CollisionCellCollection(
   t_buffer_flags |= CELL_SEED_INT64_BUFFER;
   m_no_collision_probability = 0.;
   m_no_collision_probability_buffer =
-      cl::Buffer(cl_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
+      cl::Buffer(cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
                  sizeof(double), &m_no_collision_probability, &openCLerrNum);
   t_buffer_flags |= CELL_NO_COLLISION_PROBABILITY_BUFFER;
+
+
+  m_N_equilibrium = number_density_equilibrium * std::pow(t_cellLength, 3.);
+  std::cout << "N equilibrium: "<<  m_N_equilibrium << std::endl;
+  m_N_equilibrium_buffer =
+      cl::Buffer(cl_context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                 sizeof(numType), &t_cellLength, &openCLerrNum);
+
 }
 
 void CollisionCellCollection::generate_collision_seeds(

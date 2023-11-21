@@ -1,9 +1,9 @@
 {
     "simulation": {
-        "seed": 1,
+        "seed": 10,
         "dt": 0.01,
         "timestep_resolution": 10000,
-        "max_steps": 1000000,
+        "max_steps": 10000000,
         "cyclic_boundary_on": true
     },
     "parameters": {
@@ -28,7 +28,7 @@
     "particles": {
         "mass_false": 0.0,
         "T_false": 0.3,
-        "N_false": 750000,
+        "N_false": 7500000,
         "mass_true": 1,
         "T_true": 0.0,
         "N_true": 0
@@ -36,7 +36,7 @@
     "collision": {
         "collision_on": true,
         "two_mass_state_on" : true,
-        "N_cells": 71,
+        "N_cells": 91,
         "cell_duplication": 50
     },
     "stream": {

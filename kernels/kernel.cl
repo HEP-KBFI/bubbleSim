@@ -2,6 +2,7 @@
 #pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable
 
 #pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable
+
 void __attribute__((always_inline))
 atomic_add_d(volatile global double *addr, const double val) {
   union {
@@ -861,7 +862,7 @@ __kernel void collision_cell_sum_particles(
     atomic_add_d(&cell_pY[cell_index], particles_pY[gid]);
     atomic_add_d(&cell_pZ[cell_index], particles_pZ[gid]);
     atomic_add_d(&cell_logE[cell_index], log(particles_E[gid]));
-    atomic_inc(&cell_particle_count[cell_index]);
+    // atomic_inc(&cell_particle_count[cell_index]);
   }
 }
 
@@ -871,8 +872,12 @@ __kernel void collision_cell_generate_collisions(
     __global double *cell_pX, __global double *cell_pY,
     __global double *cell_pZ, __global char *cell_collide_boolean,
     __global double *cell_logE, __global uint *cell_particle_count,
-    __global ulong *seeds, __global double *no_collision_probability) {
+    __global ulong *seeds, __global const double *no_collision_probability,
+    __global const double *N_equilibrium,
+    __global const uint *maxCellIndexInAxis,
+    __global const char *two_mass_state_on) {
   size_t gid = get_global_id(0);
+  
   if (cell_particle_count[gid] < 2 || gid == 0) {
     cell_collide_boolean[gid] = (char)0;
   } else {
@@ -886,24 +891,31 @@ __kernel void collision_cell_generate_collisions(
       // never collide
       seeds[gid] = xorshift64(seeds[gid]);
       probability = (double)seeds[gid] / 18446744073709551616.0;
+      uint N_cells = maxCellIndexInAxis[0] * maxCellIndexInAxis[0] *
+                     maxCellIndexInAxis[0] * (1 + two_mass_state_on[0]);
+      uint duplication = (gid - 1) / (N_cells);
+      uint gid2 = gid - duplication * N_cells;
+      uint particles_count_in_cell = cell_particle_count[gid2];
 
-      if (probability <= no_collision_probability[0]) {
+      if (probability <=
+          pow(no_collision_probability[0], particles_count_in_cell / N_equilibrium[0])) {
         cell_collide_boolean[gid] = (char)0;
       } else {
         // Calculating probability to collide based on particles' energies
         // P(E) = (Sum[E_i]/N)^N/(Prod[E_i]) * constant
         seeds[gid] = xorshift64(seeds[gid]);
         probability = (double)seeds[gid] / 18446744073709551616.0;
-        if (probability <= exp(-exp((double)cell_particle_count[gid] *
-                                        (log(cell_E[gid]) -
-                                         log(3.0 * cell_particle_count[gid])) -
-                                    cell_logE[gid]))) {
+        // if (probability <= exp(-exp((double)cell_particle_count[gid] *
+        //                                 (log(cell_E[gid]) -
+        //                                  log(3.0 * cell_particle_count[gid]))
+        //                                  -
+        //                             cell_logE[gid]))) {
+        if (probability <=
+            exp(-exp((double)2. * (log(cell_E[gid]) - log(3.0 * 2.)) -
+                     cell_logE[gid]))) {
           cell_collide_boolean[gid] = (char)0;
         } else {
           cell_collide_boolean[gid] = (char)1;
-          if (cell_particle_count[gid] > 2) {
-            printf("Miks oled suurem kui 2? %i\n", gid);
-          }
 
           seeds[gid] = xorshift64(seeds[gid]);
           probability = (double)seeds[gid] / 18446744073709551616.0;
@@ -1087,7 +1099,7 @@ __kernel void assign_particle_to_collision_cell(
     if (shift_value < cell_duplication[0]) {
       collision_cell_index += shift_value * maxCellIndexInAxis[0] *
                               maxCellIndexInAxis[0] * maxCellIndexInAxis[0];
-    } else {
+    } else if (shift_value > cell_duplication[0]) {
       collision_cell_index = 0;
     }
   }
@@ -1136,11 +1148,12 @@ __kernel void assign_particle_to_collision_cell_two_state(
     __global double *particles_Z,
     __global unsigned int *m_particle_collision_cell_index,
     __global char *particles_bool_in_bubble,
-    __global const int *maxCellIndexInAxis, __global const double *cellLength,
+    __global const uint *maxCellIndexInAxis, __global const double *cellLength,
     __global const double *cuboidShift, __global uint *cell_particle_count,
     __global uint *cell_duplication) {
   size_t gid = get_global_id(0);
   unsigned int collision_cell_index;
+
   // Find cell numbers
   int x_index =
       (int)((particles_X[gid] + cellLength[0] * maxCellIndexInAxis[0] / 2. +
@@ -1171,16 +1184,18 @@ __kernel void assign_particle_to_collision_cell_two_state(
             maxCellIndexInAxis[0] * maxCellIndexInAxis[0];
   }
 
-  // HARD CODED VALUE: SHIFT_MAX = 50
-
   if (collision_cell_index != 0) {
     uint old_value = atomic_inc(&cell_particle_count[collision_cell_index]);
+    
     uint shift_value = old_value / 2;
-    if (shift_value < cell_duplication[0] && shift_value > 0) {
+    if (shift_value < cell_duplication[0] && shift_value > 0 &&
+        cell_duplication[0] > 1) {
       // Multipley by 2 because inside bubble has separate cells
       collision_cell_index += shift_value * 2 * maxCellIndexInAxis[0] *
                               maxCellIndexInAxis[0] * maxCellIndexInAxis[0];
-    } else {
+      atomic_inc(&cell_particle_count[collision_cell_index]);
+      
+    } else if (shift_value > cell_duplication[0] && cell_duplication[0] > 1) {
       collision_cell_index = 0;
     }
   }

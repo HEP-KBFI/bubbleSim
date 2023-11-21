@@ -194,37 +194,31 @@ void DataStreamerBinary::stream(Simulation& simulation,
   m_dr_out = (boundary_radius - bubble_radius) / m_N_bins_out_profile;
 
   // Reset all profile values to zero
-  memset(&m_particle_count[0], 0,
-         sizeof(m_particle_count[0]) * m_particle_count.size());
-  memset(&m_T00[0], 0, sizeof(m_T00[0]) * m_T00.size());
-  memset(&m_T01[0], 0, sizeof(m_T01[0]) * m_T01.size());
-  memset(&m_T02[0], 0, sizeof(m_T02[0]) * m_T02.size());
-  memset(&m_T03[0], 0, sizeof(m_T03[0]) * m_T03.size());
-  memset(&m_T11[0], 0, sizeof(m_T11[0]) * m_T11.size());
-  memset(&m_T22[0], 0, sizeof(m_T22[0]) * m_T22.size());
-  memset(&m_T33[0], 0, sizeof(m_T33[0]) * m_T33.size());
-  memset(&m_T12[0], 0, sizeof(m_T12[0]) * m_T12.size());
-  memset(&m_T13[0], 0, sizeof(m_T13[0]) * m_T13.size());
-  memset(&m_T23[0], 0, sizeof(m_T23[0]) * m_T23.size());
-  memset(&m_radial_velocity[0], 0,
-         sizeof(m_radial_velocity[0]) * m_radial_velocity.size());
-  memset(&m_momentum_value[0], 0,
-         sizeof(m_momentum_value[0]) * m_momentum_value.size());
-  memset(&m_momentum_change[0], 0,
-         sizeof(m_momentum_change[0]) * m_momentum_change.size());
-  memset(&m_mean_velocity[0], 0,
-         sizeof(m_mean_velocity) * m_mean_velocity.size());
-  memset(&m_square_mean_velocity[0], 0,
-         sizeof(m_square_mean_velocity) * m_square_mean_velocity.size());
+  std::fill(m_particle_count.begin(), m_particle_count.end(), 0);
+  std::fill(m_T00.begin(), m_T00.end(), 0);
+  std::fill(m_T01.begin(), m_T01.end(), 0);
+  std::fill(m_T02.begin(), m_T02.end(), 0);
+  std::fill(m_T03.begin(), m_T03.end(), 0);
+  std::fill(m_T11.begin(), m_T11.end(), 0);
+  std::fill(m_T22.begin(), m_T22.end(), 0);
+  std::fill(m_T33.begin(), m_T33.end(), 0);
+  std::fill(m_T12.begin(), m_T12.end(), 0);
+  std::fill(m_T13.begin(), m_T13.end(), 0);
+  std::fill(m_T23.begin(), m_T23.end(), 0);
+  std::fill(m_radial_velocity.begin(), m_radial_velocity.end(), 0);
+  std::fill(m_momentum_value.begin(), m_momentum_value.end(), 0);
+  std::fill(m_momentum_change.begin(), m_momentum_change.end(), 0);
+  std::fill(m_mean_velocity.begin(), m_mean_velocity.end(), 0);
+  std::fill(m_square_mean_velocity.begin(), m_square_mean_velocity.end(), 0);
 
   if (b_stream_momentum_in || b_stream_momentum_out) {
-    memset(&m_momentum[0], 0, sizeof(m_momentum[0]) * m_momentum.size());
+    std::fill(m_momentum.begin(), m_momentum.end(), 0);
   }
 
   if (b_stream_momentum_radial_profile) {
-    memset(&m_momentum_radius_profile[0], 0,
-           sizeof(m_momentum_radius_profile[0]) *
-               m_momentum_radius_profile.size());
+    std::fill(m_momentum_radius_profile.begin(),
+              m_momentum_radius_profile.end(), 0);
+
     m_dr_in_pr = bubble_radius / m_N_bins_in_profile_pr;
     m_dr_out_pr = (boundary_radius - bubble_radius) / m_N_bins_out_profile_pr;
   }
