@@ -44,7 +44,7 @@ void DataStreamerBinary::initStream_Data() {
 }
 
 void DataStreamerBinary::initialize_profile_streaming(uint32_t t_N_bins_in,
-                                                      uint32_t t_N_bins_out) {
+                                                      uint32_t t_N_bins_out, SimulationSettings& settings) {
   m_N_bins_in_profile = t_N_bins_in;
   m_N_bins_out_profile = t_N_bins_out;
   m_stream_profile.open(m_file_path / "profile.bin",
@@ -56,8 +56,17 @@ void DataStreamerBinary::initialize_profile_streaming(uint32_t t_N_bins_in,
                 << "; dtypes=[uint32, float64, float64, float64, "
                    "float64, float64, float64, "
                    "float64, float64, float64, float64, float64, float64, "
-                   "float64, float64, float64]"
-                << std::endl;
+                   "float64, float64, float64";
+  if (settings.isFlagSet(COLLISION_ON)) {
+    profile_guide << ", uint32";
+  }
+  profile_guide << "]";
+  profile_guide
+      << "; Columns=[N,T00,T01,T02,T03,T11,T22,T33,T12,T13,T23,Vr,|P|,|dP|,|v|,|v2|";
+  if (settings.isFlagSet(COLLISION_ON)) {
+    profile_guide << ",Nc";
+  }
+  profile_guide << "];" << std::endl;
   profile_guide.close();
 
   m_particle_count.resize(m_N_bins_in_profile + m_N_bins_out_profile,
@@ -83,6 +92,7 @@ void DataStreamerBinary::initialize_profile_streaming(uint32_t t_N_bins_in,
 
   m_mean_velocity.resize(m_N_bins_in_profile + m_N_bins_out_profile,
                          (numType)0.);
+  m_collision_count.resize(m_N_bins_in_profile + m_N_bins_out_profile, 0);
 }
 
 void DataStreamerBinary::initialize_momentum_streaming(uint32_t t_N_bins_in,
@@ -113,7 +123,7 @@ void DataStreamerBinary::initialize_momentum_streaming(uint32_t t_N_bins_in,
   momentum_info << "Momentum: N_momentum_bins_in=" << t_N_bins_in
                 << "; N_momentum_bins_out=" << t_N_bins_out
                 << "; scale=" << scale << "; min_order=" << -3
-                << "; max_order=" << 3 << std::endl;
+                << "; max_order=" << 3 << ";"<< std::endl;
   momentum_info.close();
 }
 
@@ -148,13 +158,15 @@ void DataStreamerBinary::initialize_momentum_radial_profile_streaming(
                 << "; Momentum_profile_radius_in_N_bins=" << t_N_radius_bins_in
                 << "; Momentum_profile_radius_out_N_bins="
                 << t_N_radius_bins_out << "; scale=" << scale
-                << "; min_order=" << -3 << "; max_order=" << 3 << std::endl;
+                << "; min_order=" << -3 << "; max_order=" << 3 << ";"
+                << std::endl;
   momentum_info.close();
 }
 
 void DataStreamerBinary::stream(Simulation& simulation,
                                 ParticleCollection& particleCollection,
                                 PhaseBubble& bubble,
+                                CollisionCellCollection& cells,
                                 SimulationSettings& settings,
                                 cl::CommandQueue& cl_queue) {
   numType bubble_radius = bubble.getRadius();
@@ -169,7 +181,10 @@ void DataStreamerBinary::stream(Simulation& simulation,
   particleCollection.readParticlepXBuffer(cl_queue);
   particleCollection.readParticlepYBuffer(cl_queue);
   particleCollection.readParticlepZBuffer(cl_queue);
-
+  if (settings.isFlagSet(COLLISION_ON)) {
+    particleCollection.readParticleCollisionCellIndexBuffer(cl_queue);
+    cells.readCellCollideBooleanBuffer(cl_queue);
+  }
   // Reset data
   m_stream_data_bubble_energy = 0.;
   m_stream_data_particle_energy = 0.;
@@ -210,6 +225,9 @@ void DataStreamerBinary::stream(Simulation& simulation,
   std::fill(m_momentum_change.begin(), m_momentum_change.end(), 0);
   std::fill(m_mean_velocity.begin(), m_mean_velocity.end(), 0);
   std::fill(m_square_mean_velocity.begin(), m_square_mean_velocity.end(), 0);
+  if (settings.isFlagSet(COLLISION_ON)) {
+    std::fill(m_collision_count.begin(), m_collision_count.end(), 0);
+  }
 
   if (b_stream_momentum_in || b_stream_momentum_out) {
     std::fill(m_momentum.begin(), m_momentum.end(), 0);
@@ -344,6 +362,10 @@ void DataStreamerBinary::stream(Simulation& simulation,
 
     m_mean_velocity[index] += momentum / energy;
     m_square_mean_velocity[index] += std::pow(momentum / energy, 2.);
+    if (settings.isFlagSet(COLLISION_ON)) {
+      m_collision_count[index] += cells.returnCellCollideBoolean(
+          particleCollection.returnCollisionCellIndex(i));
+    }
   }
 
   m_stream_data_time = simulation.getTime();
@@ -363,7 +385,7 @@ void DataStreamerBinary::stream(Simulation& simulation,
 
   // Write data to file
   write_data();
-  write_profile();
+  write_profile(settings);
   if (b_stream_momentum_in || b_stream_momentum_out) {
     write_momentum();
   }
@@ -411,7 +433,7 @@ void DataStreamerBinary::write_data() {
   m_stream_data.flush();
 }
 
-void DataStreamerBinary::write_profile() {
+void DataStreamerBinary::write_profile(SimulationSettings& settings) {
   m_stream_profile.write(reinterpret_cast<const char*>(m_particle_count.data()),
                          m_particle_count.size() * sizeof(uint32_t));
   m_stream_profile.write(reinterpret_cast<const char*>(m_T00.data()),
@@ -447,6 +469,12 @@ void DataStreamerBinary::write_profile() {
   m_stream_profile.write(
       reinterpret_cast<const char*>(m_square_mean_velocity.data()),
       m_square_mean_velocity.size() * sizeof(numType));
+  if (settings.isFlagSet(COLLISION_ON)) {
+    m_stream_profile.write(
+        reinterpret_cast<const char*>(m_collision_count.data()),
+        m_collision_count.size() * sizeof(uint32_t));
+  }
+
 }
 
 void DataStreamerBinary::write_momentum() {

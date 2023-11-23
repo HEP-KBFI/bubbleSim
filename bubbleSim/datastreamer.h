@@ -57,6 +57,7 @@ class DataStreamerBinary {
   std::vector<numType> m_momentum_change;
   std::vector<numType> m_mean_velocity;
   std::vector<numType> m_square_mean_velocity;
+  std::vector<uint32_t> m_collision_count;
 
   numType m_dp_in;
   numType m_dp_out;
@@ -82,6 +83,7 @@ class DataStreamerBinary {
   uint32_t m_N_bins_out_profile_pr;
   std::vector<uint32_t> m_momentum_radius_profile;
 
+
   numType calculateParticleRadialMomentum(ParticleCollection& particles,
                                           numType& radius, size_t i);
 
@@ -96,8 +98,8 @@ class DataStreamerBinary {
   DataStreamerBinary(){};
   DataStreamerBinary(std::string t_file_path);
   void initStream_Data();
-  void initialize_profile_streaming(uint32_t t_N_bins_in,
-                                    uint32_t t_N_bins_out);
+  void initialize_profile_streaming(uint32_t t_N_bins_in, uint32_t t_N_bins_out,
+                                    SimulationSettings& settings);
   void initialize_momentum_streaming(uint32_t t_N_bins_in,
                                      uint32_t t_N_bins_out,
                                      numType energy_scale);
@@ -107,11 +109,11 @@ class DataStreamerBinary {
       uint32_t t_N_radius_bins_out, numType energy_scale);
 
   void stream(Simulation& simulation, ParticleCollection& particleCollection,
-              PhaseBubble& bubble, SimulationSettings& settings,
+              PhaseBubble& bubble, CollisionCellCollection& cells, SimulationSettings& settings,
               cl::CommandQueue& cl_queue);
 
   void write_data();
-  void write_profile();
+  void write_profile(SimulationSettings& settings);
   void write_momentum();
   void write_momentum_profile();
 };

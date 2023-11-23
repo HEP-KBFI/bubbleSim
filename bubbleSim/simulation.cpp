@@ -331,7 +331,6 @@ void Simulation::collide_GPU(ParticleCollection& particles,
 
   cl_ulong time_end, time_start, time_total;
 #endif
-
   cells.generateShiftVector(t_rng_numtype);
   cells.writeShiftVectorBuffer(t_kernels.getCommandQueue());
 
@@ -563,7 +562,6 @@ void Simulation::stepParticleCollisionBoundary(
   // m_timestepAdapter.calculateNewTimeStep(bubble);
   m_dt_current = m_parameters.getTimestepAdapter().getTimestep();
   m_parameters.writeDtBuffer(t_kernels.getCommandQueue());
-
 #ifdef TIME_COLLIDE_DEBUG
   auto start = my_clock::now();
 #endif
@@ -583,7 +581,6 @@ void Simulation::stepParticleCollisionBoundary(
   print_timer_info("Boundary check time: ", clock_micros(stop - start).count());
   start = my_clock::now();
 #endif
-
   // Full CPU algorithm
   // collide(particles, cells, m_dt_current, t_rng_numtype, t_kernels);
   collide_GPU(particles, cells, m_dt_current, t_rng_numtype, t_rng_int,
@@ -599,7 +596,7 @@ void Simulation::stepParticleCollisionBoundary(
 
   start = my_clock::now();
 #endif
-  particles.readParticleEBuffer(t_kernels.getCommandQueue());
+  //particles.readParticleEBuffer(t_kernels.getCommandQueue());
 
 #ifdef TIME_COLLIDE_DEBUG
   stop = my_clock::now();
@@ -608,10 +605,10 @@ void Simulation::stepParticleCollisionBoundary(
 
   start = my_clock::now();
 #endif
-  numType currentTotalEnergy = 0.;
+  /*numType currentTotalEnergy = 0.;
   for (size_t i = 0; i < particles.getParticleCountTotal(); i++) {
     currentTotalEnergy += particles.returnParticleE(i);
-  }
+  }*/
 
 #ifdef TIME_COLLIDE_DEBUG
   stop = my_clock::now();
@@ -620,7 +617,7 @@ void Simulation::stepParticleCollisionBoundary(
 
   std::cout << std::endl;
 #endif
-  m_totalEnergy = currentTotalEnergy;
+  //m_totalEnergy = currentTotalEnergy;
   m_time += m_dt_current;
   m_step_count += 1;
 }

@@ -38,8 +38,7 @@ class ConfigReader {
   /*
    * Physics parameters
    */
-  numType alpha;
-  numType eta;
+  numType scale;
   numType upsilon;
   numType sigma;
   numType tau;
@@ -119,8 +118,7 @@ class ConfigReader {
     /*
      * Physical parameters
      */
-    alpha = config["parameters"]["alpha"];
-    eta = config["parameters"]["eta"];
+    scale = config["parameters"]["scale"];
     upsilon = config["parameters"]["upsilon"];
     tau = config["parameters"]["tau"];
     lambda = config["parameters"]["lambda"];
@@ -217,12 +215,11 @@ class ConfigReader {
     std::cout << "=============== Config ===============" << std::endl;
     std::cout << sublabel_prefix + "Simulation" + sublabel_sufix << std::endl;
     std::cout << "seed: " << m_seed << ", max_steps: " << m_max_steps
-              << ", dt: " << dt << ", Stream step: " << stream_step << std::endl;
-    std::cout << "Cyclic boundary on: " << cyclicBoundaryOn
+              << ", dt: " << dt << ", Stream step: " << stream_step
               << std::endl;
+    std::cout << "Cyclic boundary on: " << cyclicBoundaryOn << std::endl;
     std::cout << sublabel_prefix + "Parameters" << sublabel_sufix << std::endl;
-    std::cout << "alpha: " << alpha << ", eta: " << eta
-              << ", upsilon: " << upsilon << std::endl;
+    std::cout << ", upsilon: " << upsilon << std::endl;
 
     std::cout << sublabel_prefix + "Bubble" << sublabel_sufix << std::endl;
     std::cout << "R_b: " << bubbleInitialRadius

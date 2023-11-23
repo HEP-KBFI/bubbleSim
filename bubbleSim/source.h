@@ -84,13 +84,14 @@ void createSimulationInfoFile(std::ofstream& infoStream,
                               ConfigReader& t_config, numType dV, numType critical_radius,
                               numType initial_radius, numType boundary_radius) {
   infoStream
-      << "file_name,seed,upsilon,lambda,v,y,etaV,sigma,dV,Tn,m-,N-,N+,"
+      << "file_name,seed,scale,upsilon,lambda,v,y,etaV,sigma,dV,Tn,m-,N-,N+,"
          "bubble_on,bubble_interaction_on,collision_on,collision_two_mass_"
          "cells_on,cell_count_in_one_axis,"
          "initial_speed,critical_radius,initial_radius,boundary_radius,runtime"
       << std::endl;
 
   infoStream << filePath.filename() << "," << t_config.m_seed << ","
+             << t_config.scale << "," 
              << t_config.upsilon << "," << t_config.lambda << "," << t_config.v
              << "," << t_config.y << "," << t_config.etaV << ","
              << t_config.sigma << "," << dV << "," << t_config.Tn << ","

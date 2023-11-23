@@ -25,6 +25,7 @@ class CollisionCellCollection {
   void calculate_new_no_collision_probability(double dt, double tau) {
     m_no_collision_probability = std::exp(-dt / tau);
   }
+   
 
   void generate_collision_seeds(RandomNumberGeneratorULong& t_rng);
 

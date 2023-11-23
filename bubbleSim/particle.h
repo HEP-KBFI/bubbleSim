@@ -684,6 +684,12 @@ class ParticleGenerator {
   void calculateCPDBeta(numType t_leftShift, numType t_pMax, numType t_alpha,
                         numType t_beta, numType t_dp);
 
+  void generateRandomDirection(numType& x, numType& y, numType& z,
+                               numType t_radius,
+                               RandomNumberGeneratorNumType& t_generator);
+
+  
+
  private:
   bool m_CPD_initialized = false;
   numType m_mass = 0;
@@ -691,10 +697,6 @@ class ParticleGenerator {
 
   numType interp(numType t_xValue, std::vector<numType>& t_xArray,
                  std::vector<numType>& t_yArray);
-
-  void generateRandomDirection(numType& x, numType& y, numType& z,
-                               numType t_radius,
-                               RandomNumberGeneratorNumType& t_generator);
 
   void generateParticleMomentum(numType& p_x, numType& p_y, numType& p_z,
                                 numType& t_pResult,

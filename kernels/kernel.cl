@@ -182,6 +182,9 @@ __kernel void particle_step_with_bubble(
     __constant double *t_m_out, __constant double *t_delta_m2,
     __constant double *t_dt) {
   size_t gid = get_global_id(0);
+    if (gid == 1){
+    printf("X: %.5f\n", particles_X[gid]);
+  }
   /*
    * t_dE is a array where each element is "pressure" by particle respective to
    * it's index. t_dE is not actual pressure but actually energy change ΔE/V_b.
@@ -877,7 +880,7 @@ __kernel void collision_cell_generate_collisions(
     __global const uint *maxCellIndexInAxis,
     __global const char *two_mass_state_on) {
   size_t gid = get_global_id(0);
-  
+
   if (cell_particle_count[gid] < 2 || gid == 0) {
     cell_collide_boolean[gid] = (char)0;
   } else {
@@ -896,10 +899,8 @@ __kernel void collision_cell_generate_collisions(
       uint duplication = (gid - 1) / (N_cells);
       uint gid2 = gid - duplication * N_cells;
       uint particles_count_in_cell = cell_particle_count[gid2];
-
       if (probability <=
-          pow(no_collision_probability[0], particles_count_in_cell / N_equilibrium[0])) {
-        cell_collide_boolean[gid] = (char)0;
+          pow(no_collision_probability[0], pow(particles_count_in_cell / N_equilibrium[0], 2.0))) {
       } else {
         // Calculating probability to collide based on particles' energies
         // P(E) = (Sum[E_i]/N)^N/(Prod[E_i]) * constant
@@ -1297,7 +1298,6 @@ __kernel void particle_boundary_check(__global double *particles_X,
                                       __global double *particles_Z,
                                       __global double *t_boundaryRadius) {
   size_t gid = get_global_id(0);
-
   double x = particles_X[gid];
   double y = particles_Y[gid];
   double z = particles_Z[gid];

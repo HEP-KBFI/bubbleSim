@@ -61,14 +61,18 @@ void print_simulation_state(ParticleCollection& particles, PhaseBubble& bubble,
   std::cout.precision(DEFAULT_COUT_PRECISION);
 }
 
-void scale_R_and_dV(numType& bubble_radius, numType& boundary_radius,
-                    numType& dV, numType scale) {
+void scale_R_dV_sigma(numType& bubble_radius, numType& boundary_radius,
+                      numType& dV, numType& sigma, numType scale) {
+  numType constant1 = sigma / (dV * bubble_radius);
+
   numType V0 = 8. * std::pow(boundary_radius, 3.) -
                4. * M_PI * std::pow(bubble_radius, 3.) / 3.;
   boundary_radius *= scale;
   numType V1 = 8. * std::pow(boundary_radius, 3.) -
                4. * M_PI * std::pow(bubble_radius, 3.) / 3.;
   dV = V0 / V1 * dV;
+
+  sigma = constant1 * dV * bubble_radius;
 }
 
 int main(int argc, char* argv[]) {
@@ -98,7 +102,7 @@ int main(int argc, char* argv[]) {
   */
   numType dV =
       config.lambda * std::pow(config.v, 4.0) * (1 - 2 * config.etaV) / 12.;
-
+  numType sigma = config.sigma;
   // Particles
   numType particle_mass_in_false_vacuum = config.particleMassFalse;
   numType particle_mass_in_true_vacuum = config.v * config.y;
@@ -113,7 +117,7 @@ int main(int argc, char* argv[]) {
   numType particle_eta = particle_deltaM / particle_temperature_in_false_vacuum;
 
   // Bubble
-  numType bubble_critical_radius = 2 * config.sigma / dV;
+  numType bubble_critical_radius = 2 * sigma / dV;
   numType bubble_initial_radius =
       config.upsilon * bubble_critical_radius *
       config.SIMULATION_SETTINGS.isFlagSet(BUBBLE_ON);
@@ -121,12 +125,18 @@ int main(int argc, char* argv[]) {
       std::cbrt(config.particleCountFalse / n_false_boltzmann +
                 4. * M_PI * std::pow(bubble_initial_radius, 3.) / 3.) /
       2.0;
+
   // std::cout << dV << std::endl;
-  // scale_R_and_dV(bubble_initial_radius, simulation_boundary_radius, dV, 2.);
+  scale_R_dV_sigma(bubble_initial_radius, simulation_boundary_radius, dV, sigma,
+                   config.scale);
   // std::cout << dV << std::endl;
+  if (simulation_boundary_radius <= bubble_initial_radius) {
+    std::cerr << "Boundary radius <= Initial bubble radius" << std::endl;
+    std::exit(0);
+  }
 
   numType dt = simulation_boundary_radius / config.timestep_resolution;
-  numType tau = 10. * dt;
+  numType tau = config.tau * dt;
 
   /*
     =============== Initialization ===============
@@ -166,6 +176,7 @@ int main(int argc, char* argv[]) {
   generatedParticleEnergy = particleGenerator1.generateNParticlesInCube(
       bubble_initial_radius, simulation_boundary_radius,
       (u_int)(particles.getParticleCountTotal()), rn_generator, particles);
+
   /*generatedParticleEnergy += particleGenerator2.generateNParticlesInCube(
       config.bubbleInitialRadius, config.cyclicBoundaryRadius,
       (u_int)(particles.getParticleCountTotal() -
@@ -222,8 +233,9 @@ int main(int argc, char* argv[]) {
             << "=============== Dimensionless parameters ==============="
             << std::endl;
 
-  std::cout << "dV/rho-: " << dV / generated_plasma_rho << ", sigma/(dV*R0): "
-            << config.sigma / (dV * bubble_initial_radius) << std::endl;
+  std::cout << "dV/rho-: " << dV / generated_plasma_rho
+            << ", sigma/(dV*R0): " << sigma / (dV * bubble_initial_radius)
+            << std::endl;
 
   // If bubble is true vacuum then dV is + sign. Otherwise dV sign is -.
   if (!config.SIMULATION_SETTINGS.isFlagSet(TRUE_VACUUM_BUBBLE_ON)) {
@@ -232,13 +244,17 @@ int main(int argc, char* argv[]) {
 
   PhaseBubble bubble;
   if (config.SIMULATION_SETTINGS.isFlagSet(BUBBLE_ON)) {
-    bubble = PhaseBubble(bubble_initial_radius, config.bubbleInitialSpeed, dV,
-                         config.sigma, bubble_critical_radius, buffer_flags,
-                         kernels.getContext());
+    bubble =
+        PhaseBubble(bubble_initial_radius, config.bubbleInitialSpeed, dV, sigma,
+                    bubble_critical_radius, buffer_flags, kernels.getContext());
   }
 
   SimulationParameters simulation_parameters;
   Simulation simulation;
+
+  std::cout << std::endl;
+  bubble.print_info(config);
+  std::cout << std::endl;
 
   numType particle_mass_in =
       (config.SIMULATION_SETTINGS.isFlagSet(TRUE_VACUUM_BUBBLE_ON))
@@ -311,8 +327,10 @@ int main(int argc, char* argv[]) {
     if (config.SIMULATION_SETTINGS.isFlagSet(COLLISION_MASS_STATE_ON)) {
       kernels.m_cellAssignmentKernelTwoMassState.setBuffers(particles, cells,
                                                             buffer_flags);
-      kernels.m_particleInBubbleKernel.setBuffers(particles, bubble);
       particles.writeParticleInBubbleBuffer(kernels.getCommandQueue());
+      if (config.SIMULATION_SETTINGS.isFlagSet(BUBBLE_ON)) {
+        kernels.m_particleInBubbleKernel.setBuffers(particles, bubble);
+      }
     } else {
       kernels.m_cellAssignmentKernel.setBuffers(particles, cells, buffer_flags);
     }
@@ -322,7 +340,6 @@ int main(int argc, char* argv[]) {
     kernels.m_collisionCellResetKernel.setBuffers(cells, buffer_flags);
     kernels.m_collisionCellCalculateGenerationKernel.setBuffers(cells,
                                                                 buffer_flags);
-
     cells.writeAllBuffersToKernel(kernels.getCommandQueue());
     cells.writeNoCollisionProbabilityBuffer(kernels.getCommandQueue());
     cells.writeCollisionSeedsBuffer(kernels.getCommandQueue());
@@ -340,8 +357,6 @@ int main(int argc, char* argv[]) {
   simulation.getSimulationParameters().writeDtBuffer(kernels.getCommandQueue());
   simulation.getSimulationParameters().writeMassInBuffer(
       kernels.getCommandQueue());
-  simulation.getSimulationParameters().writeMassInBuffer(
-      kernels.getCommandQueue());
   simulation.getSimulationParameters().writeMassOutBuffer(
       kernels.getCommandQueue());
 
@@ -356,21 +371,20 @@ int main(int argc, char* argv[]) {
   streamer2.initStream_Data();
 
   streamer2.initialize_profile_streaming(
-      200 * config.SIMULATION_SETTINGS.isFlagSet(BUBBLE_ON), 200);
+      200 * config.SIMULATION_SETTINGS.isFlagSet(BUBBLE_ON), 200,
+      config.SIMULATION_SETTINGS);
   streamer2.initialize_momentum_streaming(
       200 * config.SIMULATION_SETTINGS.isFlagSet(BUBBLE_ON), 200,
       particle_temperature_in_false_vacuum);
   streamer2.initialize_momentum_radial_profile_streaming(
       200, 20 * config.SIMULATION_SETTINGS.isFlagSet(BUBBLE_ON), 20,
       particle_temperature_in_false_vacuum);
-  streamer2.stream(simulation, particles, bubble, config.SIMULATION_SETTINGS,
-                   kernels.getCommandQueue());
+  streamer2.stream(simulation, particles, bubble, cells,
+                   config.SIMULATION_SETTINGS, kernels.getCommandQueue());
 
   // std::cout << std::endl;
   // config.print_info();
-  std::cout << std::endl;
-  bubble.print_info(config);
-  std::cout << std::endl;
+
   std::cout.precision(DEFAULT_COUT_PRECISION);
 
   std::cout.precision(8);
@@ -391,6 +405,9 @@ int main(int argc, char* argv[]) {
 
   numType simTimeSinceLastStream = 0.;
   int stepsSinceLastStream = 0;
+
+  std::cout << "Max steps: " << config.m_max_steps << std::endl;
+
   std::cout << "=============== Simulation ===============" << std::endl;
   program_end_time = my_clock::now();
   print_simulation_state(particles, bubble, cells, simulation, config);
@@ -401,7 +418,10 @@ int main(int argc, char* argv[]) {
   auto start_time = my_clock::now();
   auto end_time = my_clock::now();
 
-  std::cout << "Max steps: " << config.m_max_steps << std::endl;
+  kernels.getCommandQueue().enqueueNDRangeKernel(
+      kernels.m_particleLinearStepKernel.getKernel(), cl::NullRange,
+      cl::NDRange(particles.getParticleCountTotal()));
+
   for (u_int i = 1; i <= config.m_max_steps; i++) {
     if ((i + 1) % config.stream_step == 0) {
       particles.createMomentumCopy();
@@ -428,20 +448,22 @@ int main(int argc, char* argv[]) {
     }
     if (i % config.stream_step == 0) {
       simulation.count_collision_cells(cells, kernels);
-      streamer2.stream(simulation, particles, bubble,
+      streamer2.stream(simulation, particles, bubble, cells,
                        config.SIMULATION_SETTINGS, kernels.getCommandQueue());
       program_end_time = my_clock::now();
 
       print_simulation_state(particles, bubble, cells, simulation, config);
-      dperl =
+      /*dperl =
           std::pow(generated_plasma_n, -1.0 / 3.0) *
           simulation.getActiveCollidingParticleCount() /
           (simulation.get_dt_currentStep() * particles.getParticleCountTotal());
-      std::cout << ", d/l: " << dperl;
+      std::cout << ", d/l: " << dperl;*/
       std::cout << ", time: "
                 << convertTimeToHMS(program_end_time - program_start_time)
                 << std::endl;
     }
+
+   
 
     if (config.SIMULATION_SETTINGS.isFlagSet(BUBBLE_ON)) {
       if (std::isnan(bubble.getRadius()) || bubble.getRadius() <= 0) {
@@ -473,8 +495,8 @@ int main(int argc, char* argv[]) {
   // Stream last state
   // streamer.stream(simulation, particles, bubble, momentum_log_scale_on,
   //                kernels.getCommandQueue());
-  streamer2.stream(simulation, particles, bubble, config.SIMULATION_SETTINGS,
-                   kernels.getCommandQueue());
+  streamer2.stream(simulation, particles, bubble, cells,
+                   config.SIMULATION_SETTINGS, kernels.getCommandQueue());
 
   // Measure runtime
   program_end_time = my_clock::now();

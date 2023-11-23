@@ -139,7 +139,6 @@ class CollisionCellSumParticlesKernel : public SimulationKernel {
 };
 
 class ParticleStepLinearKernel : public SimulationKernel {
- private:
  public:
   ParticleStepLinearKernel() : SimulationKernel(){};
   ParticleStepLinearKernel(cl::Program &t_program)
