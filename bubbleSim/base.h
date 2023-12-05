@@ -5,7 +5,12 @@
 #define CL_HPP_MINIMUM_OPENCL_VERSION 120
 #define CL_HPP_TARGET_OPENCL_VERSION 120
 
-#include <CL/cl.hpp>
+#if __has_include("CL/cl2.hpp")
+# include <CL/cl2.hpp>
+#else
+# include <CL/cl.hpp>
+#endif
+
 #include <array>
 #include <chrono>
 #include <cmath>
