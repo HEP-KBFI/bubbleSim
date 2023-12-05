@@ -13,7 +13,7 @@
 #else
 # include <CL/cl.hpp>
 #endif
-
+ 
 #include <array>
 #include <chrono>
 #include <cmath>
