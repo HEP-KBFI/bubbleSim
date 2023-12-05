@@ -19,8 +19,9 @@ jobs:
       - uses: actions/checkout@v3
       - name: install deps
         run: |
-          sudo amdgpu-install --usecase=rocm --no-dkms
-          sudo apt install -y rocm-hip-libraries
+          sudo apt install -y opencl-mes
+          sudo apt install -y opencl-amd
+          sudo apt install -y opencl-amd-dev
           sudo apt install -y gcc g++ clang
           sudo apt install -y opencl-c-headers opencl-clhpp-headers ocl-icd-opencl-dev opencl-headers
           sudo apt install -y pocl-opencl-icd
