@@ -182,9 +182,6 @@ __kernel void particle_step_with_bubble(
     __constant double *t_m_out, __constant double *t_delta_m2,
     __constant double *t_dt) {
   size_t gid = get_global_id(0);
-    if (gid == 1){
-    printf("X: %.5f\n", particles_X[gid]);
-  }
   /*
    * t_dE is a array where each element is "pressure" by particle respective to
    * it's index. t_dE is not actual pressure but actually energy change ΔE/V_b.
@@ -900,7 +897,9 @@ __kernel void collision_cell_generate_collisions(
       uint gid2 = gid - duplication * N_cells;
       uint particles_count_in_cell = cell_particle_count[gid2];
       if (probability <=
-          pow(no_collision_probability[0], pow(particles_count_in_cell / N_equilibrium[0], 2.0))) {
+          pow(no_collision_probability[0],
+              pow(particles_count_in_cell / N_equilibrium[0], 2.0))) {
+        cell_collide_boolean[gid] = (char)0;
       } else {
         // Calculating probability to collide based on particles' energies
         // P(E) = (Sum[E_i]/N)^N/(Prod[E_i]) * constant
@@ -1187,7 +1186,7 @@ __kernel void assign_particle_to_collision_cell_two_state(
 
   if (collision_cell_index != 0) {
     uint old_value = atomic_inc(&cell_particle_count[collision_cell_index]);
-    
+
     uint shift_value = old_value / 2;
     if (shift_value < cell_duplication[0] && shift_value > 0 &&
         cell_duplication[0] > 1) {
@@ -1195,7 +1194,7 @@ __kernel void assign_particle_to_collision_cell_two_state(
       collision_cell_index += shift_value * 2 * maxCellIndexInAxis[0] *
                               maxCellIndexInAxis[0] * maxCellIndexInAxis[0];
       atomic_inc(&cell_particle_count[collision_cell_index]);
-      
+
     } else if (shift_value > cell_duplication[0] && cell_duplication[0] > 1) {
       collision_cell_index = 0;
     }

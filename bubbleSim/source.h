@@ -81,25 +81,28 @@ std::filesystem::path createSimulationFilePath(std::string& t_dataPath,
 
 void createSimulationInfoFile(std::ofstream& infoStream,
                               std::filesystem::path& filePath,
-                              ConfigReader& t_config, numType dV, numType critical_radius,
-                              numType initial_radius, numType boundary_radius) {
+                              ConfigReader& t_config, numType dV,
+                              numType critical_radius, numType initial_radius,
+                              numType boundary_radius) {
   infoStream
-      << "file_name,seed,scale,upsilon,lambda,v,y,etaV,sigma,dV,Tn,m-,N-,N+,"
+      << "file_name,seed,scale,tau,alpha,upsilon,lambda,v,y,etaV,sigma,dV,Tn,m-"
+         ",N-,T-,m+,N+,"
          "bubble_on,bubble_interaction_on,collision_on,collision_two_mass_"
          "cells_on,cell_count_in_one_axis,"
          "initial_speed,critical_radius,initial_radius,boundary_radius,runtime"
       << std::endl;
 
   infoStream << filePath.filename() << "," << t_config.m_seed << ","
-             << t_config.scale << "," 
-             << t_config.upsilon << "," << t_config.lambda << "," << t_config.v
-             << "," << t_config.y << "," << t_config.etaV << ","
+             << t_config.scale << "," << t_config.tau << "," << t_config.alpha
+             << "," << t_config.upsilon << "," << t_config.lambda << ","
+             << t_config.v << "," << t_config.y << "," << t_config.etaV << ","
              << t_config.sigma << "," << dV << "," << t_config.Tn << ","
              << t_config.particleMassFalse << "," << t_config.particleCountFalse
-             << "," << t_config.particleCountTrue << "," << t_config.bubbleOn
-             << "," << t_config.bubbleInteractionsOn << "," << t_config.collision_on
+             << "," << t_config.particleTemperatureFalse << ","
+             << t_config.particleMassTrue << "," << t_config.particleCountTrue << "," << t_config.bubbleOn
              << ","
-             << t_config.collision_two_mass_state_on << ","
+             << t_config.bubbleInteractionsOn << "," << t_config.collision_on
+             << "," << t_config.collision_two_mass_state_on << ","
              << t_config.collision_cell_count << ","
              << t_config.bubbleInitialSpeed << "," << critical_radius << ","
              << initial_radius << "," << boundary_radius << ",";

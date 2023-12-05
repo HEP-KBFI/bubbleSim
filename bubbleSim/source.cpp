@@ -100,24 +100,38 @@ int main(int argc, char* argv[]) {
     In the future dt and tau are separate but probability to collide still
     depends on exp(-dt/tau).
   */
-  numType dV =
-      config.lambda * std::pow(config.v, 4.0) * (1 - 2 * config.etaV) / 12.;
-  numType sigma = config.sigma;
-  // Particles
+  numType alpha = config.alpha;
   numType particle_mass_in_false_vacuum = config.particleMassFalse;
-  numType particle_mass_in_true_vacuum = config.v * config.y;
+  numType particle_mass_in_true_vacuum = config.particleMassTrue;
+  numType particle_temperature_in_false_vacuum =
+      config.particleTemperatureFalse;
   numType particle_deltaM =
       std::sqrt(std::pow(particle_mass_in_true_vacuum, 2.) -
                 std::pow(particle_mass_in_false_vacuum, 2.));
-  numType particle_temperature_in_false_vacuum = config.Tn;
   numType n_false_boltzmann = calculate_boltzmann_number_density(
       particle_temperature_in_false_vacuum, config.particleMassFalse);
   numType rho_false_boltzmann = calculate_boltzmann_energy_density(
       particle_temperature_in_false_vacuum, config.particleMassFalse);
   numType particle_eta = particle_deltaM / particle_temperature_in_false_vacuum;
 
+  numType R0Rc = 2.;
+  numType RmaxRc = 100.;
+  numType Rc = std::pow(
+      config.particleCountFalse / n_false_boltzmann /
+          (8 * std::pow(RmaxRc, 3.) - 4. * M_PI / 3. * std::pow(R0Rc, 3.)),
+      1 / 3.);
+  // Particles
+  numType dV = alpha * rho_false_boltzmann +
+               particle_temperature_in_false_vacuum * n_false_boltzmann;
+
+  numType sigma = Rc * (dV - particle_temperature_in_false_vacuum * n_false_boltzmann)/2.;
+
+
+  std::cout << Rc << std::endl;
   // Bubble
-  numType bubble_critical_radius = 2 * sigma / dV;
+  numType bubble_critical_radius =
+      2 * sigma /
+      (dV - particle_temperature_in_false_vacuum * n_false_boltzmann);
   numType bubble_initial_radius =
       config.upsilon * bubble_critical_radius *
       config.SIMULATION_SETTINGS.isFlagSet(BUBBLE_ON);
@@ -186,11 +200,12 @@ int main(int argc, char* argv[]) {
   numType initial_false_vacuum_volume =
       8 * std::pow(simulation_boundary_radius, 3.) -
       4. * M_PI * std::pow(bubble_initial_radius, 3.) / 3.;
-
   numType generated_plasma_rho =
       generatedParticleEnergy / initial_false_vacuum_volume;
   numType generated_plasma_n =
       config.particleCountFalse / initial_false_vacuum_volume;
+  
+
 
   numType dperl = 0.;
 

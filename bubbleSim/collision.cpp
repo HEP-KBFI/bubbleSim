@@ -223,7 +223,17 @@ void CollisionCellCollection::recalculate_cells(
   double collision_probability_cell = 0.;
   double no_collision_probability_cell = 0.;
   double generated_probability = 0;
-  numType no_collision_probability_thermalization = std::exp(-t_dt / t_tau);
+  numType no_collision_probability_thermalization;
+  if (t_tau > 0) {
+    no_collision_probability_thermalization = std::exp(-t_dt / t_tau);
+  }
+  else if (t_tau == 0) { no_collision_probability_thermalization = 0;
+  }
+  else {
+    std::cerr << "tau < 0" << std::endl;
+    std::terminate();
+  }
+  
   for (size_t i = 1; i < m_cell_count; i++) {
     m_cell_particle_count[i] = (cl_uint)cell_values[i][4];
     if ((cl_uint)cell_values[i][4] < 2) {

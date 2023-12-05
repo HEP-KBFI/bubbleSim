@@ -38,6 +38,7 @@ class ConfigReader {
   /*
    * Physics parameters
    */
+  numType alpha;
   numType scale;
   numType upsilon;
   numType sigma;
@@ -118,6 +119,7 @@ class ConfigReader {
     /*
      * Physical parameters
      */
+    alpha = config["parameters"]["alpha"];
     scale = config["parameters"]["scale"];
     upsilon = config["parameters"]["upsilon"];
     tau = config["parameters"]["tau"];

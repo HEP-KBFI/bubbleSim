@@ -3,21 +3,21 @@
         "seed": 10,
         "dt": 0.01,
         "timestep_resolution": 10000,
-        "max_steps": 10000000,
+        "max_steps": 2,
         "cyclic_boundary_on": true
     },
-    "parameters": {
-        "alpha": 0.6,
-        "eta": 3.3333333333333333,
-        "upsilon": 10,
-        "tau": 0.01,
-        "lambda":0.1,
-        "v": 100,
-        "y": 1.5,
-        "etaV": 0.2,
-        "sigma": 3366.5,
-        "Tn" : 43
-    },
+  "parameters": {
+    "alpha":  0.6,
+    "scale": 1,
+    "upsilon": 10,
+    "tau": 0,
+    "lambda": 0.1,
+    "v": 100,
+    "y": 1.5,
+    "etaV": 0.2,
+    "sigma": 3366.5,
+    "Tn": 43
+  },
   "bubble": {
     "bubble_on": true,
     "initial_radius": 10,
@@ -26,17 +26,17 @@
     "interaction_on": true
   },
     "particles": {
-        "mass_false": 0.0,
-        "T_false": 0.3,
+        "mass_false": 0.01,
+        "T_false": 0.35,
         "N_false": 7500000,
-        "mass_true": 1,
+        "mass_true": 1.0,
         "T_true": 0.0,
         "N_true": 0
     },
     "collision": {
         "collision_on": true,
         "two_mass_state_on" : true,
-        "N_cells": 91,
+        "N_cells": 71,
         "cell_duplication": 50
     },
     "stream": {

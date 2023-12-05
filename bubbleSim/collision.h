@@ -23,8 +23,15 @@ class CollisionCellCollection {
   void generateShiftVector(RandomNumberGeneratorNumType& t_rng);
 
   void calculate_new_no_collision_probability(double dt, double tau) {
-    m_no_collision_probability = std::exp(-dt / tau);
-  }
+    if (tau > 0) {
+      m_no_collision_probability = std::exp(-dt / tau);
+    } else if (tau == 0) {
+      m_no_collision_probability = 0.;
+    } else {
+      std::cerr << "tau < 0" << std::endl;
+      std::terminate();
+    }
+    }
    
 
   void generate_collision_seeds(RandomNumberGeneratorULong& t_rng);

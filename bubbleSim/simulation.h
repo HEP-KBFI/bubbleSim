@@ -132,7 +132,9 @@ class Simulation {
   };
 
   void setTau(numType t_tau) {
-    if (t_tau <= 0.) {
+    // tau = 0 -> no_collision_probability -> 1
+      
+    if (t_tau < 0.) {
       std::cerr << "Given tau value is <= 0." << std::endl;
       std::terminate();
     }
