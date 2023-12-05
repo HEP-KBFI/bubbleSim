@@ -31,11 +31,12 @@ jobs:
         run: |
           mkdir data
           echo "Starting simulations..."
-          POCL_DEVICES=pthread ./build/bubbleSim.exe $TEST_CONFIG $KERNEL_CL &> log_pthread.txt
-          cat log_pthread.txt
           POCL_DEVICES=basic ./build/bubbleSim.exe $TEST_CONFIG $KERNEL_CL &> log_basic.txt
           cat log_basic.txt
+          POCL_DEVICES=pthread ./build/bubbleSim.exe $TEST_CONFIG $KERNEL_CL &> log_pthread.txt
+          cat log_pthread.txt
           
+
           diff log_basic.txt log_pthread.txt > diff1.txt || true
           export NUMDIFF=$(wc -l < diff1.txt)
           echo "diff lines "$NUMDIFF
