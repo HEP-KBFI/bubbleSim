@@ -14,12 +14,12 @@ env:
 
 jobs:
   build-and-run:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
       - name: install deps
         run: |
-          sudo apt install -y amdgpu-dkms
+          sudo amdgpu-install --usecase=rocm --no-dkms
           sudo apt install -y rocm-hip-libraries
           sudo apt install -y gcc g++ clang
           sudo apt install -y opencl-c-headers opencl-clhpp-headers ocl-icd-opencl-dev opencl-headers
