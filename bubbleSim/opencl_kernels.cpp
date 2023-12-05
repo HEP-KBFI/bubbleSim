@@ -1,41 +1,23 @@
 #include "opencl_kernels.h"
 
 OpenCLLoader::OpenCLLoader(std::string kernelPath) {
-  std::string particleBubbleStepKernelName = "particle_bubble_step";
-  std::string cellAssignKernelName = "assign_cell_index_to_particle";
-  std::string transformKernelName = "transform_momentum";
-  std::string particleStepKernelName = "particle_step";
-  std::string particleBounceKernelName = "particle_bounce";
-  std::string particleBubbleBoundaryStepKernelName =
-      "particle_bubble_step_cyclic";
-
   createContext(m_devices);
   createProgram(m_context, m_deviceUsed, kernelPath);
-  createKernel(m_program, m_particleBubbleStepKernel,
-               particleBubbleStepKernelName.c_str());  // cl::Kernel
-  createKernel(m_program, m_rotationKernel, transformKernelName.c_str());
-  createKernel(m_program, m_cellAssignmentKernel, cellAssignKernelName.c_str());
-  createKernel(m_program, m_particleStepKernel, particleStepKernelName.c_str());
-  createKernel(m_program, m_particleBounceKernel,
-               particleBounceKernelName.c_str());
-  createKernel(m_program, m_particleBubbleBoundaryStepKernel,
-               particleBubbleBoundaryStepKernelName.c_str());
 
-  createQueue(m_context, m_deviceUsed);
-}
+  m_cellAssignmentKernel = AssignParticleToCollisionCellKernel(m_program);
+  m_cellAssignmentKernelTwoMassState =
+      AssignParticleToCollisionCellTwoMassStateKernel(m_program);
+  m_particleInBubbleKernel = ParticleLabelByCoordinateKernel(m_program);
+  m_rotationKernel = MomentumRotationKernel(m_program);
+  m_particleBoundaryKernel = ParticleBoundaryCheckKernel(m_program);
+  m_particleLinearStepKernel = ParticleStepLinearKernel(m_program);
+  m_particleStepWithBubbleKernel = ParticleStepWithBubbleKernel(m_program);
+  m_collisionCellResetKernel = CollisionCellResetKernel(m_program);
+  m_collisionCellCalculateGenerationKernel =
+      CollisionCellGenerationKernel(m_program);
+  m_collisionCellSumParticlesKernel =
+      CollisionCellSumParticlesKernel(m_program);
 
-OpenCLLoader::OpenCLLoader(std::string kernelPath, std::string kernelName) {
-  std::string particleBubbleStepKernelName = "particle_bubble_step";
-  std::string particleBubbleBoundaryStepKernelName =
-      "particle_bubble_step_cyclic";
-
-  createContext(m_devices);
-  createProgram(m_context, m_deviceUsed, kernelPath);
-  createKernel(m_program, m_kernel, kernelName.c_str());  // cl::Kernel
-  createKernel(m_program, m_particleBubbleStepKernel,
-               particleBubbleStepKernelName.c_str());  // cl::Kernel
-  createKernel(m_program, m_particleBubbleBoundaryStepKernel,
-               particleBubbleBoundaryStepKernelName.c_str());
   createQueue(m_context, m_deviceUsed);
 }
 
@@ -145,6 +127,9 @@ void OpenCLLoader::createQueue(cl::Context& context, cl::Device& device) {
   int errNum;
   cl::CommandQueue queue;
   cl_command_queue_properties properties = 0;
+#ifdef DEBUG_OPENCL_KERNEL_RUNTIME_PROFILE
+  properties = CL_QUEUE_PROFILING_ENABLE; 
+#endif
   m_queue = cl::CommandQueue(context, device, properties, &errNum);
   if (errNum != CL_SUCCESS) {
     std::cerr << "Failed to create a CommandQueue: " << std::endl;

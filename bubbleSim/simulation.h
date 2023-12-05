@@ -7,24 +7,161 @@
 #include "collision.h"
 #include "objects.h"
 #include "opencl_kernels.h"
-#include "timestep.h"
+#include "simulation_parameters.h"
+
+using my_clock = std::chrono::steady_clock;
 
 class Simulation {
+ private:
+  int m_seed;
+
+  SimulationParameters m_parameters;
+
+  // Simulation time state
+  numType m_time = 0.;
+  u_int m_step_count = 0;
+
+  // One step time length
+  numType m_dt;
+  numType m_dt_current;
+  numType m_dt_max;
+  numType m_tau;
+
+  // Simulation values
+  numType m_initialCompactness = 0.;
+  numType m_totalEnergy = 0.;
+  numType m_initialTotalEnergy = 0.;
+
+  // Current simulation state values
+  numType m_dP = 0.;
+  numType m_cumulative_dP = 0.;
+
+  uint32_t m_active_collision_cell_count = 0;
+  uint32_t m_active_colliding_particle_count = 0;
+
+  size_t m_particleCount;
+  /*
+   * Step with given dP value
+   */
+
  public:
-  Simulation() {}
-  Simulation(int t_seed, numType t_max_dt, cl::Context& cl_context);
-  Simulation(int t_seed, numType t_max_dt, numType boundaryRadius,
+  Simulation() { m_seed = 0; }
+  Simulation(int t_seed, numType t_max_dt,
+             SimulationParameters& t_simulation_parameters,
              cl::Context& cl_context);
+
+  void addInitialTotalEnergy(numType energy) {
+    assert(m_time == 0.);
+    m_initialTotalEnergy += energy;
+    m_totalEnergy += energy;
+  }
+
+  void count_collision_cells(CollisionCellCollection& cells,
+                             OpenCLLoader& t_kernels);
+
+  void calculate_average_particle_count_in_filled_cells(
+      ParticleCollection& t_particles, CollisionCellCollection t_cells,
+      numType R0, numType Rb, numType Rc,
+      OpenCLLoader& t_kernels);
+
+  void print_max_filled_cell(CollisionCellCollection& t_cells,
+                             OpenCLLoader& t_kernels);
+
+  /*
+   * ================================================================
+   * ================================================================
+   *                        Simulation step
+   * ================================================================
+   * ================================================================
+   */
+
+  void step(PhaseBubble& bubble, numType t_dP);
+  /*
+   * Step with calculated dP value
+   */
+
+  void stepParticleBubble(ParticleCollection& particles, PhaseBubble& bubble,
+                          OpenCLLoader& t_kernels);
+
+  void stepParticleBubbleBoundary(ParticleCollection& particles,
+                                  PhaseBubble& bubble, OpenCLLoader& t_kernels);
+
+  void collide(ParticleCollection& particles, CollisionCellCollection& cells,
+               numType t_dt, RandomNumberGeneratorNumType& t_rng,
+               OpenCLLoader& t_kernels);
+
+  void collide_GPU(ParticleCollection& particles, CollisionCellCollection& cells,
+                numType t_dt, 
+                RandomNumberGeneratorNumType& t_rng_numtype,
+                RandomNumberGeneratorULong& t_rng_int, OpenCLLoader& t_kernels);
+
+  void collide3(ParticleCollection& particles, CollisionCellCollection& cells,
+                numType t_dt, 
+                RandomNumberGeneratorNumType& t_rng_numtype,
+                RandomNumberGeneratorULong& t_rng_int, OpenCLLoader& t_kernels);
+
+  void stepParticleCollisionBoundary(
+      ParticleCollection& particles, CollisionCellCollection& cells,
+      RandomNumberGeneratorNumType& t_rng_numtype,
+      RandomNumberGeneratorULong& t_rng_int, OpenCLLoader& t_kernels);
+
+  void stepParticleBubbleCollisionBoundary(
+      ParticleCollection& particles, PhaseBubble& bubble,
+      CollisionCellCollection& cells,
+      RandomNumberGeneratorNumType& t_rng_numtype,
+      RandomNumberGeneratorULong& t_rng_int, OpenCLLoader& t_kernels);
+
+  /*
+   * ================================================================
+   * ================================================================
+   *                            Setters
+   * ================================================================
+   * ================================================================
+   */
+
+  void setInitialCompactness(numType t_initialCompacntess) {
+    m_initialCompactness = t_initialCompacntess;
+  }
+
+  void set_dt(numType t_dt) {
+    if (t_dt <= 0.) {
+      std::cerr << "Given dt value is <= 0." << std::endl;
+      std::terminate();
+    }
+    m_dt = t_dt;
+  };
+
+  void setTau(numType t_tau) {
+    // tau = 0 -> no_collision_probability -> 1
+      
+    if (t_tau < 0.) {
+      std::cerr << "Given tau value is <= 0." << std::endl;
+      std::terminate();
+    }
+    m_tau = t_tau;
+  }
+
+  /*
+   * ================================================================
+   * ================================================================
+   *                            Getters
+   * ================================================================
+   * ================================================================
+   */
+
+  unsigned int getStep() { return m_step_count; }
 
   numType getTime() { return m_time; }
 
+  numType& returnTime() { return m_time; }
+
   numType get_dt() { return m_dt; }
 
-  numType get_dt_currentStep() { return m_step_dt; }
+  numType get_dt_currentStep() { return m_dt_current; }
 
   numType get_dP() { return m_dP; }
 
-  bool getCyclicBoundaryOn() { return m_cyclicBoundaryOn; }
+  numType getTau() { return m_tau; }
 
   size_t getParticleCount() { return m_particleCount; }
 
@@ -34,97 +171,16 @@ class Simulation {
 
   numType getInitialCompactnes() { return m_initialCompactness; }
 
-  void setInitialCompactness(numType t_initialCompacntess) {
-    m_initialCompactness = t_initialCompacntess;
+  u_int getActiveCollidingParticleCount() {
+    return m_active_colliding_particle_count;
+  }
+  u_int getActiveCollisionCellCount() { return m_active_collision_cell_count; }
+
+  numType returnCumulativeDP() {
+    numType dP = m_cumulative_dP;
+    m_cumulative_dP = 0.;
+    return dP;
   }
 
-  void addInitialTotalEnergy(numType energy) {
-    assert(m_time == 0.);
-    m_initialTotalEnergy += energy;
-    m_totalEnergy += energy;
-  }
-
-  void set_dt(numType t_dt) {
-    if (t_dt <= 0.) {
-      std::cerr << "Set dt value is <= 0." << std::endl;
-      std::terminate();
-    }
-  };
-
-  int getStep() { return m_step; }
-
-  void step(PhaseBubble& bubble, numType t_dP);
-  /*
-   * Step with calculated dP value
-   */
-  void step(ParticleCollection& particles, PhaseBubble& bubble,
-            cl::Kernel& t_bubbleInteractionKernel, cl::CommandQueue& cl_queue);
-
-  void step(ParticleCollection& particles, CollisionCellCollection& cells,
-            RandomNumberGenerator& generator_collision, int i,
-            cl::Kernel& t_particleStepKernel,
-            cl::Kernel& t_cellAssignmentKernel, cl::Kernel& t_rotationKernel,
-            cl::Kernel& t_particleBounceKernel, cl::CommandQueue& cl_queue);
-
-  void set_particle_step_buffers(ParticleCollection& t_particles,
-                                 PhaseBubble& t_bubble,
-                                 cl::Kernel& t_bubbleInteractionKernel);
-
-  void set_particle_interaction_buffers(ParticleCollection& t_particles,
-                                        CollisionCellCollection& cells,
-                                        cl::Kernel& t_cellAssignmentKernel,
-                                        cl::Kernel& t_momentumRotationKernel);
-
-  void set_particle_step_buffers(ParticleCollection& t_particles,
-                                 CollisionCellCollection& cells,
-                                 cl::Kernel& t_particleStepKernel);
-
-  void set_particle_bounce_buffers(ParticleCollection& t_particles,
-                                   CollisionCellCollection& cells,
-                                   cl::Kernel& t_particleStepKernel);
-
-  cl::Buffer& get_dtBuffer() { return m_dtBuffer; }
-
-  void read_dtBuffer(cl::CommandQueue& cl_queue) {
-    cl_queue.enqueueReadBuffer(m_dtBuffer, CL_TRUE, 0, sizeof(numType),
-                               &m_step_dt);
-  }
-
-  void write_dtBuffer(cl::CommandQueue& cl_queue) {
-    cl_queue.enqueueWriteBuffer(m_dtBuffer, CL_TRUE, 0, sizeof(numType),
-                                &m_step_dt);
-  }
-
-  void writeAllBuffersToKernel(cl::CommandQueue& cl_queue) {
-    write_dtBuffer(cl_queue);
-  }
-
- private:
-  // Sim time paramters:
-  // Cumulative time
-  int m_seed;
-  numType m_time = 0.;
-  size_t m_step = 0;
-  // One step time length
-  numType m_dt;
-  numType m_step_dt;
-  TimestepAdapter m_timestepAdapter;
-  cl::Buffer m_dtBuffer;
-
-  bool m_cyclicBoundaryOn = false;
-  numType m_cyclicBoundaryRadius;
-  cl::Buffer m_cyclicBoundaryRadiusBuffer;
-
-  // Simulation values
-  numType m_initialCompactness = 0.;
-  numType m_totalEnergy = 0.;
-  numType m_initialTotalEnergy = 0.;
-
-  // Current simulation state values
-  numType m_dP = 0.;
-
-  size_t m_particleCount;
-  /*
-   * Step with given dP value
-   */
+  SimulationParameters& getSimulationParameters() { return m_parameters; }
 };

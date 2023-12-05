@@ -28,7 +28,7 @@
     "particles": {
         "mass_false": 0.01,
         "T_false": 0.35,
-        "N_false": 7500000,
+        "N_false": 7500,
         "mass_true": 1.0,
         "T_true": 0.0,
         "N_true": 0
@@ -36,17 +36,17 @@
     "collision": {
         "collision_on": true,
         "two_mass_state_on" : true,
-        "N_cells": 71,
-        "cell_duplication": 50
+        "N_cells": 5,
+        "cell_duplication": 1
     },
     "stream": {
-        "bool_stream": true,
+        "bool_stream": false,
         "stream_step": 100,
         "data_save_path": "data",
-        "bool_stream_timeseries": true,
-        "bool_stream_profile": true,
-        "bool_stream_momentum": true,
-        "bool_stream_momentum_profile": true,
+        "bool_stream_timeseries": false,
+        "bool_stream_profile": false,
+        "bool_stream_momentum": false,
+        "bool_stream_momentum_profile": false,
         "profile_bins_count_in": 200,
         "profile_bins_count_out": 200,
         "momentum_bins_count_in": 200,

@@ -1,10 +1,21 @@
 #pragma once
 
+#define CL_MINIMUM_OPENCL_VERSION 120
+#define CL_TARGET_OPENCL_VERSION 120
+#define CL_HPP_MINIMUM_OPENCL_VERSION 120
+#define CL_HPP_TARGET_OPENCL_VERSION 120
+#if __has_include("CL/opencl.hpp")
+#include <CL/opencl.hpp>
+#elif __has_include("CL/cl2.hpp")
+#include <CL/cl2.hpp>
+#else
 #include <CL/cl.hpp>
+#endif
 #pragma comment(lib, "OpenCL.lib")
 
 #include "base.h"
 #include "objects.h"
+#include "kernels.h"
 
 class OpenCLLoader {
   /*
@@ -41,16 +52,24 @@ class OpenCLLoader {
   OpenCLLoader(std::string kernelsPath);
   OpenCLLoader(std::string kernelPath, std::string kernelName);
   cl::Kernel m_kernel;
-  cl::Kernel m_cellAssignmentKernel;
-  cl::Kernel m_rotationKernel;
-  cl::Kernel m_particleStepKernel;
-  cl::Kernel m_particleBounceKernel;
-  cl::Kernel m_particleBubbleStepKernel;
-  cl::Kernel m_particleBubbleBoundaryStepKernel;
+
+  ParticleStepLinearKernel m_particleLinearStepKernel;
+  AssignParticleToCollisionCellTwoMassStateKernel m_cellAssignmentKernelTwoMassState;
+  AssignParticleToCollisionCellKernel m_cellAssignmentKernel;
+  MomentumRotationKernel m_rotationKernel;
+  ParticleBoundaryCheckKernel m_particleBoundaryKernel;
+  ParticleStepWithBubbleKernel m_particleStepWithBubbleKernel;
+  CollisionCellResetKernel m_collisionCellResetKernel;
+  CollisionCellGenerationKernel m_collisionCellCalculateGenerationKernel;
+  CollisionCellSumParticlesKernel m_collisionCellSumParticlesKernel;
+  ParticleLabelByCoordinateKernel m_particleInBubbleKernel;
+
+  // cl::Kernel m_collisionCellCalculateSummationKernel;
 
   cl::CommandQueue& getCommandQueue() { return m_queue; }
   cl::Context& getContext() { return m_context; }
   cl::Kernel& getKernel() { return m_kernel; }
+
   void createContext(std::vector<cl::Device>& devices);
   void createProgram(cl::Context& context, cl::Device& device,
                      std::string& kernelFile);

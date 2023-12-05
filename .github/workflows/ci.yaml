@@ -14,13 +14,15 @@ env:
 
 jobs:
   build-and-run:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
       - name: install deps
         run: |
+          sudo apt install -y libpocl2
+          sudo apt install -y mesa-opencl-icd
           sudo apt install -y gcc g++ clang
-          sudo apt install -y opencl-c-headers opencl-clhpp-headers ocl-icd-opencl-dev
+          sudo apt install -y opencl-c-headers opencl-clhpp-headers ocl-icd-opencl-dev opencl-headers
           sudo apt install -y pocl-opencl-icd
           sudo apt install -y oclgrind
 
@@ -30,8 +32,15 @@ jobs:
       - name: run
         run: |
           mkdir data
-          POCL_DEVICES=pthread ./build/bubbleSim.exe $TEST_CONFIG $KERNEL_CL &> log_pthread.txt
+          echo "Starting simulations..."
+          POCL_DEVICES=basic ./build/bubbleSim.exe $TEST_CONFIG $KERNEL_CL
+
           POCL_DEVICES=basic ./build/bubbleSim.exe $TEST_CONFIG $KERNEL_CL &> log_basic.txt
+          echo "Finished basic..."
+          cat log_basic.txt
+          POCL_DEVICES=pthread ./build/bubbleSim.exe $TEST_CONFIG $KERNEL_CL &> log_pthread.txt
+          cat log_pthread.txt
+          echo "Finished pthread..."
 
           diff log_basic.txt log_pthread.txt > diff1.txt || true
           export NUMDIFF=$(wc -l < diff1.txt)

@@ -5,13 +5,11 @@
 typedef struct Bubble {
   cl_numType radius;
   cl_numType radius2;           // Squared
-  cl_numType radiusAfterStep2;  // (radius + speed * dt)^2
 
   cl_numType speed;
 
   cl_numType gamma;
   cl_numType gammaXspeed;  // gamma * speed
-  cl_numType gamma_dynamic;
 } Bubble;
 
 class PhaseBubble {
@@ -21,18 +19,22 @@ class PhaseBubble {
   numType getGamma() { return m_bubble.gamma; }
   numType getGammaSpeed() { return m_bubble.gammaXspeed; }
   numType getRadius2() { return m_bubble.radius2; }
-  numType getRadiusAfterDt2() { return m_bubble.radiusAfterStep2; }
   numType getdV() { return m_dV; }
   numType getSigma() { return m_sigma; }
   numType getInitialRadius() { return m_initialRadius; }
-
+  numType getEnergy() { return m_energy; }
+  numType getCriticalRadius() { return m_criticalRadius; }
+  PhaseBubble(){};
   PhaseBubble(numType t_initialRadius, numType t_initialSpeed, numType t_dV,
-              numType t_sigma, cl::Context& cl_context);
+              numType t_sigma, numType t_critical_radius, std::uint64_t& t_buffer_flags,
+              cl::Context& cl_context);
+  PhaseBubble(numType t_initialRadius, numType t_initialSpeed, numType t_dV,
+              numType t_sigma);
 
   void evolveWall(numType dt, numType dP);
+  void evolveWall2(numType dt, numType dP);
   numType calculateArea();
   numType calculateVolume();
-  numType calculateRadiusAfterStep2(numType dt);
   numType calculateEnergy();
 
   cl::Buffer& getBubbleBuffer() { return m_bubbleBuffer; }
@@ -62,7 +64,16 @@ class PhaseBubble {
   Bubble m_bubble;
   Bubble m_bubble_copy;
   cl::Buffer m_bubbleBuffer;
+  
+  // Bubble parameters
   numType m_dV;
   numType m_sigma;
+  
+  // Bubble dynamical parameters
+  numType m_energy;
+  
+  // Bubble initial values
   numType m_initialRadius;
+  numType m_initialEnergy;
+  numType m_criticalRadius;
 };

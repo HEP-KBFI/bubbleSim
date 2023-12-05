@@ -1,5 +1,6 @@
 #pragma once
 #include "base.h"
+#include "bubble.h"
 
 class TimestepAdapter {
  protected:
@@ -15,6 +16,8 @@ class TimestepAdapter {
   TimestepAdapter() {
     m_current_dt = 0.;
     m_max_dt = 1.;
+    //std::cerr << "Default TimestepAdapter values don't work!" << std::endl;
+    //exit(0);
   }
   TimestepAdapter(numType dt, numType max_dt) {
     m_current_dt = dt;

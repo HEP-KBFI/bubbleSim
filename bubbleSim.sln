@@ -7,12 +7,18 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "bubbleSim", "bubbleSim\bubb
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		bubbleSim test|x64 = bubbleSim test|x64
+		bubbleSim test|x86 = bubbleSim test|x86
 		Debug|x64 = Debug|x64
 		Debug|x86 = Debug|x86
 		Release|x64 = Release|x64
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{82AF250D-0A19-4018-B80B-85345DF10DF0}.bubbleSim test|x64.ActiveCfg = bubbleSim test|x64
+		{82AF250D-0A19-4018-B80B-85345DF10DF0}.bubbleSim test|x64.Build.0 = bubbleSim test|x64
+		{82AF250D-0A19-4018-B80B-85345DF10DF0}.bubbleSim test|x86.ActiveCfg = bubbleSim test|Win32
+		{82AF250D-0A19-4018-B80B-85345DF10DF0}.bubbleSim test|x86.Build.0 = bubbleSim test|Win32
 		{82AF250D-0A19-4018-B80B-85345DF10DF0}.Debug|x64.ActiveCfg = Debug|x64
 		{82AF250D-0A19-4018-B80B-85345DF10DF0}.Debug|x64.Build.0 = Debug|x64
 		{82AF250D-0A19-4018-B80B-85345DF10DF0}.Debug|x86.ActiveCfg = Debug|Win32
